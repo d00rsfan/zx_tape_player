@@ -7,7 +7,7 @@ class ZxVolumeControlService extends VolumeControlService {
   @override
   Future setOptimalVolume() async {
     if (_hasSet) return;
-    VolumeController().maxVolume(showSystemUI: false);
+    VolumeController().setVolume(1.0, showSystemUI: false);
     _hasSet = true;
   }
 }

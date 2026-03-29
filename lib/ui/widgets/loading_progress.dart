@@ -5,7 +5,7 @@ import 'package:zx_tape_player/utils/extensions.dart';
 class LoadingProgress extends StatelessWidget {
   final String loadingText;
 
-  LoadingProgress({Key key, @required this.loadingText}) : super(key: key);
+  const LoadingProgress({super.key, required this.loadingText});
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +15,7 @@ class LoadingProgress extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
           SpinKitThreeBounce(size: 16.0, color: HexColor('#AFB6BB')),
-          SizedBox(
-            height: 16.0,
-          ),
+          const SizedBox(height: 16.0),
           Text(
             loadingText,
             style: TextStyle(color: HexColor('#AFB6BB'), fontSize: 14.0),

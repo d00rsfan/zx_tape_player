@@ -10,73 +10,69 @@ import 'package:zx_tape_player/utils/extensions.dart';
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  SplashScreen({Key key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
-  _SplashScreenState createState() {
-    return _SplashScreenState();
-  }
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Timer _timer;
+  Timer? _timer;
 
   @override
   void initState() {
-    SystemChannels.textInput
-        .invokeMethod('TextInput.hide'); // hide the keyboard
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
     super.initState();
     _timer = Timer(
-        Duration(seconds: 3),
+        const Duration(seconds: 3),
         () async => await Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (BuildContext context) {
-              return HomeScreen();
+              return const HomeScreen();
             })));
   }
 
   @override
   void dispose() {
-    while (_timer.isActive) {}
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
+        body: SizedBox(
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.height,
             child: Column(children: <Widget>[
               Expanded(
-                child: Container(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Cassette(),
-                      Container(
-                          width: MediaQuery.of(context).size.width,
-                          padding: EdgeInsets.fromLTRB(0, 20, 0, 0),
-                          child: Text(tr('zx_tape_player'),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 22, color: HexColor('##E7ECED')))),
-                    ],
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    const Cassette(),
+                    Container(
+                        width: MediaQuery.of(context).size.width,
+                        padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                        child: Text(tr('zx_tape_player'),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 22,
+                                color: HexColor('#E7ECED')))),
+                  ],
                 ),
               ),
               Container(
-                  padding: EdgeInsets.fromLTRB(0, 0, 0, 50),
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 50),
                   child: Column(children: <Widget>[
                     FutureBuilder<PackageInfo>(
                       builder: (BuildContext context,
                           AsyncSnapshot<PackageInfo> snapshot) {
-                        var copyrightText = tr('copyright')
-                            .format([DateTime.now().year]);
+                        var copyrightText =
+                            tr('copyright').format([DateTime.now().year]);
                         if (snapshot.hasData) {
                           copyrightText += tr('version').format([
-                            snapshot.data.version,
-                            snapshot.data.buildNumber
+                            snapshot.data!.version,
+                            snapshot.data!.buildNumber
                           ]);
                         }
                         return Text(copyrightText,

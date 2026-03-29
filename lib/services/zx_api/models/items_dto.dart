@@ -1,23 +1,15 @@
-/// took : 9
-/// timed_out : false
-/// _shards : {"total":1,"successful":1,"skipped":0,"failed":0}
-/// hits : {"total":{"value":1862,"relation":"eq"},"max_score":null,"hits":[{"_index":"zxinfo-20210205-105714","_type":"_doc","_id":"0009031","_score":null,"_source":{"originalDayOfRelease":null,"availability":"Available","title":"A B C","releases":[{"publishers":[{"country":"UK","name":"Artic Computing Ltd","labelType":"Company: Publisher/Manager","publisherSeq":1}]}],"originalMonthOfRelease":null,"score":{"score":5,"votes":1},"genreType":"General","additionalDownloads":[{"path":"/pub/sinclair/games-inlays/a/ABC.jpg","size":360968,"format":"Picture (JPG)","language":null,"type":"Cassette inlay"},{"path":"/pub/sinclair/games-info/a/ABC.txt","size":1355,"format":"Document (TXT)","language":"English","type":"Instructions"},{"path":"/pub/sinclair/screens/in-game/a/ABC.gif","size":1199,"format":"Picture (GIF)","language":null,"type":"Running screen"}],"screens":[{"filename":"ABC.gif","size":1199,"format":"Picture (GIF)","type":"Running screen","title":null,"url":"/pub/sinclair/screens/in-game/a/ABC.gif"}],"originalYearOfRelease":1983,"genre":"General: Education","publishers":[{"country":"UK","notes":[],"name":"Artic Computing Ltd","labelType":"Company: Publisher/Manager","publisherSeq":1}],"genreSubType":"Education","machineType":"ZX-Spectrum 48K","authors":[{"country":"UK","groupName":null,"groupType":null,"notes":[],"groupCountry":null,"authorSeq":1,"roles":[],"name":"Chris A. Thornton","labelType":"Person","type":"Creator"}]},"sort":["A B C"]}]}
-
 class ItemsDto {
-  int _took;
-  bool _timedOut;
-  Shards _shards;
-  Hits _hits;
+  int? _took;
+  bool? _timedOut;
+  Shards? _shards;
+  Hits? _hits;
 
-  int get took => _took;
+  int? get took => _took;
+  bool? get timedOut => _timedOut;
+  Shards? get shards => _shards;
+  Hits? get hits => _hits;
 
-  bool get timedOut => _timedOut;
-
-  Shards get shards => _shards;
-
-  Hits get hits => _hits;
-
-  ItemsDto({int took, bool timedOut, Shards shards, Hits hits}) {
+  ItemsDto({int? took, bool? timedOut, Shards? shards, Hits? hits}) {
     _took = took;
     _timedOut = timedOut;
     _shards = shards;
@@ -35,43 +27,26 @@ class ItemsDto {
     var map = <String, dynamic>{};
     map["took"] = _took;
     map["timed_out"] = _timedOut;
-    if (_shards != null) {
-      map["_shards"] = _shards.toJson();
-    }
-    if (_hits != null) {
-      map["hits"] = _hits.toJson();
-    }
+    if (_shards != null) map["_shards"] = _shards!.toJson();
+    if (_hits != null) map["hits"] = _hits!.toJson();
     return map;
   }
 }
 
-/// total : {"value":1862,"relation":"eq"}
-/// max_score : null
-/// hits : [{"_index":"zxinfo-20210205-105714","_type":"_doc","_id":"0009031","_score":null,"_source":{"originalDayOfRelease":null,"availability":"Available","title":"A B C","releases":[{"publishers":[{"country":"UK","name":"Artic Computing Ltd","labelType":"Company: Publisher/Manager","publisherSeq":1}]}],"originalMonthOfRelease":null,"score":{"score":5,"votes":1},"genreType":"General","additionalDownloads":[{"path":"/pub/sinclair/games-inlays/a/ABC.jpg","size":360968,"format":"Picture (JPG)","language":null,"type":"Cassette inlay"},{"path":"/pub/sinclair/games-info/a/ABC.txt","size":1355,"format":"Document (TXT)","language":"English","type":"Instructions"},{"path":"/pub/sinclair/screens/in-game/a/ABC.gif","size":1199,"format":"Picture (GIF)","language":null,"type":"Running screen"}],"screens":[{"filename":"ABC.gif","size":1199,"format":"Picture (GIF)","type":"Running screen","title":null,"url":"/pub/sinclair/screens/in-game/a/ABC.gif"}],"originalYearOfRelease":1983,"genre":"General: Education","publishers":[{"country":"UK","notes":[],"name":"Artic Computing Ltd","labelType":"Company: Publisher/Manager","publisherSeq":1}],"genreSubType":"Education","machineType":"ZX-Spectrum 48K","authors":[{"country":"UK","groupName":null,"groupType":null,"notes":[],"groupCountry":null,"authorSeq":1,"roles":[],"name":"Chris A. Thornton","labelType":"Person","type":"Creator"}]},"sort":["A B C"]}]
-
 class Hits {
-  Total _total;
+  Total? _total;
   dynamic _maxScore;
-  List<Hits> _hits;
+  List<Hits>? _hits;
   dynamic _id;
-  Source _source;
+  Source? _source;
 
-  Total get total => _total;
-
+  Total? get total => _total;
   dynamic get maxScore => _maxScore;
-
-  List<Hits> get hits => _hits;
-
+  List<Hits>? get hits => _hits;
   dynamic get id => _id;
+  Source? get source => _source;
 
-  Source get source => _source;
-
-  Hits(
-      {dynamic id,
-      Source source,
-      Total total,
-      dynamic maxScore,
-      List<Hits> hits}) {
+  Hits({dynamic id, Source? source, Total? total, dynamic maxScore, List<Hits>? hits}) {
     _total = total;
     _maxScore = maxScore;
     _hits = hits;
@@ -87,119 +62,58 @@ class Hits {
     if (json["hits"] != null) {
       _hits = [];
       json["hits"].forEach((v) {
-        _hits.add(Hits.fromJson(v));
+        _hits!.add(Hits.fromJson(v));
       });
     }
   }
 
   Map<String, dynamic> toJson() {
     var map = <String, dynamic>{};
-    if (_total != null) {
-      map["total"] = _total.toJson();
-    }
+    if (_total != null) map["total"] = _total!.toJson();
     map["max_score"] = _maxScore;
-    if (_hits != null) {
-      map["hits"] = _hits.map((v) => v.toJson()).toList();
-    }
+    if (_hits != null) map["hits"] = _hits!.map((v) => v.toJson()).toList();
     return map;
   }
 }
 
-/// originalDayOfRelease : null
-/// availability : "Available"
-/// title : "A B C"
-/// releases : [{"publishers":[{"country":"UK","name":"Artic Computing Ltd","labelType":"Company: Publisher/Manager","publisherSeq":1}]}]
-/// originalMonthOfRelease : null
-/// score : {"score":5,"votes":1}
-/// genreType : "General"
-/// additionalDownloads : [{"path":"/pub/sinclair/games-inlays/a/ABC.jpg","size":360968,"format":"Picture (JPG)","language":null,"type":"Cassette inlay"},{"path":"/pub/sinclair/games-info/a/ABC.txt","size":1355,"format":"Document (TXT)","language":"English","type":"Instructions"},{"path":"/pub/sinclair/screens/in-game/a/ABC.gif","size":1199,"format":"Picture (GIF)","language":null,"type":"Running screen"}]
-/// screens : [{"filename":"ABC.gif","size":1199,"format":"Picture (GIF)","type":"Running screen","title":null,"url":"/pub/sinclair/screens/in-game/a/ABC.gif"}]
-/// originalYearOfRelease : 1983
-/// genre : "General: Education"
-/// publishers : [{"country":"UK","notes":[],"name":"Artic Computing Ltd","labelType":"Company: Publisher/Manager","publisherSeq":1}]
-/// genreSubType : "Education"
-/// machineType : "ZX-Spectrum 48K"
-/// authors : [{"country":"UK","groupName":null,"groupType":null,"notes":[],"groupCountry":null,"authorSeq":1,"roles":[],"name":"Chris A. Thornton","labelType":"Person","type":"Creator"}]
-
 class Source {
   dynamic _originalDayOfRelease;
-  String _availability;
-  String _title;
-  List<Releases> _releases;
+  String? _availability;
+  String? _title;
+  List<Releases>? _releases;
   dynamic _originalMonthOfRelease;
-  Score _score;
-  String _genreType;
-  List<AdditionalDownloads> _additionalDownloads;
-  List<Screens> _screens;
-  int _originalYearOfRelease;
-  String _genre;
-  List<Publishers> _publishers;
-  String _genreSubType;
-  String _machineType;
-  List<Authors> _authors;
+  Score? _score;
+  String? _genreType;
+  List<AdditionalDownloads>? _additionalDownloads;
+  List<Screens>? _screens;
+  int? _originalYearOfRelease;
+  String? _genre;
+  List<Publishers>? _publishers;
+  String? _genreSubType;
+  String? _machineType;
+  List<Authors>? _authors;
+  OriginalPrice? _originalPrice;
+  String? _remarks;
+  List<Tosec>? _tosec;
 
   dynamic get originalDayOfRelease => _originalDayOfRelease;
-
-  String get availability => _availability;
-
-  String get title => _title;
-
-  List<Releases> get releases => _releases;
-
+  String? get availability => _availability;
+  String? get title => _title;
+  List<Releases>? get releases => _releases;
   dynamic get originalMonthOfRelease => _originalMonthOfRelease;
-
-  Score get score => _score;
-
-  String get genreType => _genreType;
-
-  List<AdditionalDownloads> get additionalDownloads => _additionalDownloads;
-
-  List<Screens> get screens => _screens;
-
-  int get originalYearOfRelease => _originalYearOfRelease;
-
-  String get genre => _genre;
-
-  List<Publishers> get publishers => _publishers;
-
-  String get genreSubType => _genreSubType;
-
-  String get machineType => _machineType;
-
-  List<Authors> get authors => _authors;
-
-  Source(
-      {dynamic originalDayOfRelease,
-      String availability,
-      String title,
-      List<Releases> releases,
-      dynamic originalMonthOfRelease,
-      Score score,
-      String genreType,
-      List<AdditionalDownloads> additionalDownloads,
-      List<Screens> screens,
-      int originalYearOfRelease,
-      String genre,
-      List<Publishers> publishers,
-      String genreSubType,
-      String machineType,
-      List<Authors> authors}) {
-    _originalDayOfRelease = originalDayOfRelease;
-    _availability = availability;
-    _title = title;
-    _releases = releases;
-    _originalMonthOfRelease = originalMonthOfRelease;
-    _score = score;
-    _genreType = genreType;
-    _additionalDownloads = additionalDownloads;
-    _screens = screens;
-    _originalYearOfRelease = originalYearOfRelease;
-    _genre = genre;
-    _publishers = publishers;
-    _genreSubType = genreSubType;
-    _machineType = machineType;
-    _authors = authors;
-  }
+  Score? get score => _score;
+  String? get genreType => _genreType;
+  List<AdditionalDownloads>? get additionalDownloads => _additionalDownloads;
+  List<Screens>? get screens => _screens;
+  int? get originalYearOfRelease => _originalYearOfRelease;
+  String? get genre => _genre;
+  List<Publishers>? get publishers => _publishers;
+  String? get genreSubType => _genreSubType;
+  String? get machineType => _machineType;
+  List<Authors>? get authors => _authors;
+  OriginalPrice? get originalPrice => _originalPrice;
+  String? get remarks => _remarks;
+  List<Tosec>? get tosec => _tosec;
 
   Source.fromJson(dynamic json) {
     _originalDayOfRelease = json["originalDayOfRelease"];
@@ -208,7 +122,7 @@ class Source {
     if (json["releases"] != null) {
       _releases = [];
       json["releases"].forEach((v) {
-        _releases.add(Releases.fromJson(v));
+        _releases!.add(Releases.fromJson(v));
       });
     }
     _originalMonthOfRelease = json["originalMonthOfRelease"];
@@ -217,13 +131,13 @@ class Source {
     if (json["additionalDownloads"] != null) {
       _additionalDownloads = [];
       json["additionalDownloads"].forEach((v) {
-        _additionalDownloads.add(AdditionalDownloads.fromJson(v));
+        _additionalDownloads!.add(AdditionalDownloads.fromJson(v));
       });
     }
     if (json["screens"] != null) {
       _screens = [];
       json["screens"].forEach((v) {
-        _screens.add(Screens.fromJson(v));
+        _screens!.add(Screens.fromJson(v));
       });
     }
     _originalYearOfRelease = json["originalYearOfRelease"];
@@ -231,7 +145,7 @@ class Source {
     if (json["publishers"] != null) {
       _publishers = [];
       json["publishers"].forEach((v) {
-        _publishers.add(Publishers.fromJson(v));
+        _publishers!.add(Publishers.fromJson(v));
       });
     }
     _genreSubType = json["genreSubType"];
@@ -239,7 +153,17 @@ class Source {
     if (json["authors"] != null) {
       _authors = [];
       json["authors"].forEach((v) {
-        _authors.add(Authors.fromJson(v));
+        _authors!.add(Authors.fromJson(v));
+      });
+    }
+    _originalPrice = json["originalPrice"] != null
+        ? OriginalPrice.fromJson(json["originalPrice"])
+        : null;
+    _remarks = json["remarks"];
+    if (json["tosec"] != null) {
+      _tosec = [];
+      json["tosec"].forEach((v) {
+        _tosec!.add(Tosec.fromJson(v));
       });
     }
   }
@@ -249,100 +173,88 @@ class Source {
     map["originalDayOfRelease"] = _originalDayOfRelease;
     map["availability"] = _availability;
     map["title"] = _title;
-    if (_releases != null) {
-      map["releases"] = _releases.map((v) => v.toJson()).toList();
-    }
+    if (_releases != null) map["releases"] = _releases!.map((v) => v.toJson()).toList();
     map["originalMonthOfRelease"] = _originalMonthOfRelease;
-    if (_score != null) {
-      map["score"] = _score.toJson();
-    }
+    if (_score != null) map["score"] = _score!.toJson();
     map["genreType"] = _genreType;
     if (_additionalDownloads != null) {
-      map["additionalDownloads"] =
-          _additionalDownloads.map((v) => v.toJson()).toList();
+      map["additionalDownloads"] = _additionalDownloads!.map((v) => v.toJson()).toList();
     }
-    if (_screens != null) {
-      map["screens"] = _screens.map((v) => v.toJson()).toList();
-    }
+    if (_screens != null) map["screens"] = _screens!.map((v) => v.toJson()).toList();
     map["originalYearOfRelease"] = _originalYearOfRelease;
     map["genre"] = _genre;
-    if (_publishers != null) {
-      map["publishers"] = _publishers.map((v) => v.toJson()).toList();
-    }
+    if (_publishers != null) map["publishers"] = _publishers!.map((v) => v.toJson()).toList();
     map["genreSubType"] = _genreSubType;
     map["machineType"] = _machineType;
-    if (_authors != null) {
-      map["authors"] = _authors.map((v) => v.toJson()).toList();
-    }
+    if (_authors != null) map["authors"] = _authors!.map((v) => v.toJson()).toList();
+    if (_originalPrice != null) map["originalPrice"] = _originalPrice!.toJson();
+    map["remarks"] = _remarks;
+    if (_tosec != null) map["tosec"] = _tosec!.map((v) => v.toJson()).toList();
     return map;
   }
 }
 
-/// country : "UK"
-/// groupName : null
-/// groupType : null
-/// notes : []
-/// groupCountry : null
-/// authorSeq : 1
-/// roles : []
-/// name : "Chris A. Thornton"
-/// labelType : "Person"
-/// type : "Creator"
+class Tosec {
+  String? _path;
+  String? get path => _path;
+
+  Tosec({String? path}) {
+    _path = path;
+  }
+
+  Tosec.fromJson(dynamic json) {
+    _path = json["path"];
+  }
+
+  Map<String, dynamic> toJson() {
+    return {"path": _path};
+  }
+}
+
+class OriginalPrice {
+  String? _amount;
+  String? _currency;
+
+  String? get amount => _amount;
+  String? get currency => _currency;
+
+  OriginalPrice({String? amount, String? currency}) {
+    _amount = amount;
+    _currency = currency;
+  }
+
+  OriginalPrice.fromJson(dynamic json) {
+    _amount = json["amount"];
+    _currency = json["currency"];
+  }
+
+  Map<String, dynamic> toJson() {
+    return {"amount": _amount, "currency": _currency};
+  }
+}
 
 class Authors {
-  String _country;
+  String? _country;
   dynamic _groupName;
   dynamic _groupType;
-  List<dynamic> _notes;
+  List<dynamic>? _notes;
   dynamic _groupCountry;
-  int _authorSeq;
-  List<dynamic> _roles;
-  String _name;
-  String _labelType;
-  String _type;
+  int? _authorSeq;
+  List<dynamic>? _roles;
+  String? _name;
+  String? _labelType;
+  String? _type;
 
-  String get country => _country;
-
+  String? get country => _country;
   dynamic get groupName => _groupName;
-
   dynamic get groupType => _groupType;
-
-  List<dynamic> get notes => _notes;
-
+  List<dynamic>? get notes => _notes;
   dynamic get groupCountry => _groupCountry;
-
-  int get authorSeq => _authorSeq;
-
-  List<dynamic> get roles => _roles;
-
-  String get name => _name;
-
-  String get labelType => _labelType;
-
-  String get type => _type;
-
-  Authors(
-      {String country,
-      dynamic groupName,
-      dynamic groupType,
-      List<dynamic> notes,
-      dynamic groupCountry,
-      int authorSeq,
-      List<dynamic> roles,
-      String name,
-      String labelType,
-      String type}) {
-    _country = country;
-    _groupName = groupName;
-    _groupType = groupType;
-    _notes = notes;
-    _groupCountry = groupCountry;
-    _authorSeq = authorSeq;
-    _roles = roles;
-    _name = name;
-    _labelType = labelType;
-    _type = type;
-  }
+  int? get authorSeq => _authorSeq;
+  List<dynamic>? get roles => _roles;
+  String? get name => _name;
+  String? get labelType => _labelType;
+  String? get type => _type;
 
   Authors.fromJson(dynamic json) {
     _country = json["country"];
@@ -350,17 +262,13 @@ class Authors {
     _groupType = json["groupType"];
     if (json["notes"] != null) {
       _notes = [];
-      json["notes"].forEach((v) {
-        _notes.add(v);
-      });
+      json["notes"].forEach((v) { _notes!.add(v); });
     }
     _groupCountry = json["groupCountry"];
     _authorSeq = json["authorSeq"];
     if (json["roles"] != null) {
       _roles = [];
-      json["roles"].forEach((v) {
-        _roles.add(v);
-      });
+      json["roles"].forEach((v) { _roles!.add(v); });
     }
     _name = json["name"];
     _labelType = json["labelType"];
@@ -372,14 +280,10 @@ class Authors {
     map["country"] = _country;
     map["groupName"] = _groupName;
     map["groupType"] = _groupType;
-    if (_notes != null) {
-      map["notes"] = _notes.map((v) => v.toJson()).toList();
-    }
+    map["notes"] = _notes;
     map["groupCountry"] = _groupCountry;
     map["authorSeq"] = _authorSeq;
-    if (_roles != null) {
-      map["roles"] = _roles.map((v) => v.toJson()).toList();
-    }
+    map["roles"] = _roles;
     map["name"] = _name;
     map["labelType"] = _labelType;
     map["type"] = _type;
@@ -387,49 +291,24 @@ class Authors {
   }
 }
 
-/// country : "UK"
-/// notes : []
-/// name : "Artic Computing Ltd"
-/// labelType : "Company: Publisher/Manager"
-/// publisherSeq : 1
-
 class Publishers {
-  String _country;
-  List<dynamic> _notes;
-  String _name;
-  String _labelType;
-  int _publisherSeq;
+  String? _country;
+  List<dynamic>? _notes;
+  String? _name;
+  String? _labelType;
+  int? _publisherSeq;
 
-  String get country => _country;
-
-  List<dynamic> get notes => _notes;
-
-  String get name => _name;
-
-  String get labelType => _labelType;
-
-  int get publisherSeq => _publisherSeq;
-
-  Publishers(
-      {String country,
-      List<dynamic> notes,
-      String name,
-      String labelType,
-      int publisherSeq}) {
-    _country = country;
-    _notes = notes;
-    _name = name;
-    _labelType = labelType;
-    _publisherSeq = publisherSeq;
-  }
+  String? get country => _country;
+  List<dynamic>? get notes => _notes;
+  String? get name => _name;
+  String? get labelType => _labelType;
+  int? get publisherSeq => _publisherSeq;
 
   Publishers.fromJson(dynamic json) {
     _country = json["country"];
     if (json["notes"] != null) {
       _notes = [];
-      json["notes"].forEach((v) {
-        _notes.add(v);
-      });
+      json["notes"].forEach((v) { _notes!.add(v); });
     }
     _name = json["name"];
     _labelType = json["labelType"];
@@ -439,9 +318,7 @@ class Publishers {
   Map<String, dynamic> toJson() {
     var map = <String, dynamic>{};
     map["country"] = _country;
-    if (_notes != null) {
-      map["notes"] = _notes.map((v) => v.toJson()).toList();
-    }
+    map["notes"] = _notes;
     map["name"] = _name;
     map["labelType"] = _labelType;
     map["publisherSeq"] = _publisherSeq;
@@ -449,47 +326,20 @@ class Publishers {
   }
 }
 
-/// filename : "ABC.gif"
-/// size : 1199
-/// format : "Picture (GIF)"
-/// type : "Running screen"
-/// title : null
-/// url : "/pub/sinclair/screens/in-game/a/ABC.gif"
-
 class Screens {
-  String _filename;
-  int _size;
-  String _format;
-  String _type;
+  String? _filename;
+  int? _size;
+  String? _format;
+  String? _type;
   dynamic _title;
-  String _url;
+  String? _url;
 
-  String get filename => _filename;
-
-  int get size => _size;
-
-  String get format => _format;
-
-  String get type => _type;
-
+  String? get filename => _filename;
+  int? get size => _size;
+  String? get format => _format;
+  String? get type => _type;
   dynamic get title => _title;
-
-  String get url => _url;
-
-  Screens(
-      {String filename,
-      int size,
-      String format,
-      String type,
-      dynamic title,
-      String url}) {
-    _filename = filename;
-    _size = size;
-    _format = format;
-    _type = type;
-    _title = title;
-    _url = url;
-  }
+  String? get url => _url;
 
   Screens.fromJson(dynamic json) {
     _filename = json["filename"];
@@ -512,37 +362,18 @@ class Screens {
   }
 }
 
-/// path : "/pub/sinclair/games-inlays/a/ABC.jpg"
-/// size : 360968
-/// format : "Picture (JPG)"
-/// language : null
-/// type : "Cassette inlay"
-
 class AdditionalDownloads {
-  String _path;
-  int _size;
-  String _format;
+  String? _path;
+  int? _size;
+  String? _format;
   dynamic _language;
-  String _type;
+  String? _type;
 
-  String get path => _path;
-
-  int get size => _size;
-
-  String get format => _format;
-
+  String? get path => _path;
+  int? get size => _size;
+  String? get format => _format;
   dynamic get language => _language;
-
-  String get type => _type;
-
-  AdditionalDownloads(
-      {String path, int size, String format, dynamic language, String type}) {
-    _path = path;
-    _size = size;
-    _format = format;
-    _language = language;
-    _type = type;
-  }
+  String? get type => _type;
 
   AdditionalDownloads.fromJson(dynamic json) {
     _path = json["path"];
@@ -563,18 +394,14 @@ class AdditionalDownloads {
   }
 }
 
-/// score : 5
-/// votes : 1
-
 class Score {
-  double _score;
-  int _votes;
+  double? _score;
+  int? _votes;
 
-  double get score => _score;
+  double? get score => _score;
+  int? get votes => _votes;
 
-  int get votes => _votes;
-
-  Score({double score, int votes}) {
+  Score({double? score, int? votes}) {
     _score = score;
     _votes = votes;
   }
@@ -585,29 +412,20 @@ class Score {
   }
 
   Map<String, dynamic> toJson() {
-    var map = <String, dynamic>{};
-    map["score"] = _score;
-    map["votes"] = _votes;
-    return map;
+    return {"score": _score, "votes": _votes};
   }
 }
 
-/// publishers : [{"country":"UK","name":"Artic Computing Ltd","labelType":"Company: Publisher/Manager","publisherSeq":1}]
-
 class Releases {
-  List<Publishers> _publishers;
+  List<Publishers>? _publishers;
 
-  List<Publishers> get publishers => _publishers;
-
-  Releases({List<Publishers> publishers}) {
-    _publishers = publishers;
-  }
+  List<Publishers>? get publishers => _publishers;
 
   Releases.fromJson(dynamic json) {
     if (json["publishers"] != null) {
       _publishers = [];
       json["publishers"].forEach((v) {
-        _publishers.add(Publishers.fromJson(v));
+        _publishers!.add(Publishers.fromJson(v));
       });
     }
   }
@@ -615,27 +433,18 @@ class Releases {
   Map<String, dynamic> toJson() {
     var map = <String, dynamic>{};
     if (_publishers != null) {
-      map["publishers"] = _publishers.map((v) => v.toJson()).toList();
+      map["publishers"] = _publishers!.map((v) => v.toJson()).toList();
     }
     return map;
   }
 }
 
-/// value : 1862
-/// relation : "eq"
-
 class Total {
-  int _value;
-  String _relation;
+  int? _value;
+  String? _relation;
 
-  int get value => _value;
-
-  String get relation => _relation;
-
-  Total({int value, String relation}) {
-    _value = value;
-    _relation = relation;
-  }
+  int? get value => _value;
+  String? get relation => _relation;
 
   Total.fromJson(dynamic json) {
     _value = json["value"];
@@ -643,38 +452,20 @@ class Total {
   }
 
   Map<String, dynamic> toJson() {
-    var map = <String, dynamic>{};
-    map["value"] = _value;
-    map["relation"] = _relation;
-    return map;
+    return {"value": _value, "relation": _relation};
   }
 }
 
-/// total : 1
-/// successful : 1
-/// skipped : 0
-/// failed : 0
-
 class Shards {
-  int _total;
-  int _successful;
-  int _skipped;
-  int _failed;
+  int? _total;
+  int? _successful;
+  int? _skipped;
+  int? _failed;
 
-  int get total => _total;
-
-  int get successful => _successful;
-
-  int get skipped => _skipped;
-
-  int get failed => _failed;
-
-  Shards({int total, int successful, int skipped, int failed}) {
-    _total = total;
-    _successful = successful;
-    _skipped = skipped;
-    _failed = failed;
-  }
+  int? get total => _total;
+  int? get successful => _successful;
+  int? get skipped => _skipped;
+  int? get failed => _failed;
 
   Shards.fromJson(dynamic json) {
     _total = json["total"];
@@ -684,11 +475,11 @@ class Shards {
   }
 
   Map<String, dynamic> toJson() {
-    var map = <String, dynamic>{};
-    map["total"] = _total;
-    map["successful"] = _successful;
-    map["skipped"] = _skipped;
-    map["failed"] = _failed;
-    return map;
+    return {
+      "total": _total,
+      "successful": _successful,
+      "skipped": _skipped,
+      "failed": _failed
+    };
   }
 }

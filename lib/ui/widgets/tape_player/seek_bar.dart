@@ -10,30 +10,31 @@ class SeekBar extends StatefulWidget {
   final Duration duration;
   final Duration position;
   final Duration bufferedPosition;
-  final ValueChanged<Duration> onChanged;
-  final ValueChanged<Duration> onChangeEnd;
+  final ValueChanged<Duration>? onChanged;
+  final ValueChanged<Duration>? onChangeEnd;
 
-  SeekBar({
-    @required this.duration,
-    @required this.position,
-    @required this.bufferedPosition,
+  const SeekBar({
+    super.key,
+    required this.duration,
+    required this.position,
+    required this.bufferedPosition,
     this.onChanged,
     this.onChangeEnd,
   });
 
   @override
-  _SeekBarState createState() => _SeekBarState();
+  State<SeekBar> createState() => _SeekBarState();
 }
 
 class _SeekBarState extends State<SeekBar> {
-  double _dragValue;
-  SliderThemeData _sliderThemeData;
+  double? _dragValue;
+  late SliderThemeData _sliderThemeData;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    _sliderThemeData = SliderTheme.of(this.context).copyWith(
+    _sliderThemeData = SliderTheme.of(context).copyWith(
       trackHeight: 2.0,
     );
   }
@@ -59,12 +60,12 @@ class _SeekBarState extends State<SeekBar> {
                   _dragValue = value;
                 });
                 if (widget.onChanged != null) {
-                  widget.onChanged(Duration(milliseconds: value.round()));
+                  widget.onChanged!(Duration(milliseconds: value.round()));
                 }
               },
               onChangeEnd: (value) {
                 if (widget.onChangeEnd != null) {
-                  widget.onChangeEnd(Duration(milliseconds: value.round()));
+                  widget.onChangeEnd!(Duration(milliseconds: value.round()));
                 }
                 _dragValue = null;
               },
@@ -89,12 +90,12 @@ class _SeekBarState extends State<SeekBar> {
                 _dragValue = value;
               });
               if (widget.onChanged != null) {
-                widget.onChanged(Duration(milliseconds: value.round()));
+                widget.onChanged!(Duration(milliseconds: value.round()));
               }
             },
             onChangeEnd: (value) {
               if (widget.onChangeEnd != null) {
-                widget.onChangeEnd(Duration(milliseconds: value.round()));
+                widget.onChangeEnd!(Duration(milliseconds: value.round()));
               }
               _dragValue = null;
             },
@@ -103,7 +104,7 @@ class _SeekBarState extends State<SeekBar> {
         Positioned(
           left: 0.0,
           top: 0.0,
-          child: FutureBuilder(builder: (context, snapshot) {
+          child: Builder(builder: (context) {
             return Text(_getTimeString(_position),
                 style: TextStyle(fontSize: 12.0, color: HexColor('#B1B8C1')));
           }),
@@ -132,7 +133,7 @@ class _SeekBarState extends State<SeekBar> {
   }
 
   Duration get _position => _dragValue != null
-      ? Duration(milliseconds: _dragValue.round())
+      ? Duration(milliseconds: _dragValue!.round())
       : widget.position;
 
   Duration get _remaining => widget.duration - widget.position;

@@ -7,8 +7,8 @@ class BarHelper {
   BarHelper._();
 
   static Future showSnackBar(
-      {@required String message,
-      @required BuildContext context,
+      {required String message,
+      required BuildContext context,
       SnackBarType barType = SnackBarType.info,
       Duration duration = const Duration(seconds: 3)}) async {
     await Future.delayed(const Duration(), () {
@@ -21,7 +21,7 @@ class BarHelper {
       backgroundColor: backgroundColor,
       content: Text(
         message,
-        style: TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white),
         textAlign: TextAlign.center,
       ),
     );

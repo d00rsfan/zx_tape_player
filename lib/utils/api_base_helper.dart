@@ -11,7 +11,7 @@ class ApiBaseHelper {
   final String _baseUrl;
 
   Future<dynamic> get(String url) async {
-    var responseJson;
+    dynamic responseJson;
     try {
       var uri = _baseUrl + url;
       final response =
@@ -27,7 +27,6 @@ class ApiBaseHelper {
     switch (response.statusCode) {
       case 200:
         var responseJson = json.decode(response.body.toString());
-        print(responseJson);
         return responseJson;
       case 400:
         throw BadRequestException(response.body.toString());
@@ -48,6 +47,7 @@ class UserAgentClient extends http.BaseClient {
 
   UserAgentClient(this.userAgent, this._inner);
 
+  @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     request.headers['user-agent'] = userAgent;
     return _inner.send(request);

@@ -3,17 +3,14 @@ import 'package:zx_tape_player/utils/extensions.dart';
 
 class AppError extends StatelessWidget {
   final String text;
+  final VoidCallback? action;
+  final String buttonText;
 
-  final Function action;
-
-  final buttonText;
-
-  AppError(
-      {Key key,
-      @required this.text,
-      @required this.buttonText,
-      @required this.action})
-      : super(key: key);
+  const AppError(
+      {super.key,
+      required this.text,
+      required this.buttonText,
+      required this.action});
 
   @override
   Widget build(BuildContext context) {
@@ -24,22 +21,20 @@ class AppError extends StatelessWidget {
             children: [
           Text(
             text,
-            style: TextStyle(color: Colors.white, fontSize: 16.0),
+            style: const TextStyle(color: Colors.white, fontSize: 16.0),
           ),
-          SizedBox(
-            height: 32.0,
-          ),
+          const SizedBox(height: 32.0),
           TextButton(
-            child: Text(buttonText, style: TextStyle(fontSize: 14.0)),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).primaryColor,
               backgroundColor: HexColor('#68B8DF'),
-              padding: EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 16.0),
+              padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 16.0),
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(2.0)),
               ),
             ),
             onPressed: action,
+            child: Text(buttonText, style: const TextStyle(fontSize: 14.0)),
           ),
         ]));
   }

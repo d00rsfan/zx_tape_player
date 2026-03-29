@@ -159,8 +159,25 @@ class ZxApiService implements BackendService {
     if (response.statusCode == 200) {
       var fileCheck = FileCheckDto.fromJson(json.decode(response.body));
       if (fileCheck.entryId != null) {
-        result = await fetchSoftware(fileCheck.entryId!,
+        var remote = await fetchSoftware(fileCheck.entryId!,
             recognizedTapeFileName: fileCheck.file?.filename);
+        if (remote.tapeFiles.isEmpty) {
+          remote = SoftwareModel(
+              remote.id,
+              false,
+              remote.title,
+              remote.year,
+              remote.genre,
+              remote.votes,
+              remote.score,
+              remote.price,
+              remote.remarks,
+              remote.authors,
+              remote.screenShotUrls,
+              null,
+              [filePath]);
+        }
+        result = remote;
       }
     }
 

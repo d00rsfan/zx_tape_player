@@ -4,29 +4,29 @@ import 'package:path/path.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
 class SoftwareModel {
-  final String id;
+  final String? id;
   final bool isRemote;
   final String title;
-  final String year;
-  final String genre;
-  final int votes;
-  final double score;
-  final String price;
-  final String remarks;
+  final String? year;
+  final String? genre;
+  final int? votes;
+  final double? score;
+  final String? price;
+  final String? remarks;
   final List<AuthorModel> authors;
   final List<ScreenShotModel> screenShotUrls;
-  final String _currentFileName;
+  final String? _currentFileName;
   final List<String> tapeFiles;
 
   int get currentFileIndex {
     var index = -1;
-    if (tapeFiles.length > 0) {
+    if (tapeFiles.isNotEmpty) {
       index = 0;
       if (!_currentFileName.isNullOrEmpty()) {
         index = tapeFiles
             .map((file) => basename(file))
             .toList()
-            .indexOf(_currentFileName);
+            .indexOf(_currentFileName!);
         if (index == -1) index = 0;
       }
     }
@@ -49,13 +49,14 @@ class SoftwareModel {
       this.tapeFiles);
 
   static Future<SoftwareModel> createFromFile(
-      String filePath, String title) async {
+      String filePath, String? title) async {
     var file = File(filePath);
     if (await file.exists()) {
-      return SoftwareModel(null, false, title, null, null, null, null, null,
-          null, <AuthorModel>[], <ScreenShotModel>[], null, [filePath]);
-    } else
-      throw FileSystemException('File not found.');
+      return SoftwareModel(null, false, title ?? 'Unknown', null, null, null,
+          null, null, null, <AuthorModel>[], <ScreenShotModel>[], null, [filePath]);
+    } else {
+      throw const FileSystemException('File not found.');
+    }
   }
 }
 

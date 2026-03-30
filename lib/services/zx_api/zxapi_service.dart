@@ -39,6 +39,7 @@ class ZxApiService implements BackendService {
 
   final _helper = ApiBaseHelper(_baseUrl, _userAgent);
 
+  @override
   Future<List<TermModel>> fetchTermsList(String query) async {
     var result = <TermModel>[];
     if (query.isEmpty) return result;
@@ -55,11 +56,12 @@ class ZxApiService implements BackendService {
     result = (jsonResponse as List)
         .map((e) => TermDto.fromJson(e))
         .where((element) => element.type == _contentType)
-        .map((e) => TermModel(e.text, e.type))
+        .map((e) => TermModel(e.text ?? '', e.type ?? ''))
         .toList();
     return result;
   }
 
+  @override
   Future<List<HitModel>> fetchHitsList(String query, int size,
       {int offset = 0}) async {
     var result = <HitModel>[];
@@ -76,104 +78,107 @@ class ZxApiService implements BackendService {
         .map((e) => "&tosectype=%s".format([e]))
         .join();
     var jsonResponse = await _helper.get(url);
-    var data = ItemsDto.fromJson(jsonResponse).hits.hits;
-    if (data != null && data.length > 0)
+    var data = ItemsDto.fromJson(jsonResponse).hits?.hits;
+    if (data != null && data.isNotEmpty) {
       result = data
           .where((element) =>
               element.source != null &&
-              element.source.title != null &&
-              element.source.title.isNotEmpty)
+              element.source!.title != null &&
+              element.source!.title!.isNotEmpty)
           .map((e) => HitModel(
-              e.id,
-              e.source.screens.length > 0
-                  ? _fixScreenShotUrl(e.source?.screens[0].url)
+              e.id?.toString() ?? '',
+              (e.source!.screens != null && e.source!.screens!.isNotEmpty)
+                  ? _fixScreenShotUrl(e.source!.screens![0].url ?? '')
                   : '',
-              e.source.title,
-              e.source.originalYearOfRelease?.toString(),
-              e.source.genreType,
-              e.source.score?.votes,
-              e.source.score.score))
+              e.source!.title!,
+              e.source!.originalYearOfRelease?.toString(),
+              e.source!.genreType,
+              e.source!.score?.votes,
+              e.source!.score?.score))
           .toList();
-    return result;
-  }
-
-  Future<SoftwareModel> fetchSoftware(String id,
-      {String recognizedTapeFileName}) async {
-    SoftwareModel result;
-    var url = _baseUrl + _itemUrl.format([id]);
-    var response =
-        await UserAgentClient(_userAgent, http.Client()).get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      var list = <ItemDto>[];
-      list.add(ItemDto.fromJson(json.decode(response.body)));
-      result = list
-          .map((e) => SoftwareModel(
-              e.id,
-              true,
-              e.source.title,
-              e.source.originalYearOfRelease?.toString(),
-              e.source.genre,
-              e.source.score?.votes,
-              e.source.score?.score,
-              e.source.originalPrice != null
-                  ? (e.source.originalPrice?.amount != null
-                          ? e.source.originalPrice.amount +
-                              e.source.originalPrice.currency
-                          : '')
-                      .replaceAll('/', '')
-                      .replaceAll('NA', '')
-                  : '',
-              e.source.remarks,
-              e.source.authors
-                  .where((a) =>
-                      !(a.name.isNullOrEmpty() || a.type.isNullOrEmpty()))
-                  .map((a) => AuthorModel(a.name, a.type))
-                  .toList(),
-              e.source.screens
-                  .map((s) => ScreenShotModel(s.type, _fixScreenShotUrl(s.url)))
-                  .toList(),
-              recognizedTapeFileName,
-              e.source.tosec
-                  .where((t) => Definitions.supportedTapeExtensions
-                      .contains(extension(t.path).replaceAll('.', '')))
-                  .map((t) => _fixToSecUrl(t.path))
-                  .toList()))
-          .first;
     }
     return result;
   }
 
+  @override
+  Future<SoftwareModel> fetchSoftware(String id,
+      {String? recognizedTapeFileName}) async {
+    var url = _baseUrl + _itemUrl.format([id]);
+    var response =
+        await UserAgentClient(_userAgent, http.Client()).get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      var item = ItemDto.fromJson(json.decode(response.body));
+      var e = item;
+      return SoftwareModel(
+          e.id?.toString() ?? id,
+          true,
+          e.source?.title ?? 'Unknown',
+          e.source?.originalYearOfRelease?.toString(),
+          e.source?.genre,
+          e.source?.score?.votes,
+          e.source?.score?.score,
+          e.source?.originalPrice != null
+              ? (e.source!.originalPrice!.amount != null
+                      ? '${e.source!.originalPrice!.amount}${e.source!.originalPrice!.currency}'
+                      : '')
+                  .replaceAll('/', '')
+                  .replaceAll('NA', '')
+              : '',
+          e.source?.remarks,
+          (e.source?.authors ?? [])
+              .where((a) =>
+                  !(a.name.isNullOrEmpty() || a.type.isNullOrEmpty()))
+              .map((a) => AuthorModel(a.name!, a.type!))
+              .toList(),
+          (e.source?.screens ?? [])
+              .map(
+                  (s) => ScreenShotModel(s.type ?? '', _fixScreenShotUrl(s.url ?? '')))
+              .toList(),
+          recognizedTapeFileName,
+          (e.source?.tosec ?? [])
+              .where((t) => Definitions.supportedTapeExtensions
+                  .contains(extension(t.path ?? '').replaceAll('.', '')))
+              .map((t) => _fixToSecUrl(t.path ?? ''))
+              .toList());
+    }
+    throw Exception('Failed to load software: ${response.statusCode}');
+  }
+
+  @override
   Future<SoftwareModel> recognizeTape(String filePath,
-      {String localTitle}) async {
+      {String? localTitle}) async {
     var md5 = await _calculateHash(filePath);
     var fileCheckUrl = _baseUrl + _fileCheckUrl.format([md5]);
 
     var result = await SoftwareModel.createFromFile(filePath, localTitle);
 
-    if (!await InternetConnectionChecker().hasConnection) return result;
+    if (!await InternetConnectionChecker.instance.hasConnection) return result;
 
     var response = await UserAgentClient(_userAgent, http.Client())
         .get(Uri.parse(fileCheckUrl));
     if (response.statusCode == 200) {
       var fileCheck = FileCheckDto.fromJson(json.decode(response.body));
-      result = await fetchSoftware(fileCheck.entryId,
-          recognizedTapeFileName: fileCheck.file.filename);
+      if (fileCheck.entryId != null) {
+        result = await fetchSoftware(fileCheck.entryId!,
+            recognizedTapeFileName: fileCheck.file?.filename);
+      }
     }
 
     return result;
   }
 
+  @override
   Future<Uint8List> downloadTape(String url) async {
     var response =
         await UserAgentClient(_userAgent, http.Client()).get(Uri.parse(url));
     if (response.statusCode == 200) return response.bodyBytes;
-    return null;
+    throw Exception('Failed to download tape: ${response.statusCode}');
   }
 
-  static Future<String> _tryGetLetter(String query) async {
+  static Future<String?> _tryGetLetter(String query) async {
     if (query.isNotEmpty) {
       var letter = query.toUpperCase()[0];
-      if (new RegExp(r'^[0-9a-zA-Z]+').hasMatch(letter)) return letter;
+      if (RegExp(r'^[0-9a-zA-Z]+').hasMatch(letter)) return letter;
     }
     return null;
   }
@@ -188,30 +193,18 @@ class ZxApiService implements BackendService {
     return url;
   }
 
-  static Future<String> _calculateHash(String filePath) async {
-    var result;
+  static Future<String?> _calculateHash(String filePath) async {
     var file = File(filePath);
     if (await file.exists()) {
       var bytes = await file.readAsBytes();
       var digest = sha512.convert(bytes);
-      result = digest.toString();
+      return digest.toString();
     }
-    return result;
+    return null;
   }
 
+  @override
   Future<String> getExternalUrl(String id) async {
     return _externalUrl.format([id]);
-  }
-}
-
-class UserAgentClient extends http.BaseClient {
-  final String userAgent;
-  final http.Client _inner;
-
-  UserAgentClient(this.userAgent, this._inner);
-
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    request.headers['user-agent'] = userAgent;
-    return _inner.send(request);
   }
 }

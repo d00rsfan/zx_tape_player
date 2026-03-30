@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_statusbarcolor_ns/flutter_statusbarcolor_ns.dart';
 import 'package:get_it/get_it.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
@@ -13,7 +12,6 @@ import 'package:zx_tape_player/services/zx_control/zx_volume_control_service.dar
 import 'package:zx_tape_player/services/zx_control/zx_wake_lock_control_service.dart';
 import 'package:zx_tape_player/ui/home_screen.dart';
 import 'package:zx_tape_player/ui/player_screen.dart';
-import 'package:zx_tape_player/utils/app_center_initializer.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
@@ -28,10 +26,13 @@ void main() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
-  FlutterStatusbarcolor.setStatusBarColor(Colors.transparent);
-  FlutterStatusbarcolor.setStatusBarWhiteForeground(true);
-  FlutterStatusbarcolor.setNavigationBarColor(Colors.black);
-  FlutterStatusbarcolor.setNavigationBarWhiteForeground(true);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.black,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
 
   getIt.registerLazySingleton<BackendService>(() => ZxApiService());
   getIt.registerLazySingleton<SilenceControlService>(
@@ -41,11 +42,10 @@ void main() async {
   getIt.registerLazySingleton<VolumeControlService>(
       () => ZxVolumeControlService());
 
-  await AppCenterInitializer.initialize();
   await EasyLocalization.ensureInitialized();
 
   runApp(EasyLocalization(
-      supportedLocales: [
+      supportedLocales: const [
         Locale('en', 'US'),
         Locale('cs', 'CZ'),
         Locale('da', 'DK'),
@@ -60,11 +60,13 @@ void main() async {
         Locale('sv', 'SE')
       ],
       path: 'assets/translations',
-      fallbackLocale: Locale('en', 'US'),
-      child: ZxTapePlayer()));
+      fallbackLocale: const Locale('en', 'US'),
+      child: const ZxTapePlayer()));
 }
 
 class ZxTapePlayer extends StatelessWidget {
+  const ZxTapePlayer({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -79,11 +81,11 @@ class ZxTapePlayer extends StatelessWidget {
           visualDensity: VisualDensity.adaptivePlatformDensity,
           fontFamily: 'ZxSpectrum',
         ),
-        home: SplashScreen(),
+        home: const SplashScreen(),
         routes: {
-          HomeScreen.routeName: (context) => HomeScreen(),
-          SearchScreen.routeName: (context) => SearchScreen(),
-          PlayerScreen.routeName: (context) => PlayerScreen(),
+          HomeScreen.routeName: (context) => const HomeScreen(),
+          SearchScreen.routeName: (context) => const SearchScreen(),
+          PlayerScreen.routeName: (context) => const PlayerScreen(),
         });
   }
 }

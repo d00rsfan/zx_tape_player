@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:app_center_bundle_sdk/app_center_bundle_sdk.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
@@ -31,16 +30,14 @@ import 'package:zx_tape_to_wav/zx_tape_to_wav.dart';
 class TapePlayer extends StatefulWidget {
   final SoftwareModel software;
 
-  TapePlayer({Key key, @required this.software}) : super(key: key);
+  const TapePlayer({super.key, required this.software});
 
   @override
-  _TapePlayerState createState() {
-    return _TapePlayerState();
-  }
+  State<TapePlayer> createState() => _TapePlayerState();
 }
 
 class _TapePlayerState extends State<TapePlayer> {
-  _TapePlayerBloc _bloc;
+  late _TapePlayerBloc _bloc;
 
   @override
   void initState() {
@@ -50,19 +47,19 @@ class _TapePlayerState extends State<TapePlayer> {
 
   @override
   void dispose() {
-    _bloc?.dispose();
+    _bloc.dispose();
     super.dispose();
   }
 
   _showSliderDialog({
-    BuildContext context,
-    String title,
-    int divisions,
-    double min,
-    double max,
+    required BuildContext context,
+    required String title,
+    required int divisions,
+    required double min,
+    required double max,
     String valueSuffix = '',
-    Stream<double> stream,
-    ValueChanged<double> onChanged,
+    required Stream<double> stream,
+    required ValueChanged<double> onChanged,
   }) {
     showDialog(
       context: context,
@@ -70,19 +67,19 @@ class _TapePlayerState extends State<TapePlayer> {
         backgroundColor: HexColor('#3B4E63'),
         title: Text(title,
             textAlign: TextAlign.center,
-            style: TextStyle(wordSpacing: 0.3, color: Colors.white)),
+            style: const TextStyle(wordSpacing: 0.3, color: Colors.white)),
         content: StreamBuilder<double>(
           stream: stream,
-          builder: (context, snapshot) => Container(
+          builder: (context, snapshot) => SizedBox(
             height: 100.0,
             child: Column(
               children: [
                 Text('${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
-                    style: TextStyle(
-                        wordSpacing: 0.5, fontSize: 24.0, color: Colors.white)),
-                SizedBox(
-                  height: 16.0,
-                ),
+                    style: const TextStyle(
+                        wordSpacing: 0.5,
+                        fontSize: 24.0,
+                        color: Colors.white)),
+                const SizedBox(height: 16.0),
                 SliderTheme(
                     data: SliderThemeData(
                         activeTickMarkColor: Colors.white,
@@ -110,8 +107,7 @@ class _TapePlayerState extends State<TapePlayer> {
     return Center(
         child: Container(
             height: 268.0,
-            padding: //EdgeInsets.fromLTRB(0, 16, 0, 0), //
-                EdgeInsets.symmetric(vertical: 16.0),
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
             width: MediaQuery.of(context).size.width,
             color: HexColor('#3B4E63'),
             child: StreamBuilder<PlayerState>(
@@ -131,14 +127,16 @@ class _TapePlayerState extends State<TapePlayer> {
                                 onLongPress: () async {
                                   HapticFeedback.vibrate();
                                   if (await _bloc.downloadSelectedTape()) {
-                                    BarHelper.showSnackBar(
-                                        message: tr('download_tape_success'),
-                                        context: context);
+                                    if (mounted) {
+                                      BarHelper.showSnackBar(
+                                          message: tr('download_tape_success'),
+                                          context: context);
+                                    }
                                   }
                                 },
                                 child: Container(
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 16.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0),
                                     width: double.infinity,
                                     height: 80.0,
                                     child: Container(
@@ -151,11 +149,12 @@ class _TapePlayerState extends State<TapePlayer> {
                                           items: _bloc.files
                                               .map((filePath) => Container(
                                                     padding:
-                                                        EdgeInsets.all(12.0),
+                                                        const EdgeInsets.all(
+                                                            12.0),
                                                     child: Center(
                                                         child: Text(
                                                       basename(filePath),
-                                                      style: TextStyle(
+                                                      style: const TextStyle(
                                                           color: Colors.white,
                                                           fontSize: 12.0),
                                                       textAlign:
@@ -193,7 +192,7 @@ class _TapePlayerState extends State<TapePlayer> {
                                     return Container(
                                       width: 8.0,
                                       height: 8.0,
-                                      margin: EdgeInsets.symmetric(
+                                      margin: const EdgeInsets.symmetric(
                                           vertical: 16.0, horizontal: 2.0),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
@@ -205,9 +204,9 @@ class _TapePlayerState extends State<TapePlayer> {
                                   }).toList()),
                             ]),
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 24.0),
-                              // vertical: 8.0),
-                              child: StreamBuilder<Duration>(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24.0),
+                              child: StreamBuilder<Duration?>(
                                 stream: _bloc.player.durationStream,
                                 builder: (context, snapshot) {
                                   final duration =
@@ -224,14 +223,12 @@ class _TapePlayerState extends State<TapePlayer> {
                                         final positionData = snapshot.data ??
                                             PositionData(
                                                 Duration.zero, Duration.zero);
-                                        var position = positionData.position ??
-                                            Duration.zero;
+                                        var position = positionData.position;
                                         if (position > duration) {
                                           position = duration;
                                         }
                                         var bufferedPosition =
-                                            positionData.bufferedPosition ??
-                                                Duration.zero;
+                                            positionData.bufferedPosition;
                                         if (bufferedPosition > duration) {
                                           bufferedPosition = duration;
                                         }
@@ -255,7 +252,7 @@ class _TapePlayerState extends State<TapePlayer> {
   }
 
   Widget _buildControlButtons(BuildContext context,
-      TapePlayerData tapePlayerData, PlayerState playerState) {
+      TapePlayerData? tapePlayerData, PlayerState? playerState) {
     if (tapePlayerData != null) {
       if (tapePlayerData.state == TapePlayerState.Error &&
           _bloc.filePath == tapePlayerData.filePath) {
@@ -280,7 +277,7 @@ class _TapePlayerState extends State<TapePlayer> {
           builder: (context, snapshot) => IconButton(
             color: Colors.white,
             icon: Text("${snapshot.data?.toStringAsFixed(1)}x",
-                style: TextStyle(color: Colors.white)),
+                style: const TextStyle(color: Colors.white)),
             onPressed: () {
               _showSliderDialog(
                 context: context,
@@ -295,19 +292,17 @@ class _TapePlayerState extends State<TapePlayer> {
             },
           ),
         ),
-        SizedBox(width: 24.0),
+        const SizedBox(width: 24.0),
         Container(
           width: 60.0,
           height: 60.0,
           decoration: BoxDecoration(
             color: HexColor('#28384C'),
-            borderRadius: BorderRadius.all(
-              Radius.circular(30),
-            ),
+            borderRadius: const BorderRadius.all(Radius.circular(30)),
           ),
-          child: FutureBuilder(builder: (context, snapshot) {
+          child: Builder(builder: (context) {
             if (tapeLoading) {
-              return Center(
+              return const Center(
                   child: SizedBox(
                 height: 40.0,
                 width: 40.0,
@@ -319,30 +314,30 @@ class _TapePlayerState extends State<TapePlayer> {
             } else if (!playing) {
               return IconButton(
                   color: Colors.white,
-                  icon: Icon(Icons.play_arrow_rounded),
+                  icon: const Icon(Icons.play_arrow_rounded),
                   iconSize: 40.0,
                   onPressed: _bloc.play);
             } else if (processingState != ProcessingState.completed) {
               return IconButton(
                 color: Colors.white,
-                icon: Icon(Icons.pause_rounded),
+                icon: const Icon(Icons.pause_rounded),
                 iconSize: 40.0,
                 onPressed: _bloc.pause,
               );
             } else {
               return IconButton(
                   color: Colors.white,
-                  icon: Icon(Icons.replay_rounded),
+                  icon: const Icon(Icons.replay_rounded),
                   iconSize: 40.0,
                   onPressed: _bloc.replay);
             }
           }),
         ),
-        SizedBox(width: 24.0),
+        const SizedBox(width: 24.0),
         IconButton(
           color: Colors.white,
           disabledColor: HexColor('#546B7F'),
-          icon: Icon(Icons.stop_rounded),
+          icon: const Icon(Icons.stop_rounded),
           iconSize: 40.0,
           onPressed: _bloc.player.position != Duration.zero ? _bloc.stop : null,
         ),
@@ -355,8 +350,8 @@ class _TapePlayerBloc {
   final SoftwareModel software;
 
   List<String> get files => software.tapeFiles;
-  int _currentFileIndex;
-  AudioPlayer _player = AudioPlayer(handleInterruptions: false);
+  int _currentFileIndex = 0;
+  final AudioPlayer _player = AudioPlayer();
   final _backendService = getIt<BackendService>();
   final _wakeUpService = getIt<WakeLockControlService>();
   final _muteControlService = getIt<SilenceControlService>();
@@ -368,13 +363,14 @@ class _TapePlayerBloc {
 
   AudioPlayer get player => _player;
 
-  StreamController _tapePlayerController = StreamController<TapePlayerData>();
+  final StreamController<TapePlayerData> _tapePlayerController =
+      StreamController<TapePlayerData>();
 
   StreamSink<TapePlayerData> get tapePlayerSink => _tapePlayerController.sink;
 
   Stream<TapePlayerData> get tapePlayerStream => _tapePlayerController.stream;
 
-  StreamController _progressController =
+  final StreamController<LoadingProgressData> _progressController =
       StreamController<LoadingProgressData>();
 
   StreamSink<LoadingProgressData> get progressSink => _progressController.sink;
@@ -388,10 +384,11 @@ class _TapePlayerBloc {
 
   static Future _getAndConvertImage(ConverterComputationData data) async {
     Uint8List bytes;
-    if (data.isRemote)
+    if (data.isRemote) {
       bytes = await data.backendService.downloadTape(data.filePath);
-    else
+    } else {
       bytes = await File(data.filePath).readAsBytes();
+    }
     var tape = await ZxTape.create(bytes);
     var wav = await tape.toWavBytes(
         audioFilterType: AudioFilterType.bassBoost,
@@ -408,7 +405,7 @@ class _TapePlayerBloc {
     try {
       var wavPath =
           Definitions.tapeDir.format([(await getTemporaryDirectory()).path]);
-      var dir = await new Directory(wavPath).create(recursive: true);
+      var dir = await Directory(wavPath).create(recursive: true);
       var wavFileName =
           Definitions.wafFilePath.format([dir.path, basename(filePath)]);
       var file = File(wavFileName);
@@ -431,7 +428,6 @@ class _TapePlayerBloc {
       _tapePlayerController.sink.add(TapePlayerData(
           TapePlayerState.Error, filePath,
           message: e.toString()));
-      await AppCenter.trackEventAsync('error', e);
     }
     return false;
   }
@@ -470,40 +466,40 @@ class _TapePlayerBloc {
   }
 
   Future replay() async {
-    await _player.seek(Duration.zero, index: _player.effectiveIndices.first);
+    await _player.seek(Duration.zero,
+        index: _player.effectiveIndices?.first);
   }
 
   void dispose() {
     _looseControl()
         .then((value) => _cleanWavCache())
-        .then((value) => _player?.dispose())
-        .then((value) => _progressController?.close())
-        .then((value) => _tapePlayerController?.close());
+        .then((value) => _player.dispose())
+        .then((value) => _progressController.close())
+        .then((value) => _tapePlayerController.close());
   }
 
   Future<bool> downloadSelectedTape() async {
     if (!software.isRemote) return false;
 
-      var status = await Permission.storage.status;
-      if (!status.isGranted) {
-        status = await Permission.storage.request();
-        if (!status.isGranted)
-          return false;
-      }
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      status = await Permission.storage.request();
+      if (!status.isGranted) return false;
+    }
 
     var url = files[_currentFileIndex];
     var bytes = await _backendService.downloadTape(url);
 
-    String filePath;
+    String? filePath;
     if (Platform.isAndroid) {
-      var storagePath = (await getExternalStorageDirectory()).path;
-      filePath =
-          '%s/%s/%s'.format([storagePath, Definitions.appTitle, basename(url)]);
+      var storagePath = (await getExternalStorageDirectory())?.path;
+      if (storagePath == null) return false;
+      filePath = '$storagePath/${Definitions.appTitle}/${basename(url)}';
       var dir = Directory(dirname(filePath));
       if (!dir.existsSync()) await dir.create(recursive: true);
     } else {
       var storagePath = (await getApplicationDocumentsDirectory()).path;
-      filePath = '%s/%s'.format([storagePath, basename(url)]);
+      filePath = '$storagePath/${basename(url)}';
     }
     if (filePath.isNullOrEmpty()) return false;
 

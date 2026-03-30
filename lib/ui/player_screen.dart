@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:app_center_bundle_sdk/app_center_bundle_sdk.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -20,25 +19,23 @@ import 'package:zx_tape_player/ui/widgets/tape_player/tape_player.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
 class PlayerScreen extends StatefulWidget {
-  PlayerScreen({Key key}) : super(key: key);
+  const PlayerScreen({super.key});
   static const routeName = '/player';
 
   @override
-  _PlayerScreenState createState() {
-    return _PlayerScreenState();
-  }
+  State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
 class Choice {
-  const Choice({this.title, this.icon, this.pressed});
+  const Choice({required this.title, required this.icon, this.pressed});
 
   final String title;
   final IconData icon;
-  final Function pressed;
+  final Function? pressed;
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  _PlayerScreenBloc _bloc;
+  _PlayerScreenBloc? _bloc;
 
   @override
   void initState() {
@@ -54,40 +51,40 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    var args = ModalRoute.of(this.context).settings.arguments;
-    _bloc = _PlayerScreenBloc(args);
+    var args = ModalRoute.of(context)!.settings.arguments;
+    _bloc = _PlayerScreenBloc(args as PlayerArgs);
   }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<ApiResponse<SoftwareModel>>(
-        stream: _bloc.softwareStream,
+        stream: _bloc!.softwareStream,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            switch (snapshot.data.status) {
+            switch (snapshot.data!.status) {
               case Status.LOADING:
                 return Scaffold(
                     body: LoadingProgress(
                   loadingText: tr("loading"),
                 ));
               case Status.COMPLETED:
-                return _buildScreen(context, snapshot.data);
+                return _buildScreen(context, snapshot.data!);
               case Status.ERROR:
                 return Scaffold(
                     body: AppError(
                   text: tr('data_retrieving_error'),
                   buttonText: tr('retry'),
-                  action: () => _bloc.refresh(),
+                  action: () => _bloc!.refresh(),
                 ));
             }
           }
-          return SizedBox.shrink();
+          return const SizedBox.shrink();
         });
   }
 
   Widget _buildScreen(
       BuildContext context, ApiResponse<SoftwareModel> response) {
-    var model = response.data;
+    var model = response.data!;
 
     List<Choice> choices = <Choice>[
       Choice(title: tr('open_tape_web'), icon: Icons.open_in_new_rounded),
@@ -97,7 +94,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_back_ios_outlined,
             color: Colors.white,
             size: 16,
@@ -105,17 +102,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actionsIconTheme:
-            IconThemeData(size: 30.0, color: Colors.white, opacity: 10.0),
+            const IconThemeData(size: 30.0, color: Colors.white, opacity: 10.0),
         actions: [
           (!model.isRemote)
-              ? SizedBox.shrink()
+              ? const SizedBox.shrink()
               : PopupMenuButton<Choice>(
                   color: HexColor('#3B4E63'),
                   onSelected: (value) async {
                     if (value.title == tr('open_tape_web')) {
-                      await _bloc.openExternalUrl(model.id);
+                      await _bloc!.openExternalUrl(model.id!);
                     } else if (value.title == tr('share_tape')) {
-                      await _bloc.shareExternalUrl(model);
+                      await _bloc!.shareExternalUrl(model);
                     }
                   },
                   itemBuilder: (BuildContext context) {
@@ -129,11 +126,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               size: 16.0,
                               color: Colors.white,
                             ),
-                            SizedBox(
-                              width: 16.0,
-                            ),
+                            const SizedBox(width: 16.0),
                             Text(choice.title,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     letterSpacing: -0.5, color: Colors.white)),
                           ],
                         ),
@@ -144,7 +139,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ],
         title: Marquee(
           child: Text(model.title,
-              style: TextStyle(color: Colors.white, letterSpacing: 0.1)),
+              style:
+                  const TextStyle(color: Colors.white, letterSpacing: 0.1)),
         ),
         titleSpacing: 0.0,
         toolbarHeight: 60.0,
@@ -153,7 +149,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       body: Column(
         children: <Widget>[
           _buildInfoWidget(context, response),
-          model.tapeFiles.length > 0
+          model.tapeFiles.isNotEmpty
               ? TapePlayer(software: model)
               : Container(
                   color: HexColor('#3B4E63'),
@@ -175,29 +171,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
 Widget _buildInfoWidget(
     BuildContext context, ApiResponse<SoftwareModel> response) {
-  var model = response.data;
+  var model = response.data!;
   return Expanded(
       child: Container(
-          //color: Colors.black.withOpacity(0.7),
           color: HexColor('#172434'),
           child: !model.isRemote
-              ? Center(
-                  child: Container(
-                  child: Cassette(
-                    animated: false,
-                  ),
-                ))
+              ? const Center(
+                  child: Cassette(animated: false),
+                )
               : SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
-                  //clipBehavior: Clip.antiAliasWithSaveLayer,
+                  padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        FutureBuilder(builder: (context, snapshot) {
+                        Builder(builder: (context) {
                           var result = model.year ?? '';
                           if (model.genre != null) {
-                            if (result.isNotEmpty) result += ' • ';
-                            result += model.genre;
+                            if (result.isNotEmpty) result += ' \u2022 ';
+                            result += model.genre!;
                           }
                           return Text(
                             result,
@@ -209,7 +200,7 @@ Widget _buildInfoWidget(
                                 fontSize: 12.0),
                           );
                         }),
-                        SizedBox(height: 14.0),
+                        const SizedBox(height: 14.0),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -218,7 +209,7 @@ Widget _buildInfoWidget(
                               color: HexColor('#B1B8C1'),
                               size: 12.0,
                             ),
-                            SizedBox(width: 5.0),
+                            const SizedBox(width: 5.0),
                             Text(
                               model.votes?.toString() ?? tr('na'),
                               style: TextStyle(
@@ -226,34 +217,34 @@ Widget _buildInfoWidget(
                                   letterSpacing: 0.3,
                                   fontSize: 12.0),
                             ),
-                            SizedBox(width: 20),
+                            const SizedBox(width: 20),
                             Icon(
                               Icons.star_rounded,
                               color: HexColor('#B1B8C1'),
                               size: 14.0,
                             ),
-                            SizedBox(width: 5.0),
+                            const SizedBox(width: 5.0),
                             Text(
-                              model.score != null && model.score > 0
+                              model.score != null && model.score! > 0
                                   ? model.score.toString()
                                   : tr('na'),
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.white,
                                   letterSpacing: 0.3,
                                   fontSize: 12.0),
                             ),
-                            SizedBox(width: 20),
+                            const SizedBox(width: 20),
                             Icon(
                               Icons.account_balance_wallet_rounded,
                               color: HexColor('#B1B8C1'),
                               size: 12.0,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
                               model.price.isNullOrEmpty()
                                   ? tr('na')
-                                  : model.price,
-                              style: TextStyle(
+                                  : model.price!,
+                              style: const TextStyle(
                                   color: Colors.white,
                                   letterSpacing: 0.3,
                                   fontSize: 12.0),
@@ -262,15 +253,15 @@ Widget _buildInfoWidget(
                           ],
                         ),
                         model.remarks.isNullOrEmpty()
-                            ? SizedBox.shrink()
-                            : SizedBox(height: 24.0),
+                            ? const SizedBox.shrink()
+                            : const SizedBox(height: 24.0),
                         model.remarks.isNullOrEmpty()
-                            ? SizedBox.shrink()
+                            ? const SizedBox.shrink()
                             : Row(children: [
                                 Expanded(
                                     child: Text(
-                                  model.remarks.removeAllHtmlTags(),
-                                  style: TextStyle(
+                                  model.remarks!.removeAllHtmlTags(),
+                                  style: const TextStyle(
                                       color: Colors.white,
                                       letterSpacing: 0.3,
                                       height: 1.4,
@@ -278,16 +269,16 @@ Widget _buildInfoWidget(
                                   maxLines: 256,
                                 ))
                               ]),
-                        model.authors.length > 0
-                            ? SizedBox(height: 24.0)
-                            : SizedBox.shrink(),
-                        model.authors.length > 0
+                        model.authors.isNotEmpty
+                            ? const SizedBox(height: 24.0)
+                            : const SizedBox.shrink(),
+                        model.authors.isNotEmpty
                             ? Row(children: [
                                 Expanded(
                                   child: Text(
                                     model.authors
                                         .map((a) =>
-                                            '· ' + a.name + ' - ' + a.role)
+                                            '\u00B7 ${a.name} - ${a.role}')
                                         .join('\r\n'),
                                     style: TextStyle(
                                         color: HexColor('#B1B8C1'),
@@ -298,15 +289,15 @@ Widget _buildInfoWidget(
                                   ),
                                 )
                               ])
-                            : SizedBox.shrink(),
-                        SizedBox(height: 24.0),
+                            : const SizedBox.shrink(),
+                        const SizedBox(height: 24.0),
                         Column(
                             children: model.screenShotUrls
                                 .map(
                                   (e) => Center(
                                       child: Padding(
-                                          padding:
-                                              EdgeInsets.fromLTRB(0, 0, 0, 24),
+                                          padding: const EdgeInsets.fromLTRB(
+                                              0, 0, 0, 24),
                                           child: Column(children: [
                                             CachedNetworkImage(
                                               imageUrl: e.url,
@@ -315,9 +306,7 @@ Widget _buildInfoWidget(
                                                 return Image(image: provider);
                                               },
                                             ),
-                                            SizedBox(
-                                              height: 8.0,
-                                            ),
+                                            const SizedBox(height: 8.0),
                                             Text(
                                               e.type,
                                               style: TextStyle(
@@ -335,7 +324,7 @@ class _PlayerScreenBloc {
   final PlayerArgs args;
 
   final _backendService = getIt<BackendService>();
-  StreamController _softwareController =
+  final StreamController<ApiResponse<SoftwareModel>> _softwareController =
       StreamController<ApiResponse<SoftwareModel>>();
 
   StreamSink<ApiResponse<SoftwareModel>> get softwareSink =>
@@ -351,11 +340,15 @@ class _PlayerScreenBloc {
   Future openExternalUrl(String id) async {
     var urlString = await _backendService.getExternalUrl(id);
     var url = Uri.parse(urlString);
-    await canLaunchUrl(url) ? await launchUrl(url) : throw 'Could not launch $urlString';
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $urlString';
+    }
   }
 
   Future shareExternalUrl(SoftwareModel model) async {
-    var url = await _backendService.getExternalUrl(model.id);
+    var url = await _backendService.getExternalUrl(model.id!);
     await Share.share(url, subject: model.title);
   }
 
@@ -367,15 +360,15 @@ class _PlayerScreenBloc {
     softwareSink.add(ApiResponse.loading(''));
     try {
       SoftwareModel model;
-      if (args.isRemote)
+      if (args.isRemote) {
         model = await _backendService.fetchSoftware(args.id);
-      else
+      } else {
         model = await _backendService.recognizeTape(args.id,
             localTitle: tr('local_file'));
+      }
       softwareSink.add(ApiResponse.completed(model));
     } catch (e) {
       softwareSink.add(ApiResponse.error(e.toString()));
-      await AppCenter.trackEventAsync('error', e);
     }
   }
 
@@ -384,24 +377,25 @@ class _PlayerScreenBloc {
     var prefs = await SharedPreferences.getInstance();
     var millisecondsSinceEpoch = prefs.getInt(key);
     var reviewNeeded = false;
-    if (millisecondsSinceEpoch == null)
+    if (millisecondsSinceEpoch == null) {
       reviewNeeded = true;
-    else {
+    } else {
       var lastReviewDate =
           DateTime.fromMillisecondsSinceEpoch(millisecondsSinceEpoch);
-      if (DateTime.now().difference(lastReviewDate).inDays > 60)
+      if (DateTime.now().difference(lastReviewDate).inDays > 60) {
         reviewNeeded = true;
+      }
     }
     if (reviewNeeded) {
-      final _inAppReview = InAppReview.instance;
-      var isAvailable = await _inAppReview.isAvailable();
-      if (isAvailable) await _inAppReview.requestReview();
+      final inAppReview = InAppReview.instance;
+      var isAvailable = await inAppReview.isAvailable();
+      if (isAvailable) await inAppReview.requestReview();
       prefs.setInt(key, DateTime.now().millisecondsSinceEpoch);
     }
   }
 
   void dispose() {
     _requestReview();
-    _softwareController?.close();
+    _softwareController.close();
   }
 }

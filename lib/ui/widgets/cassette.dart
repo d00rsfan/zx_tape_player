@@ -4,18 +4,15 @@ class Cassette extends StatefulWidget {
   final bool animated;
   final int durationSec;
 
-  Cassette({Key key, this.animated = true, this.durationSec = 3})
-      : super(key: key);
+  const Cassette({super.key, this.animated = true, this.durationSec = 3});
 
   @override
-  _CassetteState createState() {
-    return _CassetteState();
-  }
+  State<Cassette> createState() => _CassetteState();
 }
 
 class _CassetteState extends State<Cassette>
     with SingleTickerProviderStateMixin {
-  AnimationController _rotationController;
+  late AnimationController _rotationController;
 
   bool get _animated => widget.animated;
 
@@ -35,10 +32,11 @@ class _CassetteState extends State<Cassette>
   @override
   void didUpdateWidget(covariant Cassette oldWidget) {
     _rotationController.duration = Duration(seconds: _durationSec);
-    if (_animated && !_rotationController.isAnimating)
+    if (_animated && !_rotationController.isAnimating) {
       _rotationController.forward();
-    else if (!_animated && _rotationController.isAnimating)
+    } else if (!_animated && _rotationController.isAnimating) {
       _rotationController.stop();
+    }
     super.didUpdateWidget(oldWidget);
   }
 
@@ -53,7 +51,7 @@ class _CassetteState extends State<Cassette>
     return Container(
       width: 260,
       height: 189,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/images/splash/logo.png'),
             fit: BoxFit.fill,

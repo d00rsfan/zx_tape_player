@@ -48,3 +48,12 @@ app.*.map.json
 # Keys and keystores
 keys/
 *.jks
+
+# FVM (Flutter Version Management)
+.fvm/
+
+# Android release artifacts
+android/app/release/
+
+# iOS ephemeral files
+ios/Flutter/ephemeral/

@@ -1,9 +1,12 @@
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:zx_tape_player/models/args/player_args.dart';
 import 'package:zx_tape_player/ui/player_screen.dart';
 import 'package:zx_tape_player/ui/search_screen.dart';
@@ -20,8 +23,27 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+class _ExtractedTape {
+  final String name;
+  final List<int> bytes;
+  _ExtractedTape(this.name, this.bytes);
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   final _controller = TextEditingController();
+
+  static _ExtractedTape? _extractTapeFromZip(List<int> zipBytes) {
+    final archive = ZipDecoder().decodeBytes(zipBytes);
+    for (final file in archive) {
+      if (file.isFile) {
+        var ext = p.extension(file.name).toLowerCase();
+        if (ext == '.tap' || ext == '.tzx') {
+          return _ExtractedTape(p.basename(file.name), file.content as List<int>);
+        }
+      }
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -124,14 +146,31 @@ class _HomeScreenState extends State<HomeScreen> {
                           allowMultiple: false);
                       if (result != null) {
                         PlatformFile selection = result.files.first;
-                        var file = File(selection.path!);
-                        var tape =
-                            await ZxTape.create(await file.readAsBytes());
+                        var filePath = selection.path!;
+                        var file = File(filePath);
+                        var bytes = await file.readAsBytes();
+
+                        if (p.extension(filePath).toLowerCase() == '.zip') {
+                          var extracted = _extractTapeFromZip(bytes);
+                          if (extracted != null) {
+                            var tempDir = await getTemporaryDirectory();
+                            var tapePath =
+                                '${tempDir.path}/tapes/${extracted.name}';
+                            await Directory(p.dirname(tapePath))
+                                .create(recursive: true);
+                            await File(tapePath)
+                                .writeAsBytes(extracted.bytes);
+                            filePath = tapePath;
+                            bytes = Uint8List.fromList(extracted.bytes);
+                          }
+                        }
+
+                        var tape = await ZxTape.create(bytes);
                         if (tape.tapeType != TapeType.unknown) {
                           if (mounted) {
                             Navigator.pushNamed(
                                 context, PlayerScreen.routeName,
-                                arguments: PlayerArgs(selection.path!,
+                                arguments: PlayerArgs(filePath,
                                     isRemote: false));
                           }
                         } else {

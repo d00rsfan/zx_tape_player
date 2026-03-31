@@ -107,7 +107,8 @@ class _TapePlayerState extends State<TapePlayer> {
     if (filePath.contains('World_of_Spectrum')) return 'archive.org';
     if (filePath.contains('mirror-ftp-nvg')) return 'NVG';
     if (filePath.contains('spectrumcomputing.co.uk')) return 'SC';
-    return 'TOSEC';
+    if (filePath.contains('zx-spectrum-tosec')) return 'TOSEC';
+    return '';
   }
 
   @override
@@ -176,14 +177,15 @@ class _TapePlayerState extends State<TapePlayer> {
                                                                 TextOverflow.ellipsis,
                                                             maxLines: 3,
                                                           ),
-                                                          Padding(
-                                                            padding: const EdgeInsets.only(top: 2.0),
-                                                            child: Text(
-                                                              source,
-                                                              style: const TextStyle(
-                                                                  color: Colors.white54,
-                                                                  fontSize: 8.0),
-                                                            ),
+                                                          if (source.isNotEmpty)
+                                                            Padding(
+                                                              padding: const EdgeInsets.only(top: 2.0),
+                                                              child: Text(
+                                                                source,
+                                                                style: const TextStyle(
+                                                                    color: Colors.white54,
+                                                                    fontSize: 8.0),
+                                                              ),
                                                           ),
                                                         ],
                                                       )),

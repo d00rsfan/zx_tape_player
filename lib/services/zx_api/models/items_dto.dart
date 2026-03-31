@@ -418,8 +418,10 @@ class Score {
 
 class Releases {
   List<Publishers>? _publishers;
+  List<Tosec>? _files;
 
   List<Publishers>? get publishers => _publishers;
+  List<Tosec>? get files => _files;
 
   Releases.fromJson(dynamic json) {
     if (json["publishers"] != null) {
@@ -428,12 +430,21 @@ class Releases {
         _publishers!.add(Publishers.fromJson(v));
       });
     }
+    if (json["files"] != null) {
+      _files = [];
+      json["files"].forEach((v) {
+        _files!.add(Tosec.fromJson(v));
+      });
+    }
   }
 
   Map<String, dynamic> toJson() {
     var map = <String, dynamic>{};
     if (_publishers != null) {
       map["publishers"] = _publishers!.map((v) => v.toJson()).toList();
+    }
+    if (_files != null) {
+      map["files"] = _files!.map((v) => v.toJson()).toList();
     }
     return map;
   }

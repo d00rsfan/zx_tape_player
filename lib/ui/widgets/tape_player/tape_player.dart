@@ -25,6 +25,7 @@ import 'package:zx_tape_player/ui/widgets/tape_player/seek_bar.dart';
 import 'package:zx_tape_player/utils/bar_helper.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
+import 'package:archive/archive.dart';
 import 'package:zx_tape_to_wav/zx_tape_to_wav.dart';
 
 class TapePlayer extends StatefulWidget {
@@ -102,6 +103,13 @@ class _TapePlayerState extends State<TapePlayer> {
     );
   }
 
+  static String _getFileSource(String filePath) {
+    if (filePath.contains('World_of_Spectrum')) return 'archive.org';
+    if (filePath.contains('mirror-ftp-nvg')) return 'NVG';
+    if (filePath.contains('spectrumcomputing.co.uk')) return 'SC';
+    return 'TOSEC';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -147,23 +155,40 @@ class _TapePlayerState extends State<TapePlayer> {
                                         ),
                                         child: CarouselSlider(
                                           items: _bloc.files
-                                              .map((filePath) => Container(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            12.0),
-                                                    child: Center(
-                                                        child: Text(
-                                                      basename(filePath),
-                                                      style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 12.0),
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      maxLines: 3,
-                                                    )),
-                                                  ))
+                                              .map((filePath) {
+                                                final source = _getFileSource(filePath);
+                                                return Container(
+                                                  padding:
+                                                      const EdgeInsets.all(
+                                                          12.0),
+                                                  child: Center(
+                                                      child: Column(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            basename(filePath),
+                                                            style: const TextStyle(
+                                                                color: Colors.white,
+                                                                fontSize: 12.0),
+                                                            textAlign:
+                                                                TextAlign.center,
+                                                            overflow:
+                                                                TextOverflow.ellipsis,
+                                                            maxLines: 3,
+                                                          ),
+                                                          Padding(
+                                                            padding: const EdgeInsets.only(top: 2.0),
+                                                            child: Text(
+                                                              source,
+                                                              style: const TextStyle(
+                                                                  color: Colors.white54,
+                                                                  fontSize: 8.0),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      )),
+                                                );
+                                              })
                                               .toList(),
                                           options: CarouselOptions(
                                               scrollPhysics: _bloc.player
@@ -389,6 +414,9 @@ class _TapePlayerBloc {
     } else {
       bytes = await File(data.filePath).readAsBytes();
     }
+    if (extension(data.filePath).toLowerCase() == '.zip') {
+      bytes = _extractTapeFromZip(bytes);
+    }
     var tape = await ZxTape.create(bytes);
     var wav = await tape.toWavBytes(
         audioFilterType: AudioFilterType.bassBoost,
@@ -398,6 +426,19 @@ class _TapePlayerBloc {
           data.controller.sink.add(sink);
         });
     await data.file.writeAsBytes(wav);
+  }
+
+  static Uint8List _extractTapeFromZip(Uint8List zipBytes) {
+    final archive = ZipDecoder().decodeBytes(zipBytes);
+    for (final file in archive) {
+      if (file.isFile) {
+        var ext = extension(file.name).toLowerCase();
+        if (ext == '.tap' || ext == '.tzx') {
+          return Uint8List.fromList(file.content as List<int>);
+        }
+      }
+    }
+    throw Exception('No tape file found in zip archive');
   }
 
   Future<bool> _prepareTapeForPlay({bool force = true}) async {
@@ -450,7 +491,8 @@ class _TapePlayerBloc {
 
   Future play() async {
     if (_player.position == Duration.zero) {
-      if (await _prepareTapeForPlay()) await _takeControl();
+      if (!await _prepareTapeForPlay()) return;
+      await _takeControl();
     }
     await _player.play();
   }

@@ -25,6 +25,11 @@ class ZxApiService implements BackendService {
   static const _contentBaseUrl = 'https://zxinfo.dk/media';
   static const _tapeBaseUrl =
       "https://archive.org/download/zx-spectrum-tosec-set-v-2020-02-18-lady-eklipse/%s.zip%s";
+  static const _wosBaseUrl =
+      "https://archive.org/download/World_of_Spectrum_June_2017_Mirror/World%20of%20Spectrum%20June%202017%20Mirror.zip/World%20of%20Spectrum%20June%202017%20Mirror";
+  static const _nvgBaseUrl =
+      "https://archive.org/download/mirror-ftp-nvg/Mirror_ftp_nvg.zip/";
+  static const _zxdbBaseUrl = "https://spectrumcomputing.co.uk/zxdb/";
   static const _termsUrl = '/suggest/%s';
   static const _itemsUrl = '/search?query=%s&mode=tiny' +
       '&sort=rel_desc&contenttype=SOFTWARE&size=%s&offset=%s';
@@ -135,11 +140,15 @@ class ZxApiService implements BackendService {
                   (s) => ScreenShotModel(s.type ?? '', _fixScreenShotUrl(s.url ?? '')))
               .toList(),
           recognizedTapeFileName,
-          (e.source?.tosec ?? [])
-              .where((t) => Definitions.supportedTapeExtensions
-                  .contains(extension(t.path ?? '').replaceAll('.', '')))
-              .map((t) => _fixToSecUrl(t.path ?? ''))
-              .toList());
+          [
+            ...(e.source?.tosec ?? [])
+                .where((t) => _isSupportedTapeFile(t.path ?? ''))
+                .map((t) => _fixToSecUrl(t.path ?? '')),
+            ...(e.source?.releases ?? [])
+                .expand((r) => r.files ?? <Tosec>[])
+                .where((f) => _isSupportedTapeFile(f.path ?? ''))
+                .map((f) => _fixReleaseFileUrl(f.path ?? '')),
+          ]);
     }
     throw Exception('Failed to load software: ${response.statusCode}');
   }
@@ -204,10 +213,32 @@ class ZxApiService implements BackendService {
     return _contentBaseUrl + url;
   }
 
+  static bool _isSupportedTapeFile(String path) {
+    var ext = extension(path).replaceAll('.', '').toLowerCase();
+    if (Definitions.supportedTapeExtensions.contains(ext)) return true;
+    if (ext == 'zip') {
+      var innerExt =
+          extension(withoutExtension(path)).replaceAll('.', '').toLowerCase();
+      return Definitions.supportedTapeExtensions.contains(innerExt);
+    }
+    return false;
+  }
+
   static String _fixToSecUrl(String url) {
     var prefix = url.split('/')[1];
     url = _tapeBaseUrl.format([prefix, url]);
     return url;
+  }
+
+  static String _fixReleaseFileUrl(String path) {
+    if (path.startsWith('/pub/')) {
+      return _wosBaseUrl + path.substring('/pub'.length);
+    } else if (path.startsWith('/nvg/')) {
+      return _nvgBaseUrl + path.substring('/nvg/'.length);
+    } else if (path.startsWith('/zxdb/')) {
+      return _zxdbBaseUrl + path.substring('/zxdb/'.length);
+    }
+    return _fixToSecUrl(path);
   }
 
   static Future<String?> _calculateHash(String filePath) async {

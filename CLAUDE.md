@@ -15,7 +15,7 @@ flutter analyze                # static analysis
 ## Tech Stack
 
 - **Flutter 3.41+** / **Dart 3.11+**
-- **Android**: compileSdk 36, targetSdk 35, minSdk 23, Java 21, Gradle 8.12, AGP 8.9.1, Kotlin 2.1.0
+- **Android**: compileSdk 36, targetSdk 35, minSdk 24, Java 21, Gradle 8.13, AGP 8.12.1, Kotlin 2.2.0
 - **iOS**: minimum deployment target 13.0
 
 ## Architecture

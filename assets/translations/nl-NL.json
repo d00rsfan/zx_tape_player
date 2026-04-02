@@ -1,7 +1,7 @@
 {
   "zx_tape_player":"ZX TAPE PLAYER",
   "app_title": "ZX Tape Player",
-  "copyright" : "© 2021-%s Copyright by\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nAlle rechten voorbehouden.\n",
+  "copyright" : "© 2021-%s Copyright by\nYuri Yakymiuk AKA d00rsfan,\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nAlle rechten voorbehouden.\n",
   "version": "Versie %s.%s",
   "find_tape": "Zoek cassette",
   "search_hint": "Typ hier een zoektekst",
@@ -21,5 +21,7 @@
   "invalid_file_format": "Ongeldig bestandsformaat. De app ondersteunt alleen %s-bestanden.",
   "open_tape_web": "Open in de browser",
   "share_tape": "Delen",
-  "download_tape_success": "De tape is succesvol gedownload."
+  "download_tape_success": "De tape is succesvol gedownload.",
+  "block_browser": "Tapeblokken",
+  "block_bytes": "bytes"
 }

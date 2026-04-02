@@ -1,7 +1,7 @@
 {
   "zx_tape_player":"ZX TAPE PLAYER",
   "app_title": "ZX Tape Player",
-  "copyright" : "© 2021-%s Andriy S'omak,\nThomas Heckmann, Pavlo Hladkov,\nSergey Kireev.\nVšechna práva vyhrazena.\n",
+  "copyright" : "© 2021-%s Yuri Yakymiuk AKA d00rsfan,\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nVšechna práva vyhrazena.\n",
   "version": "Verze %s.%s",
   "find_tape": "Vyhledat pásek",
   "search_hint": "Vložte hledaný text",
@@ -21,5 +21,7 @@
   "invalid_file_format": "Neplatný formát souboru. Aplikace podporuje pouze soubory %s",
   "open_tape_web": "Otevřít v prohlížeči",
   "share_tape": "Sdílet",
-  "download_tape_success": "Pásek byla úspěšně stažen do zařízení."
+  "download_tape_success": "Pásek byla úspěšně stažen do zařízení.",
+  "block_browser": "Bloky pásku",
+  "block_bytes": "bajtů"
 }

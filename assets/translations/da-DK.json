@@ -1,7 +1,7 @@
 {
   "zx_tape_player":"ZX TAPE PLAYER",
   "app_title": "ZX Tape Player",
-  "copyright" : "© 2021-%s Alle rettigheder forbeholdes\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nAlle rettigheder forbeholdes.\n",
+  "copyright" : "© 2021-%s Alle rettigheder forbeholdes\nYuri Yakymiuk AKA d00rsfan,\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nAlle rettigheder forbeholdes.\n",
   "version": "Version %s.%s",
   "find_tape": "Find det ønskede bånd",
   "search_hint": "Skriv en søgetekst her",
@@ -21,5 +21,7 @@
   "invalid_file_format": "Ugyldigt filformat. Appen understøtter kun %s filer.",
   "open_tape_web": "Åbn i browser",
   "share_tape": "Delre",
-  "download_tape_success": "Båndet er downloadet med succes."
+  "download_tape_success": "Båndet er downloadet med succes.",
+  "block_browser": "Båndblokke",
+  "block_bytes": "bytes"
 }

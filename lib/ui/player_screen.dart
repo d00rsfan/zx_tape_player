@@ -51,8 +51,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    var args = ModalRoute.of(context)!.settings.arguments;
-    _bloc = _PlayerScreenBloc(args as PlayerArgs);
+    if (_bloc == null) {
+      var args = ModalRoute.of(context)!.settings.arguments;
+      _bloc = _PlayerScreenBloc(args as PlayerArgs);
+    }
   }
 
   @override
@@ -146,24 +148,27 @@ class _PlayerScreenState extends State<PlayerScreen> {
         toolbarHeight: 60.0,
         backgroundColor: HexColor('#28384C'),
       ),
-      body: Column(
-        children: <Widget>[
-          _buildInfoWidget(context, response),
-          model.tapeFiles.isNotEmpty
-              ? TapePlayer(software: model)
-              : Container(
-                  color: HexColor('#3B4E63'),
-                  height: 50.0,
-                  child: Center(
-                    child: Text(
-                      tr('no_tapes'),
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: HexColor('#AFB6BB'),
-                          letterSpacing: -0.5),
-                    ),
-                  ))
-        ],
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: <Widget>[
+            _buildInfoWidget(context, response),
+            model.tapeFiles.isNotEmpty
+                ? TapePlayer(software: model)
+                : Container(
+                    color: HexColor('#3B4E63'),
+                    height: 50.0,
+                    child: Center(
+                      child: Text(
+                        tr('no_tapes'),
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: HexColor('#AFB6BB'),
+                            letterSpacing: -0.5),
+                      ),
+                    ))
+          ],
+        ),
       ),
     );
   }
@@ -349,7 +354,7 @@ class _PlayerScreenBloc {
 
   Future shareExternalUrl(SoftwareModel model) async {
     var url = await _backendService.getExternalUrl(model.id!);
-    await Share.share(url, subject: model.title);
+    await SharePlus.instance.share(ShareParams(text: url, title: model.title));
   }
 
   Future refresh() async {

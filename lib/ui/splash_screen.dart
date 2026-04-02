@@ -40,7 +40,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: SizedBox(
+        body: SafeArea(
+          child: SizedBox(
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.height,
             child: Column(children: <Widget>[
@@ -85,6 +86,6 @@ class _SplashScreenState extends State<SplashScreen> {
                       future: PackageInfo.fromPlatform(),
                     ),
                   ]))
-            ])));
+            ]))));
   }
 }

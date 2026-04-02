@@ -1,7 +1,7 @@
 {
   "zx_tape_player":"ZX TAPE PLAYER",
   "app_title": "ZX Tape Player",
-  "copyright" : "© 2021-%s Авторские права:\nАндрей Сёмак, Thomas Heckmann,\nПавел Гладков, Сергей Киреев.\nВсе права защищены.\n",
+  "copyright" : "© 2021-%s Авторские права:\nЮрий Якимюк AKA d00rsfan,\nАндрей Сёмак, Thomas Heckmann,\nПавел Гладков, Сергей Киреев.\nВсе права защищены.\n",
   "version": "Версия %s.%s",
   "find_tape": "Найдите нужную ленту",
   "search_hint": "Введите текст поиска",
@@ -21,5 +21,7 @@
   "invalid_file_format": "Неверный формат файла. Приложение поддерживает только файлы %s",
   "open_tape_web": "Открыть в браузере",
   "share_tape": "Поделиться",
-  "download_tape_success": "Выбранная лента успешно загружена."
+  "download_tape_success": "Выбранная лента успешно загружена.",
+  "block_browser": "Блоки ленты",
+  "block_bytes": "байт"
 }

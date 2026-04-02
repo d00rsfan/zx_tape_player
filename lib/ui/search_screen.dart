@@ -63,7 +63,8 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Column(
+        body: SafeArea(
+          child: Column(
           children: [
             Padding(
                 padding: const EdgeInsets.fromLTRB(16.0, 40.0, 16.0, 4.0),
@@ -94,7 +95,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           return const SizedBox.shrink();
                         })))
           ],
-        ),
+        )),
         resizeToAvoidBottomInset: false);
   }
 

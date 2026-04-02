@@ -25,7 +25,7 @@ The app is no longer available on app stores. I plan to publish it on Google Pla
 ### Prerequisites
 
 - [Flutter SDK](https://docs.flutter.dev/install) 3.41+
-- Java 17+
+- Java 21+
 
 ### Generate a Signing Key
 

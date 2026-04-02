@@ -21,12 +21,13 @@ import 'package:zx_tape_player/ui/widgets/tape_player/models/converter_computati
 import 'package:zx_tape_player/ui/widgets/tape_player/models/position_data.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/progress_model.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/tape_player_data.dart';
+import 'package:zx_tape_player/ui/widgets/tape_player/block_browser.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/seek_bar.dart';
 import 'package:zx_tape_player/utils/bar_helper.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 import 'package:archive/archive.dart';
-import 'package:zx_tape_to_wav/zx_tape_to_wav.dart';
+import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 
 class TapePlayer extends StatefulWidget {
   final SoftwareModel software;
@@ -115,7 +116,6 @@ class _TapePlayerState extends State<TapePlayer> {
   Widget build(BuildContext context) {
     return Center(
         child: Container(
-            height: 268.0,
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             width: MediaQuery.of(context).size.width,
             color: HexColor('#3B4E63'),
@@ -278,6 +278,33 @@ class _TapePlayerState extends State<TapePlayer> {
                 })));
   }
 
+  void _showBlockBrowser(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => StreamBuilder<Duration>(
+          stream: _bloc.player.positionStream,
+          builder: (context, snapshot) {
+            final position = snapshot.data ?? Duration.zero;
+            return BlockBrowser(
+              blocks: _bloc.blockInfos!,
+              currentPosition: position,
+              onBlockTap: (index) {
+                Navigator.pop(context);
+                _bloc.seekToBlock(index);
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildControlButtons(BuildContext context,
       TapePlayerData? tapePlayerData, PlayerState? playerState) {
     if (tapePlayerData != null) {
@@ -293,6 +320,7 @@ class _TapePlayerState extends State<TapePlayer> {
     final processingState = playerState?.processingState;
     final playing = playerState?.playing ?? false;
     final tapeLoading = tapePlayerData?.state == TapePlayerState.Loading;
+    final hasBlocks = _bloc.blockInfos != null && _bloc.blockInfos!.isNotEmpty;
 
     return Center(
         child: Row(
@@ -368,6 +396,14 @@ class _TapePlayerState extends State<TapePlayer> {
           iconSize: 40.0,
           onPressed: _bloc.player.position != Duration.zero ? _bloc.stop : null,
         ),
+        const SizedBox(width: 8.0),
+        IconButton(
+          color: Colors.white,
+          disabledColor: HexColor('#546B7F'),
+          icon: const Icon(Icons.list_rounded),
+          iconSize: 28.0,
+          onPressed: hasBlocks ? () => _showBlockBrowser(context) : null,
+        ),
       ],
     ));
   }
@@ -384,11 +420,17 @@ class _TapePlayerBloc {
   final _muteControlService = getIt<SilenceControlService>();
   final _volumeControlService = getIt<VolumeControlService>();
 
+  List<TapeBlockInfo>? _blockInfos;
+
+  List<TapeBlockInfo>? get blockInfos => _blockInfos;
+
   int get currentFileIndex => _currentFileIndex;
 
   String get filePath => files[_currentFileIndex];
 
   AudioPlayer get player => _player;
+
+  bool _preparing = false;
 
   final StreamController<TapePlayerData> _tapePlayerController =
       StreamController<TapePlayerData>();
@@ -409,7 +451,8 @@ class _TapePlayerBloc {
     currentFileIndex = software.currentFileIndex;
   }
 
-  static Future _getAndConvertImage(ConverterComputationData data) async {
+  static Future<List<TapeBlockInfo>> _getAndConvertImage(
+      ConverterComputationData data) async {
     Uint8List bytes;
     if (data.isRemote) {
       bytes = await data.backendService.downloadTape(data.filePath);
@@ -420,14 +463,15 @@ class _TapePlayerBloc {
       bytes = _extractTapeFromZip(bytes);
     }
     var tape = await ZxTape.create(bytes);
-    var wav = await tape.toWavBytes(
+    var result = await tape.toWavBytesWithBlocks(
         audioFilterType: AudioFilterType.bassBoost,
         frequency: Definitions.wavFrequency,
         progress: (percent) {
           var sink = LoadingProgressData(data.filePath, percent);
           data.controller.sink.add(sink);
         });
-    await data.file.writeAsBytes(wav);
+    await data.file.writeAsBytes(result.wavBytes);
+    return result.blocks;
   }
 
   static Uint8List _extractTapeFromZip(Uint8List zipBytes) {
@@ -443,34 +487,44 @@ class _TapePlayerBloc {
     throw Exception('No tape file found in zip archive');
   }
 
+  Future<String> _getWavPath() async {
+    var filePath = files[_currentFileIndex];
+    var wavPath =
+        Definitions.tapeDir.format([(await getTemporaryDirectory()).path]);
+    var dir = await Directory(wavPath).create(recursive: true);
+    return Definitions.wafFilePath.format([dir.path, basename(filePath)]);
+  }
+
   Future<bool> _prepareTapeForPlay({bool force = true}) async {
+    if (_preparing) return false;
+    _preparing = true;
     var filePath = files[_currentFileIndex];
     try {
-      var wavPath =
-          Definitions.tapeDir.format([(await getTemporaryDirectory()).path]);
-      var dir = await Directory(wavPath).create(recursive: true);
-      var wavFileName =
-          Definitions.wafFilePath.format([dir.path, basename(filePath)]);
+      var wavFileName = await _getWavPath();
       var file = File(wavFileName);
-      if (!await file.exists()) {
-        if (!force) {
-          await _player.setAsset('assets/sounds/empty.wav');
-          return false;
-        }
+      final wavExists = await file.exists();
+      if (!wavExists && !force) {
+        return false;
+      }
+      if (!wavExists || _blockInfos == null) {
         _tapePlayerController.sink
             .add(TapePlayerData(TapePlayerState.Loading, filePath));
         var convertModel = ConverterComputationData(filePath, software.isRemote,
             file, _backendService, _progressController);
-        await compute(_getAndConvertImage, convertModel);
-        _tapePlayerController.sink
-            .add(TapePlayerData(TapePlayerState.Idle, filePath));
+        _blockInfos =
+            await compute(_getAndConvertImage, convertModel);
       }
       await _player.setFilePath(wavFileName);
+      _tapePlayerController.sink.add(TapePlayerData(
+          TapePlayerState.Idle, filePath,
+          blocks: _blockInfos));
       return true;
     } catch (e) {
       _tapePlayerController.sink.add(TapePlayerData(
           TapePlayerState.Error, filePath,
           message: e.toString()));
+    } finally {
+      _preparing = false;
     }
     return false;
   }
@@ -485,7 +539,9 @@ class _TapePlayerBloc {
   }
 
   set currentFileIndex(int index) {
+    if (_currentFileIndex == index) return;
     _currentFileIndex = index;
+    _blockInfos = null;
     _prepareTapeForPlay(force: false);
     _tapePlayerController.sink.add(
         TapePlayerData(TapePlayerState.IndexChanged, files[_currentFileIndex]));
@@ -512,6 +568,16 @@ class _TapePlayerBloc {
   Future replay() async {
     await _player.seek(Duration.zero,
         index: _player.effectiveIndices?.first);
+  }
+
+  Future seekToBlock(int blockIndex) async {
+    if (_blockInfos == null || blockIndex >= _blockInfos!.length) return;
+    var block = _blockInfos![blockIndex];
+    await _player.seek(block.timeOffset);
+    if (!_player.playing) {
+      await _takeControl();
+      await _player.play();
+    }
   }
 
   void dispose() {

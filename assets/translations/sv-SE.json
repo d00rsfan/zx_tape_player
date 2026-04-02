@@ -1,7 +1,7 @@
 {
   "zx_tape_player": "ZX BANDSPELARE",
   "app_title": "ZX Bandspelare",
-  "copyright": "© 2021-%s Copyright by\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nAlla rättigheter reserverade.\n",
+  "copyright": "© 2021-%s Copyright by\nYuri Yakymiuk AKA d00rsfan,\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nAlla rättigheter reserverade.\n",
   "version": "Version %s.%s",
   "find_tape": "Sök önskad kassett",
   "search_hint": "Ange en söktext här",
@@ -21,5 +21,7 @@
   "invalid_file_format": "Felaktigt filformat. Den här appen stöder endast %s filer.",
   "open_tape_web": "Öppna i webbläsare",
   "share_tape": "Dela",
-  "download_tape_success": "Nedladdning av kassetten lyckades."
+  "download_tape_success": "Nedladdning av kassetten lyckades.",
+  "block_browser": "Kassettblock",
+  "block_bytes": "byte"
 }

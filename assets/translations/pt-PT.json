@@ -1,7 +1,7 @@
 {
   "zx_tape_player":"ZX TAPE PLAYER",
   "app_title": "ZX gravador de cassetes",
-  "copyright" : "© 2021-%s Copyright por\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nTodos os direitos reservados.\n",
+  "copyright" : "© 2021-%s Copyright por\nYuri Yakymiuk AKA d00rsfan,\nAndriy S'omak, Thomas Heckmann,\nPavlo Hladkov, Sergey Kireev.\nTodos os direitos reservados.\n",
   "version": "Versão %s.%s",
   "find_tape": "Pesquisar cassete pretendida",
   "search_hint": "Escreva aqui o texto a pesquisar",
@@ -21,5 +21,7 @@
   "invalid_file_format": "Formato de arquivo inválido. O aplicativo oferece suporte apenas a arquivos %s",
   "open_tape_web": "Abra no navegador",
   "share_tape": "Compartilhar",
-  "download_tape_success": "A fita foi baixada com sucesso."
+  "download_tape_success": "A fita foi baixada com sucesso.",
+  "block_browser": "Blocos da fita",
+  "block_bytes": "bytes"
 }

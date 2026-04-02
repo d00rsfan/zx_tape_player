@@ -13,7 +13,7 @@ import 'package:zx_tape_player/ui/search_screen.dart';
 import 'package:zx_tape_player/utils/bar_helper.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
-import 'package:zx_tape_to_wav/zx_tape_to_wav.dart';
+import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,7 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Center(
+        body: SafeArea(
+          child: Center(
             child: Container(
                 padding: const EdgeInsets.fromLTRB(16.0, 100.0, 16.0, 0),
                 child: Column(children: <Widget>[
@@ -189,6 +190,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
                     },
                   ),
-                ]))));
+                ])))));
   }
 }

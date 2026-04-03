@@ -29,7 +29,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.tekdeq.zxtapeplayer"
+    namespace = "io.github.d00rsfan.zxtapeplayer"
     compileSdk = 36
 
     compileOptions {
@@ -51,7 +51,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.tekdeq.zxtapeplayer"
+        applicationId = "io.github.d00rsfan.zxtapeplayer"
         minSdkVersion = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
@@ -70,8 +70,12 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            shrinkResources false
-            minifyEnabled false
+            shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
         }
     }
 }

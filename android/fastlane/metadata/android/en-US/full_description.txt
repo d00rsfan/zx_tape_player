@@ -1,5 +1,38 @@
-ZX Tape Player is a utility that converts your device into a virtual cassette player for the British home computer ZX Spectrum that was quite popular in many countries from 1982 and forward. This player lets you playback virtual tapes in the TZX or TAP format used by many emulators and lets you play them back via the jack/headphone plug into your ZX Spectrum.
+ZX Tape Player turns your Android device into a virtual cassette player for the ZX Spectrum. Connect your phone to a real Spectrum computer via the headphone jack and load software just like from a classic tape recorder.
 
-The app lets you select TAP or TZX files on your local device to playback, and tries to identify your file and show additional information such as publisher and screenshots - provided by the online Open Source API ZXInfo that contains information for more than 32000 software titles from 1982 and up to date.
+This app is a revival and improvement of the original ZX Tape Player that was removed from Google Play after its author passed away. Development continues in his memory.
 
-PLEASE NOTE: This is NOT an emulator and can not run the programs on TAP/TZX files. In order to run the program, you need a real physical ZX Spectrum connected to your device using the mini-jack lead that came with the machine.
+HOW IT WORKS
+The app converts TAP and TZX tape image files into audio signals identical to those produced by a cassette tape. Simply connect your phone's audio output to the EAR port of your ZX Spectrum, press play in the app, and type LOAD "" on your Spectrum - the software will load just as it would from a real tape.
+
+SEARCH AND DISCOVER
+Browse and search over 32,000 ZX Spectrum titles powered by the ZXInfo database. View game details, screenshots, and publisher information. Find the software you're looking for in seconds.
+
+MULTIPLE TAPE SOURCES
+- Download tapes directly from Archive.org and other public sources
+- Open local TAP, TZX, and ZIP files from your device
+- Automatic tape identification via file hash matching
+
+TAPE BLOCK BROWSER
+Inspect individual blocks within tape files. See headers, data blocks, and their contents - useful for multi-part tapes or understanding tape structure.
+
+PLAYER FEATURES
+- Animated cassette visualization with spinning reels
+- Play, pause, stop, and seek controls
+- Adjustable audio output frequency for compatibility with different hardware
+- Wake lock support to prevent screen sleep during loading
+- Ringer mode and volume control for optimal signal output
+
+SUPPORTED FORMATS
+- TAP files - standard tape image format
+- TZX files - extended tape format with copy protection support
+- ZIP archives containing TAP or TZX files
+
+LOCALIZATION
+Available in 12 languages: English, Ukrainian, Russian, German, French, Spanish, Italian, Portuguese, Polish, Czech, Slovak, and Hungarian.
+
+OPEN SOURCE
+ZX Tape Player is free, open source, and contains no ads or trackers. Your privacy is respected - no personal data is collected.
+
+Perfect for retro computing enthusiasts, ZX Spectrum collectors, and anyone who wants to experience classic 8-bit software on original hardware.
+

@@ -106,7 +106,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         actionsIconTheme:
             const IconThemeData(size: 30.0, color: Colors.white, opacity: 10.0),
         actions: [
-          (!model.isRemote)
+          (model.id == null)
               ? const SizedBox.shrink()
               : PopupMenuButton<Choice>(
                   color: HexColor('#3B4E63'),
@@ -180,7 +180,7 @@ Widget _buildInfoWidget(
   return Expanded(
       child: Container(
           color: HexColor('#172434'),
-          child: !model.isRemote
+          child: model.id == null
               ? const Center(
                   child: Cassette(animated: false),
                 )

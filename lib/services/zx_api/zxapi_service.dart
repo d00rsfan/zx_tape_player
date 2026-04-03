@@ -21,7 +21,7 @@ import 'models/items_dto.dart';
 import 'models/term_dto.dart';
 
 class ZxApiService implements BackendService {
-  static const _baseUrl = 'https://api.zxinfo.dk/v3';
+  static const _baseUrl = 'https://api.zxinfo.dk/v5';
   static const _contentBaseUrl = 'https://zxinfo.dk/media';
   static const _tapeBaseUrl =
       "https://archive.org/download/zx-spectrum-tosec-set-v-2020-02-18-lady-eklipse/%s.zip%s";
@@ -31,11 +31,11 @@ class ZxApiService implements BackendService {
       "https://archive.org/download/mirror-ftp-nvg/Mirror_ftp_nvg.zip/";
   static const _zxdbBaseUrl = "https://spectrumcomputing.co.uk/zxdb/";
   static const _termsUrl = '/suggest/%s';
-  static const _itemsUrl = '/search?query=%s&mode=tiny' +
+  static const _itemsUrl = '/search/titles/%s?mode=tiny' +
       '&sort=rel_desc&contenttype=SOFTWARE&size=%s&offset=%s';
-  static const _letterUrl = '/games/byletter/%s?mode=tiny' +
+  static const _letterUrl = '/entries/byletter/%s?mode=tiny' +
       '&contenttype=SOFTWARE&size=%s&offset=%s';
-  static const _itemUrl = '/games/%s?mode=full';
+  static const _itemUrl = '/entries/%s?mode=full';
   static const _fileCheckUrl = '/filecheck/%s';
   static const _externalUrl =
       'https://zxinfo.dk/details/%s?source=zxtapeplayer';

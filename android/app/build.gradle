@@ -29,7 +29,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.tekdeq.zxtapeplayer"
+    namespace = "io.github.d00rsfan.zxtapeplayer"
     compileSdk = 36
 
     compileOptions {
@@ -51,7 +51,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.tekdeq.zxtapeplayer"
+        applicationId = "io.github.d00rsfan.zxtapeplayer"
         minSdkVersion = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()

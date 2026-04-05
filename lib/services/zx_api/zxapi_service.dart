@@ -24,17 +24,17 @@ class ZxApiService implements BackendService {
   static const _baseUrl = 'https://api.zxinfo.dk/v5';
   static const _contentBaseUrl = 'https://zxinfo.dk/media';
   static const _tapeBaseUrl =
-      "https://archive.org/download/zx-spectrum-tosec-set-v-2020-02-18-lady-eklipse/%s.zip%s";
+      "https://archive.org/download/zx_spectrum_tosec_set_september_2023/%s.zip%s";
   static const _wosBaseUrl =
       "https://archive.org/download/World_of_Spectrum_June_2017_Mirror/World%20of%20Spectrum%20June%202017%20Mirror.zip/World%20of%20Spectrum%20June%202017%20Mirror";
   static const _nvgBaseUrl =
       "https://archive.org/download/mirror-ftp-nvg/Mirror_ftp_nvg.zip/";
   static const _zxdbBaseUrl = "https://spectrumcomputing.co.uk/zxdb/";
-  static const _termsUrl = '/suggest/%s';
+  static const _termsUrl = '/suggest/%s?machinetype=ZXSPECTRUM&contenttype=SOFTWARE';
   static const _itemsUrl = '/search/titles/%s?mode=tiny' +
-      '&sort=rel_desc&contenttype=SOFTWARE&size=%s&offset=%s';
+      '&sort=rel_desc&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
   static const _letterUrl = '/entries/byletter/%s?mode=tiny' +
-      '&contenttype=SOFTWARE&size=%s&offset=%s';
+      '&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
   static const _itemUrl = '/entries/%s?mode=full';
   static const _fileCheckUrl = '/filecheck/%s';
   static const _externalUrl =

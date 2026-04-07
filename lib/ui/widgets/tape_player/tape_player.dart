@@ -212,23 +212,30 @@ class _TapePlayerState extends State<TapePlayer> {
                                               }),
                                         ))),
                               ),
-                              Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: _bloc.files.map((filePath) {
-                                    int index = _bloc.files.indexOf(filePath);
-                                    return Container(
-                                      width: 8.0,
-                                      height: 8.0,
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 16.0, horizontal: 2.0),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: _bloc.currentFileIndex == index
-                                            ? HexColor('#D8DCE0')
-                                            : HexColor('#546B7F'),
-                                      ),
-                                    );
-                                  }).toList()),
+                              Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16.0, horizontal: 16.0),
+                                  child: Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 4.0,
+                                      runSpacing: 4.0,
+                                      children: _bloc.files
+                                          .asMap()
+                                          .entries
+                                          .map((entry) {
+                                        final index = entry.key;
+                                        return Container(
+                                          width: 8.0,
+                                          height: 8.0,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color:
+                                                _bloc.currentFileIndex == index
+                                                    ? HexColor('#D8DCE0')
+                                                    : HexColor('#546B7F'),
+                                          ),
+                                        );
+                                      }).toList())),
                             ]),
                             Container(
                               padding:

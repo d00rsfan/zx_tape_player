@@ -3,7 +3,7 @@ description: ZX Tape Player makes able uploading of TAP/TZX files to ZX Spectrum
 
 publish_to: 'none'
 
-version: 1.2.1+21
+version: 1.3.0+22
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
@@ -38,6 +38,17 @@ dependencies:
   share_plus: ^12.0.2
   permission_handler: ^12.0.1
   in_app_review: ^2.0.11
+
+dependency_overrides:
+  # Fork with AVAudioTimePitchAlgorithmVarispeed on iOS/macOS so playback
+  # speed also scales pitch (tape-recorder semantics). Combined with an
+  # explicit setPitch(speed) on Android, both platforms behave alike.
+  # Pinned to a SHA for reproducible builds; revert once upstream merges.
+  just_audio:
+    git:
+      url: https://github.com/d00rsfan/just_audio.git
+      ref: 0c0cf436811ed196064380120b484efbbed71d91
+      path: just_audio
 
 dev_dependencies:
   flutter_test:

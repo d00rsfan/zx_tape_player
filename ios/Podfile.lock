@@ -1,19 +1,7 @@
 PODS:
-  - app_center_bundle_sdk (0.0.2):
-    - AppCenter
-    - AppCenter/Distribute
-    - Flutter
-  - AppCenter (5.0.1):
-    - AppCenter/Analytics (= 5.0.1)
-    - AppCenter/Crashes (= 5.0.1)
-  - AppCenter/Analytics (5.0.1):
-    - AppCenter/Core
-  - AppCenter/Core (5.0.1)
-  - AppCenter/Crashes (5.0.1):
-    - AppCenter/Core
-  - AppCenter/Distribute (5.0.1):
-    - AppCenter/Core
   - audio_session (0.0.1):
+    - Flutter
+  - connectivity_plus (0.0.1):
     - Flutter
   - DKImagePickerController/Core (4.3.4):
     - DKImagePickerController/ImageDataManager
@@ -52,24 +40,19 @@ PODS:
   - Flutter (1.0.0)
   - flutter_keyboard_visibility (0.0.1):
     - Flutter
-  - flutter_mute (0.0.1):
+  - flutter_native_splash (2.4.3):
     - Flutter
-  - flutter_native_splash (0.0.1):
-    - Flutter
-  - flutter_statusbarcolor_ns (0.0.1):
-    - Flutter
-  - FMDB (2.7.5):
-    - FMDB/standard (= 2.7.5)
-  - FMDB/standard (2.7.5)
-  - in_app_review (0.2.0):
+  - in_app_review (2.0.0):
     - Flutter
   - just_audio (0.0.1):
     - Flutter
+    - FlutterMacOS
+  - Mute (0.6.1)
   - package_info_plus (0.4.5):
     - Flutter
-  - path_provider_ios (0.0.1):
+  - permission_handler_apple (9.3.0):
     - Flutter
-  - permission_handler_apple (9.0.4):
+  - pointer_interceptor_ios (0.0.1):
     - Flutter
   - SDWebImage (5.15.0):
     - SDWebImage/Core (= 5.15.0)
@@ -79,114 +62,111 @@ PODS:
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - sqflite (0.0.2):
+  - sound_mode (0.0.1):
     - Flutter
-    - FMDB (>= 2.7.5)
+    - Mute (~> 0.6.0)
+  - sqflite_darwin (0.0.4):
+    - Flutter
+    - FlutterMacOS
   - SwiftyGif (5.4.4)
   - url_launcher_ios (0.0.1):
     - Flutter
   - volume_controller (0.0.1):
     - Flutter
-  - wakelock (0.0.1):
+  - wakelock_plus (0.0.1):
     - Flutter
 
 DEPENDENCIES:
-  - app_center_bundle_sdk (from `.symlinks/plugins/app_center_bundle_sdk/ios`)
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
+  - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - Flutter (from `Flutter`)
   - flutter_keyboard_visibility (from `.symlinks/plugins/flutter_keyboard_visibility/ios`)
-  - flutter_mute (from `.symlinks/plugins/flutter_mute/ios`)
   - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
-  - flutter_statusbarcolor_ns (from `.symlinks/plugins/flutter_statusbarcolor_ns/ios`)
   - in_app_review (from `.symlinks/plugins/in_app_review/ios`)
-  - just_audio (from `.symlinks/plugins/just_audio/ios`)
+  - just_audio (from `.symlinks/plugins/just_audio/darwin`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
-  - path_provider_ios (from `.symlinks/plugins/path_provider_ios/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - pointer_interceptor_ios (from `.symlinks/plugins/pointer_interceptor_ios/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
-  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/ios`)
-  - sqflite (from `.symlinks/plugins/sqflite/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - sound_mode (from `.symlinks/plugins/sound_mode/ios`)
+  - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - volume_controller (from `.symlinks/plugins/volume_controller/ios`)
-  - wakelock (from `.symlinks/plugins/wakelock/ios`)
+  - wakelock_plus (from `.symlinks/plugins/wakelock_plus/ios`)
 
 SPEC REPOS:
   trunk:
-    - AppCenter
     - DKImagePickerController
     - DKPhotoGallery
-    - FMDB
+    - Mute
     - SDWebImage
     - SwiftyGif
 
 EXTERNAL SOURCES:
-  app_center_bundle_sdk:
-    :path: ".symlinks/plugins/app_center_bundle_sdk/ios"
   audio_session:
     :path: ".symlinks/plugins/audio_session/ios"
+  connectivity_plus:
+    :path: ".symlinks/plugins/connectivity_plus/ios"
   file_picker:
     :path: ".symlinks/plugins/file_picker/ios"
   Flutter:
     :path: Flutter
   flutter_keyboard_visibility:
     :path: ".symlinks/plugins/flutter_keyboard_visibility/ios"
-  flutter_mute:
-    :path: ".symlinks/plugins/flutter_mute/ios"
   flutter_native_splash:
     :path: ".symlinks/plugins/flutter_native_splash/ios"
-  flutter_statusbarcolor_ns:
-    :path: ".symlinks/plugins/flutter_statusbarcolor_ns/ios"
   in_app_review:
     :path: ".symlinks/plugins/in_app_review/ios"
   just_audio:
-    :path: ".symlinks/plugins/just_audio/ios"
+    :path: ".symlinks/plugins/just_audio/darwin"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
-  path_provider_ios:
-    :path: ".symlinks/plugins/path_provider_ios/ios"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
+  pointer_interceptor_ios:
+    :path: ".symlinks/plugins/pointer_interceptor_ios/ios"
   share_plus:
     :path: ".symlinks/plugins/share_plus/ios"
   shared_preferences_foundation:
-    :path: ".symlinks/plugins/shared_preferences_foundation/ios"
-  sqflite:
-    :path: ".symlinks/plugins/sqflite/ios"
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+  sound_mode:
+    :path: ".symlinks/plugins/sound_mode/ios"
+  sqflite_darwin:
+    :path: ".symlinks/plugins/sqflite_darwin/darwin"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
   volume_controller:
     :path: ".symlinks/plugins/volume_controller/ios"
-  wakelock:
-    :path: ".symlinks/plugins/wakelock/ios"
+  wakelock_plus:
+    :path: ".symlinks/plugins/wakelock_plus/ios"
 
 SPEC CHECKSUMS:
-  app_center_bundle_sdk: 8a102d23846effc4c5419597b470d1c17f62b9b8
-  AppCenter: 18153bb6bc4241d14c8cce57466ac1c88136b476
-  audio_session: 4f3e461722055d21515cf3261b64c973c062f345
+  audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
+  connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   DKImagePickerController: b512c28220a2b8ac7419f21c491fc8534b7601ac
   DKPhotoGallery: fdfad5125a9fdda9cc57df834d49df790dbb4179
-  file_picker: ce3938a0df3cc1ef404671531facef740d03f920
-  Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
-  flutter_keyboard_visibility: 0339d06371254c3eb25eeb90ba8d17dca8f9c069
-  flutter_mute: 97ee77efe66098c5b5c4fcc740e78dd944c8f5e0
-  flutter_native_splash: 52501b97d1c0a5f898d687f1646226c1f93c56ef
-  flutter_statusbarcolor_ns: 68a360889d88d7915ae524e422aeab62e4063804
-  FMDB: 2ce00b547f966261cd18927a3ddb07cb6f3db82a
-  in_app_review: 318597b3a06c22bb46dc454d56828c85f444f99d
-  just_audio: baa7252489dbcf47a4c7cc9ca663e9661c99aafa
-  package_info_plus: 6c92f08e1f853dc01228d6f553146438dafcd14e
-  path_provider_ios: 14f3d2fd28c4fdb42f44e0f751d12861c43cee02
-  permission_handler_apple: 44366e37eaf29454a1e7b1b7d736c2cceaeb17ce
+  file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_keyboard_visibility: 4625131e43015dbbe759d9b20daaf77e0e3f6619
+  flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
+  in_app_review: 7dd1ea365263f834b8464673f9df72c80c17c937
+  just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
+  Mute: 20135a96076f140cc82bfc8b810e2d6150d8ec7e
+  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
+  pointer_interceptor_ios: da06a662d5bfd329602b45b2ab41bc0fb5fdb0f0
   SDWebImage: 9bec4c5cdd9579e1f57104735ee0c37df274d593
-  share_plus: 056a1e8ac890df3e33cb503afffaf1e9b4fbae68
-  shared_preferences_foundation: 297b3ebca31b34ec92be11acd7fb0ba932c822ca
-  sqflite: 6d358c025f5b867b29ed92fc697fd34924e11904
+  share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
+  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+  sound_mode: 53bd43e2fb1f640571ea74931ca5efdea5ddfc97
+  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   SwiftyGif: 93a1cc87bf3a51916001cf8f3d63835fb64c819f
-  url_launcher_ios: 839c58cdb4279282219f5e248c3321761ff3c4de
-  volume_controller: 531ddf792994285c9b17f9d8a7e4dcdd29b3eae9
-  wakelock: d0fc7c864128eac40eba1617cb5264d9c940b46f
+  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
+  volume_controller: 3657a1f65bedb98fa41ff7dc5793537919f31b12
+  wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
 
-PODFILE CHECKSUM: d0b2433c00e78194b7205174b4a71f3be184bff8
+PODFILE CHECKSUM: 0d9064db1436b675909d6e91e22a0f2d825e0a17
 
-COCOAPODS: 1.11.3
+COCOAPODS: 1.16.2

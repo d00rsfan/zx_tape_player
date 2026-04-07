@@ -552,10 +552,11 @@ packages:
   just_audio:
     dependency: "direct main"
     description:
-      name: just_audio
-      sha256: "9694e4734f515f2a052493d1d7e0d6de219ee0427c7c29492e246ff32a219908"
-      url: "https://pub.dev"
-    source: hosted
+      path: just_audio
+      ref: "0c0cf436811ed196064380120b484efbbed71d91"
+      resolved-ref: "0c0cf436811ed196064380120b484efbbed71d91"
+      url: "https://github.com/d00rsfan/just_audio.git"
+    source: git
     version: "0.10.5"
   just_audio_platform_interface:
     dependency: transitive

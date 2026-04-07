@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:crypto/crypto.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +62,8 @@ class _TapePlayerState extends State<TapePlayer> {
     required double min,
     required double max,
     String valueSuffix = '',
+    int decimals = 1,
+    List<double>? presets,
     required Stream<double> stream,
     required ValueChanged<double> onChanged,
   }) {
@@ -72,11 +76,12 @@ class _TapePlayerState extends State<TapePlayer> {
             style: const TextStyle(wordSpacing: 0.3, color: Colors.white)),
         content: StreamBuilder<double>(
           stream: stream,
-          builder: (context, snapshot) => SizedBox(
-            height: 100.0,
-            child: Column(
+          builder: (context, snapshot) {
+            final value = snapshot.data ?? 1.0;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
+                Text('${value.toStringAsFixed(decimals)}$valueSuffix',
                     style: const TextStyle(
                         wordSpacing: 0.5,
                         fontSize: 24.0,
@@ -93,12 +98,37 @@ class _TapePlayerState extends State<TapePlayer> {
                       divisions: divisions,
                       min: min,
                       max: max,
-                      value: snapshot.data ?? 1.0,
+                      value: value.clamp(min, max),
                       onChanged: onChanged,
                     )),
+                if (presets != null) ...[
+                  const SizedBox(height: 8.0),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: presets.map((preset) {
+                      return TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: HexColor('#546B7F'),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 4.0),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.0),
+                          ),
+                        ),
+                        onPressed: () => onChanged(preset),
+                        child: Text(preset.toStringAsFixed(decimals)),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -329,90 +359,143 @@ class _TapePlayerState extends State<TapePlayer> {
     final tapeLoading = tapePlayerData?.state == TapePlayerState.Loading;
     final hasBlocks = _bloc.blockInfos != null && _bloc.blockInfos!.isNotEmpty;
 
-    return Center(
-        child: Row(
-      mainAxisSize: MainAxisSize.min,
+    // Two equal-flex Expanded halves around the play button so that PLAY is
+    // always horizontally centered on screen, regardless of how much content
+    // sits on either side. Left half right-aligns its children (block-nav
+    // cluster sits flush against PLAY), right half left-aligns its children
+    // (transport+utility cluster sits flush against PLAY).
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        StreamBuilder<double>(
-          stream: _bloc.player.speedStream,
-          builder: (context, snapshot) => IconButton(
-            color: Colors.white,
-            icon: Text("${snapshot.data?.toStringAsFixed(1)}x",
-                style: const TextStyle(color: Colors.white)),
-            onPressed: () {
-              _showSliderDialog(
-                context: context,
-                title: tr("adjust_speed"),
-                valueSuffix: "x",
-                divisions: 6,
-                min: 1,
-                max: 4,
-                stream: _bloc.player.speedStream,
-                onChanged: _bloc.player.setSpeed,
-              );
-            },
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  color: Colors.white,
+                  disabledColor: HexColor('#546B7F'),
+                  icon: const Icon(Icons.skip_previous_rounded),
+                  iconSize: 28.0,
+                  onPressed: hasBlocks ? _bloc.seekToPreviousBlock : null,
+                ),
+                IconButton(
+                  color: Colors.white,
+                  disabledColor: HexColor('#546B7F'),
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  iconSize: 28.0,
+                  onPressed: hasBlocks ? _bloc.seekToCurrentBlockStart : null,
+                ),
+                IconButton(
+                  color: Colors.white,
+                  disabledColor: HexColor('#546B7F'),
+                  icon: const Icon(Icons.skip_next_rounded),
+                  iconSize: 28.0,
+                  onPressed: hasBlocks ? _bloc.seekToNextBlock : null,
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 24.0),
-        Container(
-          width: 60.0,
-          height: 60.0,
-          decoration: BoxDecoration(
-            color: HexColor('#28384C'),
-            borderRadius: const BorderRadius.all(Radius.circular(30)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Container(
+            width: 60.0,
+            height: 60.0,
+            decoration: BoxDecoration(
+              color: HexColor('#28384C'),
+              borderRadius: const BorderRadius.all(Radius.circular(30)),
+            ),
+            child: Builder(builder: (context) {
+              if (tapeLoading) {
+                return const Center(
+                    child: SizedBox(
+                  height: 40.0,
+                  width: 40.0,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      backgroundColor: Colors.transparent,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                ));
+              } else if (!playing) {
+                return IconButton(
+                    color: Colors.white,
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    iconSize: 40.0,
+                    onPressed: _bloc.play);
+              } else if (processingState != ProcessingState.completed) {
+                return IconButton(
+                  color: Colors.white,
+                  icon: const Icon(Icons.pause_rounded),
+                  iconSize: 40.0,
+                  onPressed: _bloc.pause,
+                );
+              } else {
+                return IconButton(
+                    color: Colors.white,
+                    icon: const Icon(Icons.replay_rounded),
+                    iconSize: 40.0,
+                    onPressed: _bloc.replay);
+              }
+            }),
           ),
-          child: Builder(builder: (context) {
-            if (tapeLoading) {
-              return const Center(
-                  child: SizedBox(
-                height: 40.0,
-                width: 40.0,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2.0,
-                    backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-              ));
-            } else if (!playing) {
-              return IconButton(
-                  color: Colors.white,
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  iconSize: 40.0,
-                  onPressed: _bloc.play);
-            } else if (processingState != ProcessingState.completed) {
-              return IconButton(
-                color: Colors.white,
-                icon: const Icon(Icons.pause_rounded),
-                iconSize: 40.0,
-                onPressed: _bloc.pause,
-              );
-            } else {
-              return IconButton(
-                  color: Colors.white,
-                  icon: const Icon(Icons.replay_rounded),
-                  iconSize: 40.0,
-                  onPressed: _bloc.replay);
-            }
-          }),
         ),
-        const SizedBox(width: 24.0),
-        IconButton(
-          color: Colors.white,
-          disabledColor: HexColor('#546B7F'),
-          icon: const Icon(Icons.stop_rounded),
-          iconSize: 40.0,
-          onPressed: _bloc.player.position != Duration.zero ? _bloc.stop : null,
-        ),
-        const SizedBox(width: 8.0),
-        IconButton(
-          color: Colors.white,
-          disabledColor: HexColor('#546B7F'),
-          icon: const Icon(Icons.list_rounded),
-          iconSize: 28.0,
-          onPressed: hasBlocks ? () => _showBlockBrowser(context) : null,
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  color: Colors.white,
+                  disabledColor: HexColor('#546B7F'),
+                  icon: const Icon(Icons.stop_rounded),
+                  iconSize: 40.0,
+                  onPressed: _bloc.player.position != Duration.zero
+                      ? _bloc.stop
+                      : null,
+                ),
+                IconButton(
+                  color: Colors.white,
+                  disabledColor: HexColor('#546B7F'),
+                  icon: const Icon(Icons.list_rounded),
+                  iconSize: 28.0,
+                  onPressed:
+                      hasBlocks ? () => _showBlockBrowser(context) : null,
+                ),
+                StreamBuilder<double>(
+                  stream: _bloc.player.speedStream,
+                  builder: (context, snapshot) => IconButton(
+                    color: Colors.white,
+                    icon: Text("${snapshot.data?.toStringAsFixed(2)}x",
+                        style: const TextStyle(color: Colors.white)),
+                    onPressed: () {
+                      _showSliderDialog(
+                        context: context,
+                        title: tr("adjust_speed"),
+                        valueSuffix: "x",
+                        divisions: 75,
+                        min: 0.25,
+                        max: 4.0,
+                        decimals: 2,
+                        presets: const [0.25, 0.33, 0.5, 1.0, 2.0, 3.0, 4.0],
+                        stream: _bloc.player.speedStream,
+                        onChanged: _bloc.setSpeed,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            ),
+          ),
         ),
       ],
-    ));
+    );
   }
 }
 
@@ -496,10 +579,20 @@ class _TapePlayerBloc {
 
   Future<String> _getWavPath() async {
     var filePath = files[_currentFileIndex];
-    var wavPath =
-        Definitions.tapeDir.format([(await getTemporaryDirectory()).path]);
+    // Use the application support directory rather than the temporary
+    // directory: on Android the temp dir is the OS cache directory, which
+    // the system can reclaim at any time — even mid-playback for a
+    // foreground app. ExoPlayer reopens the underlying file whenever a
+    // seek lands outside its playback buffer (~50s), so a reclaimed file
+    // crashes long backward seeks with ENOENT. The application support
+    // directory is internal app storage that the OS does not reclaim.
+    var wavPath = Definitions.tapeDir
+        .format([(await getApplicationSupportDirectory()).path]);
     var dir = await Directory(wavPath).create(recursive: true);
-    return Definitions.wafFilePath.format([dir.path, basename(filePath)]);
+    // Hash the source path so the cache filename uses only [0-9a-f]
+    // characters and never collides for different tapes.
+    final hash = sha1.convert(utf8.encode(filePath)).toString();
+    return Definitions.wafFilePath.format([dir.path, hash]);
   }
 
   Future<bool> _prepareTapeForPlay({bool force = true}) async {
@@ -537,7 +630,7 @@ class _TapePlayerBloc {
   }
 
   void _cleanWavCache() {
-    getTemporaryDirectory().then((dir) {
+    getApplicationSupportDirectory().then((dir) {
       var tapePath = Definitions.tapeDir.format([dir.path]);
       return Directory(tapePath);
     }).then((dir) async {
@@ -574,7 +667,22 @@ class _TapePlayerBloc {
 
   Future replay() async {
     await _player.seek(Duration.zero,
-        index: _player.effectiveIndices?.first);
+        index: _player.effectiveIndices.first);
+  }
+
+  /// Sets playback speed with tape-recorder semantics: pitch scales with
+  /// speed (a 2x tape sounds an octave up). On iOS/macOS this is provided by
+  /// the patched just_audio that selects AVAudioTimePitchAlgorithmVarispeed.
+  /// On Android the same effect requires an explicit setPitch(speed) call.
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    if (Platform.isAndroid) {
+      try {
+        await _player.setPitch(speed);
+      } catch (_) {
+        // setPitch may be unavailable on some Android backends; ignore.
+      }
+    }
   }
 
   Future seekToBlock(int blockIndex) async {
@@ -584,6 +692,53 @@ class _TapePlayerBloc {
     if (!_player.playing) {
       await _takeControl();
       await _player.play();
+    }
+  }
+
+  /// Index of the block that contains the current player position, or null
+  /// when blocks are not yet available. Blocks are sorted by timeOffset, so
+  /// the current block is the last one whose start is at or before position.
+  int? get currentBlockIndex {
+    final blocks = _blockInfos;
+    if (blocks == null || blocks.isEmpty) return null;
+    final position = _player.position;
+    int index = 0;
+    for (int i = 0; i < blocks.length; i++) {
+      if (blocks[i].timeOffset <= position) {
+        index = i;
+      } else {
+        break;
+      }
+    }
+    return index;
+  }
+
+  /// Jumps to the previous block, or to the start of the current block when
+  /// already on the first block.
+  Future seekToPreviousBlock() async {
+    final blocks = _blockInfos;
+    if (blocks == null || blocks.isEmpty) return;
+    final current = currentBlockIndex!;
+    await seekToBlock((current - 1).clamp(0, blocks.length - 1));
+  }
+
+  /// Rewinds to the start of the block that's currently playing.
+  Future seekToCurrentBlockStart() async {
+    final current = currentBlockIndex;
+    if (current == null) return;
+    await seekToBlock(current);
+  }
+
+  /// Jumps to the next block, or stops playback when already on the last
+  /// block.
+  Future seekToNextBlock() async {
+    final blocks = _blockInfos;
+    if (blocks == null || blocks.isEmpty) return;
+    final current = currentBlockIndex!;
+    if (current >= blocks.length - 1) {
+      await stop();
+    } else {
+      await seekToBlock(current + 1);
     }
   }
 

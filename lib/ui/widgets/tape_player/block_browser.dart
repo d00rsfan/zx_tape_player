@@ -62,6 +62,9 @@ class BlockBrowser extends StatelessWidget {
     );
   }
 
+  static String blockLabel(TapeBlockInfo block) => _blockLabelImpl(block);
+  static IconData iconForType(String typeName) => _iconForTypeImpl(typeName);
+
   bool _isCurrentBlock(TapeBlockInfo block) {
     final blockEnd = block.timeOffset + block.duration;
     return currentPosition >= block.timeOffset && currentPosition < blockEnd;
@@ -125,14 +128,18 @@ class BlockBrowser extends StatelessWidget {
     );
   }
 
-  String _blockLabel(TapeBlockInfo block) {
+  String _blockLabel(TapeBlockInfo block) => _blockLabelImpl(block);
+
+  static String _blockLabelImpl(TapeBlockInfo block) {
     if (block.title != null && block.title!.isNotEmpty) {
       return '${block.typeName}: ${block.title}';
     }
     return block.typeName;
   }
 
-  IconData _iconForType(String typeName) {
+  IconData _iconForType(String typeName) => _iconForTypeImpl(typeName);
+
+  static IconData _iconForTypeImpl(String typeName) {
     switch (typeName) {
       case 'Program':
         return Icons.code_rounded;

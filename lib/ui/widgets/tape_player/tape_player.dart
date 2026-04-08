@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:crypto/crypto.dart';
@@ -39,6 +40,28 @@ class TapePlayer extends StatefulWidget {
   @override
   State<TapePlayer> createState() => _TapePlayerState();
 }
+
+// Carousel item text metrics.
+const _carouselNameFontSize = 12.0;
+const _carouselSourceFontSize = 8.0;
+
+// Pessimistic per-line heights used by `_calculateCarouselHeight`. These
+// overestimate iOS system-font line heights (San Francisco at 12pt renders at
+// roughly 16-18px) so the precomputed carousel height always grows enough to
+// fit the rendered text without an overflow assertion. The actual `Text`
+// widgets render with natural font metrics — we don't try to lock them, we
+// just ensure the container is at least as tall as a generous upper bound.
+const _carouselNameLinePx = 24.0; // 12 × 2.0
+const _carouselSourceLinePx = 18.0; // 8 × ~2.25
+
+const TextStyle _carouselNameStyle = TextStyle(
+  color: Colors.white,
+  fontSize: _carouselNameFontSize,
+);
+const TextStyle _carouselSourceStyle = TextStyle(
+  color: Colors.white54,
+  fontSize: _carouselSourceFontSize,
+);
 
 class _TapePlayerState extends State<TapePlayer> {
   late _TapePlayerBloc _bloc;
@@ -134,6 +157,52 @@ class _TapePlayerState extends State<TapePlayer> {
     );
   }
 
+  /// Computes a carousel height that fits the largest item without overflow.
+  /// Floor is the original 80px; ceiling is ~250% of that (200px). If a file
+  /// genuinely needs more, we'd rather see an overflow assertion than silently
+  /// shrink the text — that's an indicator to revisit the layout.
+  ///
+  /// Strategy: count rendered lines accurately with TextPainter, then
+  /// multiply by an overestimating per-line constant. This tolerates iOS
+  /// system-font metrics that would otherwise undershoot.
+  double _calculateCarouselHeight(BuildContext context) {
+    const minHeight = 80.0;
+    const maxHeight = 200.0;
+    const horizontalContainerPadding = 16.0;
+    const itemPadding = 12.0;
+    const sourceTopPadding = 2.0;
+    final mq = MediaQuery.of(context);
+    final textScaler = mq.textScaler;
+    final textMaxWidth =
+        mq.size.width - horizontalContainerPadding * 2 - itemPadding * 2;
+    double tallest = 0.0;
+    for (final filePath in _bloc.files) {
+      final source = _getFileSource(filePath);
+      final namePainter = TextPainter(
+        text: TextSpan(text: basename(filePath), style: _carouselNameStyle),
+        maxLines: 3,
+        textDirection: ui.TextDirection.ltr,
+        textScaler: textScaler,
+      )..layout(maxWidth: textMaxWidth);
+      // Use TextPainter only for the line *count*: computeLineMetrics()
+      // accurately tells us how the filename wraps to 1, 2, or 3 lines at
+      // the actual screen width. We deliberately discard namePainter.height
+      // — empirically on iOS the Text widget renders ~8px taller than what
+      // TextPainter reports for the same string, so trusting it caused a
+      // RenderFlex overflow. Multiplying the line count by the pessimistic
+      // _carouselNameLinePx constant guarantees the budget always exceeds
+      // what Text actually paints.
+      final nameLines = namePainter.computeLineMetrics().length;
+      double h = nameLines * _carouselNameLinePx;
+      if (source.isNotEmpty) {
+        h += sourceTopPadding + _carouselSourceLinePx;
+      }
+      h += itemPadding * 2;
+      if (h > tallest) tallest = h;
+    }
+    return tallest.clamp(minHeight, maxHeight);
+  }
+
   static String _getFileSource(String filePath) {
     if (filePath.contains('World_of_Spectrum')) return 'archive.org';
     if (filePath.contains('mirror-ftp-nvg')) return 'nvg';
@@ -159,6 +228,8 @@ class _TapePlayerState extends State<TapePlayer> {
                         var tapePlayerData = snapshot.data;
                         final tapeLoading =
                             tapePlayerData?.state == TapePlayerState.Loading;
+                        final carouselHeight =
+                            _calculateCarouselHeight(context);
                         return Column(
                           children: [
                             Column(children: [
@@ -177,7 +248,7 @@ class _TapePlayerState extends State<TapePlayer> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 16.0),
                                     width: double.infinity,
-                                    height: 80.0,
+                                    height: carouselHeight,
                                     child: Container(
                                         decoration: BoxDecoration(
                                           color: HexColor('#172434'),
@@ -198,9 +269,7 @@ class _TapePlayerState extends State<TapePlayer> {
                                                         children: [
                                                           Text(
                                                             basename(filePath),
-                                                            style: const TextStyle(
-                                                                color: Colors.white,
-                                                                fontSize: 12.0),
+                                                            style: _carouselNameStyle,
                                                             textAlign:
                                                                 TextAlign.center,
                                                             overflow:
@@ -212,9 +281,7 @@ class _TapePlayerState extends State<TapePlayer> {
                                                               padding: const EdgeInsets.only(top: 2.0),
                                                               child: Text(
                                                                 source,
-                                                                style: const TextStyle(
-                                                                    color: Colors.white54,
-                                                                    fontSize: 8.0),
+                                                                style: _carouselSourceStyle,
                                                               ),
                                                           ),
                                                         ],
@@ -232,7 +299,7 @@ class _TapePlayerState extends State<TapePlayer> {
                                                   : const AlwaysScrollableScrollPhysics(),
                                               autoPlay: false,
                                               enlargeCenterPage: false,
-                                              aspectRatio: 2.0,
+                                              height: carouselHeight,
                                               viewportFraction: 1.0,
                                               initialPage:
                                                   _bloc.currentFileIndex,
@@ -307,6 +374,7 @@ class _TapePlayerState extends State<TapePlayer> {
                                 },
                               ),
                             ),
+                            _buildCurrentBlockRow(),
                             _buildControlButtons(
                                 context, tapePlayerData, playerState),
                           ],
@@ -339,6 +407,56 @@ class _TapePlayerState extends State<TapePlayer> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildCurrentBlockRow() {
+    return StreamBuilder<Duration>(
+      stream: _bloc.player.positionStream,
+      builder: (context, snapshot) {
+        final blocks = _bloc.blockInfos;
+        if (blocks == null || blocks.isEmpty) {
+          return const SizedBox(height: 8.0);
+        }
+        final index = _bloc.currentBlockIndex ?? 0;
+        final block = blocks[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 24.0, vertical: 4.0),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 32.0,
+                child: Text(
+                  '${block.index + 1}',
+                  maxLines: 2,
+                  softWrap: true,
+                  style: TextStyle(
+                      color: HexColor('#B1B8C1'), fontSize: 11.0),
+                ),
+              ),
+              Icon(
+                BlockBrowser.iconForType(block.typeName),
+                color: Colors.white,
+                size: 16.0,
+              ),
+              const SizedBox(width: 6.0),
+              Expanded(
+                child: Text(
+                  BlockBrowser.blockLabel(block),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.0,
+                      fontWeight: block.isHeader
+                          ? FontWeight.w600
+                          : FontWeight.normal),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

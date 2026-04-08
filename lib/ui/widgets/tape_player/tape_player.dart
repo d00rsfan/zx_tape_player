@@ -136,9 +136,9 @@ class _TapePlayerState extends State<TapePlayer> {
 
   static String _getFileSource(String filePath) {
     if (filePath.contains('World_of_Spectrum')) return 'archive.org';
-    if (filePath.contains('mirror-ftp-nvg')) return 'NVG';
-    if (filePath.contains('spectrumcomputing.co.uk')) return 'SC';
-    if (filePath.contains('zx-spectrum-tosec')) return 'TOSEC';
+    if (filePath.contains('mirror-ftp-nvg')) return 'nvg';
+    if (filePath.contains('spectrumcomputing.co.uk')) return 'spectrumcomputing';
+    if (filePath.contains('zx_spectrum_tosec')) return 'tosec';
     return '';
   }
 

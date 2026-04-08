@@ -62,6 +62,77 @@ build/app/outputs/flutter-apk/app-x86_64-release.apk       # emulators / x86 dev
 
 For most devices, use the `arm64-v8a` variant.
 
+### Building on macOS (iOS and Android)
+
+Building for iOS requires macOS with Xcode installed. If you need to maintain multiple Xcode versions, use [`xcodes`](https://github.com/XcodesOrg/xcodes):
+
+```bash
+brew install xcodes
+xcodes install --latest
+xcodes select --latest
+xcodes runtimes install --latest
+```
+
+Otherwise just install Xcode from the App Store.
+
+Install Flutter and CocoaPods:
+
+```bash
+brew install --cask flutter
+brew install cocoapods
+flutter --disable-analytics
+```
+
+Flutter will be installed at `/opt/homebrew/share/flutter`.
+
+Install the Android command-line tools (needed even when building only for iOS, since `flutter doctor` checks for them):
+
+```bash
+brew install --cask android-commandlinetools
+export ANDROID_HOME=$HOMEBREW_PREFIX/share/android-commandlinetools
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+```
+
+Add the two `export` lines to your `~/.zshrc` to make them persistent.
+
+Accept the Android SDK and Flutter licenses, then install the required Android SDK packages:
+
+```bash
+yes | sdkmanager --licenses
+flutter doctor --android-licenses
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+```
+
+Fetch project dependencies and install iOS pods:
+
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+```
+
+Start an iOS Simulator (or Android emulator), then run the app:
+
+```bash
+flutter run
+```
+
+On the first run you may be prompted to download additional components — accept the dialog. If something fails, re-run `flutter run`.
+
+If you hit stale build issues, do a clean rebuild:
+
+```bash
+flutter clean
+flutter pub get
+cd ios && pod install --repo-update && cd ..
+flutter run
+```
+
+To produce a release build for iOS:
+
+```bash
+flutter build ios --release
+```
+
 ## Contribute
 
 Contributions are welcome! Please open an [Issue](https://github.com/d00rsfan/zx_tape_player/issues) or submit a Pull Request.
@@ -75,7 +146,3 @@ For questions, bug reports, or feature requests, reach out through [GitHub Issue
 - [Sergey Kireev](https://github.com/psk7) for help in stabilizing the sound converter with custom loaders;
 - [Mikie](https://www.alessandrogrussu.it/tapir/index.html) for his Tapir audio post-processing implementation;
 - To everyone who contributes to keeping this project alive.
-
-## Screenshots
-
-<img src="https://github.com/semack/zx_tape_player/blob/master/android/fastlane/metadata/android/en-US/images/phoneScreenshots/1_en-US.jpeg?raw=true" width="33%"></img> <img src="https://github.com/semack/zx_tape_player/blob/master/android/fastlane/metadata/android/en-US/images/phoneScreenshots/2_en-US.jpeg?raw=true" width="33%"></img> <img src="https://github.com/semack/zx_tape_player/blob/master/android/fastlane/metadata/android/en-US/images/phoneScreenshots/3_en-US.jpeg?raw=true" width="33%"></img> <img src="https://github.com/semack/zx_tape_player/blob/master/android/fastlane/metadata/android/en-US/images/phoneScreenshots/4_en-US.jpeg?raw=true" width="33%"></img> <img src="https://github.com/semack/zx_tape_player/blob/master/android/fastlane/metadata/android/en-US/images/phoneScreenshots/5_en-US.jpeg?raw=true" width="33%"></img> <img src="https://github.com/semack/zx_tape_player/blob/master/android/fastlane/metadata/android/en-US/images/phoneScreenshots/6_en-US.jpeg?raw=true" width="33%"></img>

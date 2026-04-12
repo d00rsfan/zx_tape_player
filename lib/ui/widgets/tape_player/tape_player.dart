@@ -479,6 +479,12 @@ class _TapePlayerState extends State<TapePlayer> {
             barType: SnackBarType.error,
             context: context);
       }
+      if (tapePlayerData.warnings.isNotEmpty) {
+        BarHelper.showSnackBar(
+            message: tr('tape_corrupted_warning'),
+            barType: SnackBarType.warning,
+            context: context);
+      }
     }
 
     final processingState = playerState?.processingState;
@@ -668,7 +674,7 @@ class _TapePlayerBloc {
     currentFileIndex = software.currentFileIndex;
   }
 
-  static Future<List<TapeBlockInfo>> _getAndConvertImage(
+  static Future<(List<TapeBlockInfo>, List<String>)> _getAndConvertImage(
       ConverterComputationData data) async {
     Uint8List bytes;
     if (data.isRemote) {
@@ -688,7 +694,7 @@ class _TapePlayerBloc {
           data.controller.sink.add(sink);
         });
     await data.file.writeAsBytes(result.wavBytes);
-    return result.blocks;
+    return (result.blocks, result.warnings);
   }
 
   static Uint8List _extractTapeFromZip(Uint8List zipBytes) {
@@ -733,18 +739,21 @@ class _TapePlayerBloc {
       if (!wavExists && !force) {
         return false;
       }
+      List<String> warnings = const [];
       if (!wavExists || _blockInfos == null) {
         _tapePlayerController.sink
             .add(TapePlayerData(TapePlayerState.Loading, filePath));
         var convertModel = ConverterComputationData(filePath, software.isRemote,
             file, _backendService, _progressController);
-        _blockInfos =
+        var (blocks, w) =
             await compute(_getAndConvertImage, convertModel);
+        _blockInfos = blocks;
+        warnings = w;
       }
       await _player.setFilePath(wavFileName);
       _tapePlayerController.sink.add(TapePlayerData(
           TapePlayerState.Idle, filePath,
-          blocks: _blockInfos));
+          blocks: _blockInfos, warnings: warnings));
       return true;
     } catch (e) {
       _tapePlayerController.sink.add(TapePlayerData(

@@ -7,6 +7,8 @@ class TapePlayerData {
   final String? message;
   final String filePath;
   final List<TapeBlockInfo>? blocks;
+  final List<String> warnings;
 
-  TapePlayerData(this.state, this.filePath, {this.message, this.blocks});
+  TapePlayerData(this.state, this.filePath,
+      {this.message, this.blocks, this.warnings = const []});
 }

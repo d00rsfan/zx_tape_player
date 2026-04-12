@@ -23,5 +23,6 @@
   "share_tape": "Sdílet",
   "download_tape_success": "Pásek byla úspěšně stažen do zařízení.",
   "block_browser": "Bloky pásku",
-  "block_bytes": "bajtů"
+  "block_bytes": "bajtů",
+  "tape_corrupted_warning": "Soubor pásku je poškozený. Přehrávání nemusí být úplné."
 }

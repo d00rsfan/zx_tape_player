@@ -23,5 +23,6 @@
   "share_tape": "Dela",
   "download_tape_success": "Nedladdning av kassetten lyckades.",
   "block_browser": "Kassettblock",
-  "block_bytes": "byte"
+  "block_bytes": "byte",
+  "tape_corrupted_warning": "Kassettfilen verkar vara skadad. Uppspelningen kan vara ofullständig."
 }

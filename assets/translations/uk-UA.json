@@ -23,5 +23,6 @@
   "share_tape": "Поділитися",
   "download_tape_success": "Вибрану стрічку успішно завантажено.",
   "block_browser": "Блоки стрічки",
-  "block_bytes": "байт"
+  "block_bytes": "байт",
+  "tape_corrupted_warning": "Файл стрічки пошкоджено. Відтворення може бути неповним."
 }

@@ -23,5 +23,6 @@
   "share_tape": "Delre",
   "download_tape_success": "Båndet er downloadet med succes.",
   "block_browser": "Båndblokke",
-  "block_bytes": "bytes"
+  "block_bytes": "bytes",
+  "tape_corrupted_warning": "Båndfilen ser ud til at være beskadiget. Afspilningen kan være ufuldstændig."
 }

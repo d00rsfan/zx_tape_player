@@ -23,5 +23,6 @@
   "share_tape": "Поделиться",
   "download_tape_success": "Выбранная лента успешно загружена.",
   "block_browser": "Блоки ленты",
-  "block_bytes": "байт"
+  "block_bytes": "байт",
+  "tape_corrupted_warning": "Файл ленты повреждён. Воспроизведение может быть неполным."
 }

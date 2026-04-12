@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
-enum SnackBarType { info, error }
+enum SnackBarType { info, warning, error }
 
 class BarHelper {
   BarHelper._();
@@ -15,6 +15,7 @@ class BarHelper {
       ScaffoldMessenger.of(context).removeCurrentSnackBar();
     });
     var backgroundColor = HexColor('#172434');
+    if (barType == SnackBarType.warning) backgroundColor = HexColor('#E6A817');
     if (barType == SnackBarType.error) backgroundColor = HexColor('#D9512D');
     final snackBar = SnackBar(
       duration: duration,

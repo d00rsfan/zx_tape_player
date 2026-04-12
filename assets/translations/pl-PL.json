@@ -23,5 +23,6 @@
   "share_tape": "Udostępnij",
   "download_tape_success": "Obraz taśmy pobrany poprawnie.",
   "block_browser": "Bloki taśmy",
-  "block_bytes": "bajtów"
+  "block_bytes": "bajtów",
+  "tape_corrupted_warning": "Plik taśmy wydaje się uszkodzony. Odtwarzanie może być niekompletne."
 }

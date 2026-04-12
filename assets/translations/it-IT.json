@@ -23,5 +23,6 @@
   "share_tape": "Condividere",
   "download_tape_success": "Il nastro è stato scaricato con successo.",
   "block_browser": "Blocchi del nastro",
-  "block_bytes": "byte"
+  "block_bytes": "byte",
+  "tape_corrupted_warning": "Il file del nastro sembra danneggiato. La riproduzione potrebbe essere incompleta."
 }

@@ -420,6 +420,9 @@ class _TapePlayerState extends State<TapePlayer> {
         }
         final index = _bloc.currentBlockIndex ?? 0;
         final block = blocks[index];
+        final position = snapshot.data ?? Duration.zero;
+        final remaining = block.timeOffset + block.duration - position;
+        final clamped = remaining.isNegative ? Duration.zero : remaining;
         return Padding(
           padding: const EdgeInsets.symmetric(
               horizontal: 24.0, vertical: 4.0),
@@ -452,6 +455,12 @@ class _TapePlayerState extends State<TapePlayer> {
                           : FontWeight.normal),
                   overflow: TextOverflow.ellipsis,
                 ),
+              ),
+              const SizedBox(width: 6.0),
+              Text(
+                '-${clamped.toTimeString()}',
+                style: TextStyle(
+                    color: HexColor('#B1B8C1'), fontSize: 11.0),
               ),
             ],
           ),
@@ -600,7 +609,7 @@ class _TapePlayerState extends State<TapePlayer> {
                         min: 0.25,
                         max: 4.0,
                         decimals: 2,
-                        presets: const [0.25, 0.33, 0.5, 1.0, 2.0, 3.0, 4.0],
+                        presets: const [0.33, 0.5, 1.0, 1.1, 2.0, 3.0, 4.0],
                         stream: _bloc.player.speedStream,
                         onChanged: _bloc.setSpeed,
                       );

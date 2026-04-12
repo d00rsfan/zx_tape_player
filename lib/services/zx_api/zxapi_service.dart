@@ -192,8 +192,16 @@ class ZxApiService implements BackendService {
 
   @override
   Future<Uint8List> downloadTape(String url) async {
-    var response =
-        await UserAgentClient(_userAgent, http.Client()).get(Uri.parse(url));
+    var schemeEnd = url.indexOf('://');
+    var pathStart = url.indexOf('/', schemeEnd + 3);
+    var base = url.substring(0, pathStart);
+    var encodedPath = url
+        .substring(pathStart)
+        .split('/')
+        .map((s) => Uri.encodeComponent(Uri.decodeComponent(s)))
+        .join('/');
+    var response = await UserAgentClient(_userAgent, http.Client())
+        .get(Uri.parse(base + encodedPath));
     if (response.statusCode == 200) return response.bodyBytes;
     throw Exception('Failed to download tape: ${response.statusCode}');
   }

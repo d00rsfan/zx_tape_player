@@ -78,7 +78,7 @@ class _TapePlayerState extends State<TapePlayer> {
     super.dispose();
   }
 
-  _showSliderDialog({
+  _showSliderBottomSheet({
     required BuildContext context,
     required String title,
     required int divisions,
@@ -90,68 +90,175 @@ class _TapePlayerState extends State<TapePlayer> {
     required Stream<double> stream,
     required ValueChanged<double> onChanged,
   }) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: HexColor('#3B4E63'),
-        title: Text(title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(wordSpacing: 0.3, color: Colors.white)),
-        content: StreamBuilder<double>(
-          stream: stream,
-          builder: (context, snapshot) {
-            final value = snapshot.data ?? 1.0;
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('${value.toStringAsFixed(decimals)}$valueSuffix',
-                    style: const TextStyle(
-                        wordSpacing: 0.5,
-                        fontSize: 24.0,
-                        color: Colors.white)),
-                const SizedBox(height: 16.0),
-                SliderTheme(
-                    data: SliderThemeData(
-                        activeTickMarkColor: Colors.white,
-                        activeTrackColor: Colors.white,
-                        inactiveTickMarkColor: Colors.white,
-                        inactiveTrackColor: HexColor('#546B7F'),
-                        thumbColor: Colors.white),
-                    child: Slider(
-                      divisions: divisions,
-                      min: min,
-                      max: max,
-                      value: value.clamp(min, max),
-                      onChanged: onChanged,
-                    )),
-                if (presets != null) ...[
-                  const SizedBox(height: 8.0),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8.0,
-                    runSpacing: 8.0,
-                    children: presets.map((preset) {
-                      return TextButton(
-                        style: TextButton.styleFrom(
-                          backgroundColor: HexColor('#546B7F'),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0, vertical: 4.0),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4.0),
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: HexColor('#3B4E63'),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(16.0)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8.0),
+              Container(
+                width: 40.0,
+                height: 4.0,
+                decoration: BoxDecoration(
+                  color: HexColor('#546B7F'),
+                  borderRadius: BorderRadius.circular(2.0),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              StreamBuilder<double>(
+                stream: stream,
+                builder: (context, snapshot) {
+                  final value = snapshot.data ?? 1.0;
+                  // Single step derived from the slider's division count so
+                  // ± nudges exactly match the slider's snap resolution.
+                  final step = (max - min) / divisions;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                            '${value.toStringAsFixed(decimals)}$valueSuffix',
+                            style: const TextStyle(
+                                wordSpacing: 0.5,
+                                fontSize: 24.0,
+                                color: Colors.white)),
+                      ),
+                      const SizedBox(height: 8.0),
+                      // 8px outer padding keeps the ± icons ~12px off the
+                      // physical screen edge (8 outer + 4 inset inside a
+                      // 32x32 button), out of the Android gesture-nav back-
+                      // swipe zone. The button is sized to the icon (24px)
+                      // plus just 4px of inset on each side so it sits as
+                      // close to the slider as the slider's own thumb-radius
+                      // inset allows.
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: SliderTheme(
+                          data: SliderThemeData(
+                              activeTickMarkColor: Colors.transparent,
+                              // Same colour on both sides of the thumb —
+                              // this isn't a progress/volume bar, so the
+                              // "filled-up-to-here" look is misleading. The
+                              // thumb alone communicates the current value.
+                              activeTrackColor: HexColor('#546B7F'),
+                              inactiveTickMarkColor: Colors.transparent,
+                              inactiveTrackColor: HexColor('#546B7F'),
+                              thumbColor: Colors.white),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                // shrinkWrap removes the built-in 40dp tap-
+                                // target floor (kMinInteractiveDimension 48
+                                // minus VisualDensity.compact's -8), which
+                                // was the reason earlier 32px constraints
+                                // didn't actually shrink the button.
+                                style: IconButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  disabledForegroundColor:
+                                      HexColor('#546B7F'),
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(32, 32),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                icon: const Icon(Icons.remove_rounded),
+                                onPressed: value > min
+                                    ? () => onChanged(
+                                        (value - step).clamp(min, max))
+                                    : null,
+                              ),
+                              Expanded(
+                                child: Slider(
+                                  divisions: divisions,
+                                  min: min,
+                                  max: max,
+                                  value: value.clamp(min, max),
+                                  onChanged: onChanged,
+                                ),
+                              ),
+                              IconButton(
+                                style: IconButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  disabledForegroundColor:
+                                      HexColor('#546B7F'),
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(32, 32),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                icon: const Icon(Icons.add_rounded),
+                                onPressed: value < max
+                                    ? () => onChanged(
+                                        (value + step).clamp(min, max))
+                                    : null,
+                              ),
+                            ],
                           ),
                         ),
-                        onPressed: () => onChanged(preset),
-                        child: Text(preset.toStringAsFixed(decimals)),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ],
-            );
-          },
+                      ),
+                      if (presets != null) ...[
+                        const SizedBox(height: 8.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8.0,
+                            runSpacing: 8.0,
+                            children: presets.map((preset) {
+                              return TextButton(
+                                style: TextButton.styleFrom(
+                                  backgroundColor: HexColor('#546B7F'),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0, vertical: 4.0),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(4.0),
+                                  ),
+                                ),
+                                onPressed: () => onChanged(preset),
+                                child: Text(
+                                    preset.toStringAsFixed(decimals)),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16.0),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -492,142 +599,133 @@ class _TapePlayerState extends State<TapePlayer> {
     final tapeLoading = tapePlayerData?.state == TapePlayerState.Loading;
     final hasBlocks = _bloc.blockInfos != null && _bloc.blockInfos!.isNotEmpty;
 
-    // Two equal-flex Expanded halves around the play button so that PLAY is
-    // always horizontally centered on screen, regardless of how much content
-    // sits on either side. Left half right-aligns its children (block-nav
-    // cluster sits flush against PLAY), right half left-aligns its children
-    // (transport+utility cluster sits flush against PLAY).
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  color: Colors.white,
-                  disabledColor: HexColor('#546B7F'),
-                  icon: const Icon(Icons.skip_previous_rounded),
-                  iconSize: 28.0,
-                  onPressed: hasBlocks ? _bloc.seekToPreviousBlock : null,
-                ),
-                IconButton(
-                  color: Colors.white,
-                  disabledColor: HexColor('#546B7F'),
-                  icon: const Icon(Icons.restart_alt_rounded),
-                  iconSize: 28.0,
-                  onPressed: hasBlocks ? _bloc.seekToCurrentBlockStart : null,
-                ),
-                IconButton(
-                  color: Colors.white,
-                  disabledColor: HexColor('#546B7F'),
-                  icon: const Icon(Icons.skip_next_rounded),
-                  iconSize: 28.0,
-                  onPressed: hasBlocks ? _bloc.seekToNextBlock : null,
-                ),
-              ],
+    // All transport icons share iconSize 28 so the 3-button clusters on
+    // either side of the play circle carry matching visual weight; the play
+    // button then lands at the natural centre of a plain `Row` — no Expanded
+    // or Align tricks needed. FittedBox(scaleDown) protects narrow screens
+    // from overflow without distorting the layout when it fits.
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            IconButton(
+              color: Colors.white,
+              disabledColor: HexColor('#546B7F'),
+              icon: const Icon(Icons.skip_previous_rounded),
+              iconSize: 28.0,
+              onPressed: hasBlocks ? _bloc.seekToPreviousBlock : null,
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Container(
-            width: 60.0,
-            height: 60.0,
-            decoration: BoxDecoration(
-              color: HexColor('#28384C'),
-              borderRadius: const BorderRadius.all(Radius.circular(30)),
+            IconButton(
+              color: Colors.white,
+              disabledColor: HexColor('#546B7F'),
+              icon: const Icon(Icons.restart_alt_rounded),
+              iconSize: 28.0,
+              onPressed: hasBlocks ? _bloc.seekToCurrentBlockStart : null,
             ),
-            child: Builder(builder: (context) {
-              if (tapeLoading) {
-                return const Center(
-                    child: SizedBox(
-                  height: 40.0,
-                  width: 40.0,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.0,
-                      backgroundColor: Colors.transparent,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                ));
-              } else if (!playing) {
-                return IconButton(
+            IconButton(
+              color: Colors.white,
+              disabledColor: HexColor('#546B7F'),
+              icon: const Icon(Icons.skip_next_rounded),
+              iconSize: 28.0,
+              onPressed: hasBlocks ? _bloc.seekToNextBlock : null,
+            ),
+            const SizedBox(width: 16.0),
+            Container(
+              width: 60.0,
+              height: 60.0,
+              decoration: BoxDecoration(
+                color: HexColor('#28384C'),
+                borderRadius: const BorderRadius.all(Radius.circular(30)),
+              ),
+              child: Builder(builder: (context) {
+                if (tapeLoading) {
+                  return const Center(
+                      child: SizedBox(
+                    height: 40.0,
+                    width: 40.0,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        backgroundColor: Colors.transparent,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white)),
+                  ));
+                } else if (!playing) {
+                  return IconButton(
+                      color: Colors.white,
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      iconSize: 40.0,
+                      onPressed: _bloc.play);
+                } else if (processingState != ProcessingState.completed) {
+                  return IconButton(
                     color: Colors.white,
-                    icon: const Icon(Icons.play_arrow_rounded),
+                    icon: const Icon(Icons.pause_rounded),
                     iconSize: 40.0,
-                    onPressed: _bloc.play);
-              } else if (processingState != ProcessingState.completed) {
-                return IconButton(
-                  color: Colors.white,
-                  icon: const Icon(Icons.pause_rounded),
-                  iconSize: 40.0,
-                  onPressed: _bloc.pause,
-                );
-              } else {
-                return IconButton(
-                    color: Colors.white,
-                    icon: const Icon(Icons.replay_rounded),
-                    iconSize: 40.0,
-                    onPressed: _bloc.replay);
-              }
-            }),
-          ),
-        ),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  color: Colors.white,
-                  disabledColor: HexColor('#546B7F'),
-                  icon: const Icon(Icons.stop_rounded),
-                  iconSize: 40.0,
-                  onPressed: _bloc.player.position != Duration.zero
-                      ? _bloc.stop
-                      : null,
-                ),
-                IconButton(
-                  color: Colors.white,
-                  disabledColor: HexColor('#546B7F'),
-                  icon: const Icon(Icons.list_rounded),
-                  iconSize: 28.0,
-                  onPressed:
-                      hasBlocks ? () => _showBlockBrowser(context) : null,
-                ),
-                StreamBuilder<double>(
-                  stream: _bloc.player.speedStream,
-                  builder: (context, snapshot) => IconButton(
-                    color: Colors.white,
-                    icon: Text("${snapshot.data?.toStringAsFixed(2)}x",
-                        style: const TextStyle(color: Colors.white)),
-                    onPressed: () {
-                      _showSliderDialog(
-                        context: context,
-                        title: tr("adjust_speed"),
-                        valueSuffix: "x",
-                        divisions: 75,
-                        min: 0.25,
-                        max: 4.0,
-                        decimals: 2,
-                        presets: const [0.33, 0.5, 1.0, 1.1, 2.0, 3.0, 4.0],
-                        stream: _bloc.player.speedStream,
-                        onChanged: _bloc.setSpeed,
-                      );
-                    },
-                  ),
-                ),
-              ],
+                    onPressed: _bloc.pause,
+                  );
+                } else {
+                  return IconButton(
+                      color: Colors.white,
+                      icon: const Icon(Icons.replay_rounded),
+                      iconSize: 40.0,
+                      onPressed: _bloc.replay);
+                }
+              }),
             ),
+            const SizedBox(width: 16.0),
+            IconButton(
+              color: Colors.white,
+              disabledColor: HexColor('#546B7F'),
+              icon: const Icon(Icons.stop_rounded),
+              iconSize: 28.0,
+              onPressed: _bloc.player.position != Duration.zero
+                  ? _bloc.stop
+                  : null,
             ),
-          ),
+            IconButton(
+              color: Colors.white,
+              disabledColor: HexColor('#546B7F'),
+              icon: const Icon(Icons.list_rounded),
+              iconSize: 28.0,
+              onPressed: hasBlocks ? () => _showBlockBrowser(context) : null,
+            ),
+            StreamBuilder<double>(
+              stream: _bloc.player.speedStream,
+              builder: (context, snapshot) => IconButton(
+                color: Colors.white,
+                icon: Text("${snapshot.data?.toStringAsFixed(2)}x",
+                    style: const TextStyle(color: Colors.white)),
+                onPressed: () {
+                  _showSliderBottomSheet(
+                    context: context,
+                    title: tr("adjust_speed"),
+                    valueSuffix: "x",
+                    divisions: 375,
+                    min: 0.25,
+                    max: 4.0,
+                    decimals: 2,
+                    presets: const [
+                      0.33,
+                      0.5,
+                      0.9,
+                      1.0,
+                      1.05,
+                      1.1,
+                      1.15,
+                      2.0,
+                      3.0,
+                    ],
+                    stream: _bloc.player.speedStream,
+                    onChanged: _bloc.setSpeed,
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

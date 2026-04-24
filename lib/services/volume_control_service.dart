@@ -1,3 +1,3 @@
 abstract class VolumeControlService {
-  Future setOptimalVolume();
+  Future applySavedVolume();
 }

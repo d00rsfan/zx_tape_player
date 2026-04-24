@@ -141,8 +141,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     onPressed: () async {
-                      FilePicker.platform.clearTemporaryFiles();
-                      final result = await FilePicker.platform.pickFiles(
+                      FilePicker.clearTemporaryFiles();
+                      final result = await FilePicker.pickFiles(
                           type: FileType.any,
                           allowMultiple: false);
                       if (result != null) {

@@ -918,7 +918,7 @@ class _TapePlayerBloc {
   }
 
   Future _takeControl() async {
-    await _volumeControlService.setOptimalVolume();
+    await _volumeControlService.applySavedVolume();
     await _muteControlService.start();
     await _wakeUpService.start();
   }

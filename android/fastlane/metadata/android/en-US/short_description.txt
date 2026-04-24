@@ -1,1 +1,1 @@
-Virtual cassette player - load software onto real ZX Spectrum via audio.
+Virtual cassette deck — load TAP/TZX tapes onto a real ZX Spectrum via audio.

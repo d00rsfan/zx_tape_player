@@ -397,7 +397,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.d00rsfan.zxtapeplayer;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.d00rsfan.zx_tape_player;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -537,7 +537,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.d00rsfan.zxtapeplayer;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.d00rsfan.zx_tape_player;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -572,9 +572,9 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.d00rsfan.zxtapeplayer;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.d00rsfan.zx_tape_player;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "match AppStore io.github.d00rsfan.zxtapeplayer";
+				PROVISIONING_PROFILE_SPECIFIER = "match AppStore io.github.d00rsfan.zx_tape_player";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

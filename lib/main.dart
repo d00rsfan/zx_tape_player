@@ -26,11 +26,15 @@ void main() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
+  // systemNavigationBarColor is intentionally omitted: it routes through
+  // Window.setNavigationBarColor(), which Android deprecated in API 35.
+  // Edge-to-edge (enabled in MainActivity.onCreate) makes the bar
+  // transparent and lets the app paint underneath; only the bar-icon
+  // brightness still needs to be configured explicitly.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
     statusBarBrightness: Brightness.dark,
-    systemNavigationBarColor: Colors.black,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 

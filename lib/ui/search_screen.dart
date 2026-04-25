@@ -99,67 +99,89 @@ class _SearchScreenState extends State<SearchScreen> {
         resizeToAvoidBottomInset: false);
   }
 
+  Future<void> _runSearch(String query) async {
+    _suggestionsController.close();
+    await _bloc!.fetchHitsList(query);
+  }
+
   Widget _buildSearchField(BuildContext context) {
     return TypeAheadField<TermModel>(
         suggestionsController: _suggestionsController,
         controller: _textController,
         builder: (context, controller, focusNode) {
-          return TextField(
-            controller: controller,
-            focusNode: focusNode,
-            onSubmitted: (text) async {
-              _textController.text = text;
-              await _bloc!.fetchHitsList(text);
+          // flutter_typeahead binds Enter → ActivateIntent and swallows the
+          // event whenever the suggestions box is open, even when nothing is
+          // highlighted — which was preventing a hardware-keyboard Enter
+          // from triggering a search. This deeper Actions override handles
+          // ActivateIntent only when no suggestion is highlighted (firing
+          // the search itself); otherwise it reports as disabled so the
+          // intent bubbles up to flutter_typeahead's own action and the
+          // arrow-key suggestion-selection flow keeps working.
+          return Actions(
+            actions: <Type, Action<Intent>>{
+              ActivateIntent: _ActivateSearchAction(
+                controller: _suggestionsController,
+                onActivate: () => _runSearch(_textController.text),
+              ),
             },
-            style: const TextStyle(
-                color: Colors.white, fontSize: 18.0, letterSpacing: -0.5),
-            autofocus: true,
-            cursorColor: Colors.white,
-            onChanged: (text) async {
-              if (text.isEmpty) Navigator.pop(context);
-            },
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              prefixIcon: _textController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: Icon(Icons.close, color: HexColor("#546B7F")),
-                      onPressed: () {
-                        setState(() {
-                          _textController.clear();
-                        });
-                        Navigator.pop(context);
-                      }),
-              suffixIcon: IconButton(
-                  icon: Icon(Icons.search, color: HexColor("#68AD56")),
-                  onPressed: () async {
-                    _suggestionsController.close();
-                    await _bloc!.fetchHitsList(_textController.text);
-                  }),
-              hintText: tr('search_hint'),
-              filled: true,
-              fillColor: HexColor('#28384C'),
-              isDense: true,
-              hintStyle: TextStyle(
-                fontSize: 12.0,
-                color: HexColor('546B7F'),
-                letterSpacing: -0.5,
-              ),
-              errorStyle: TextStyle(
-                color: HexColor('EAD849'),
-                fontSize: 14.0,
-                letterSpacing: -0.5,
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
-              focusedBorder: UnderlineInputBorder(
-                borderSide:
-                    const BorderSide(color: Colors.transparent, width: 0.0),
-                borderRadius: BorderRadius.circular(3.5),
-              ),
-              enabledBorder: UnderlineInputBorder(
-                borderSide:
-                    const BorderSide(color: Colors.transparent, width: 0.0),
-                borderRadius: BorderRadius.circular(3.5),
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (text) async {
+                _textController.text = text;
+                await _runSearch(text);
+              },
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18.0,
+                  letterSpacing: -0.5),
+              autofocus: true,
+              cursorColor: Colors.white,
+              onChanged: (text) async {
+                if (text.isEmpty) Navigator.pop(context);
+              },
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                prefixIcon: _textController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon:
+                            Icon(Icons.close, color: HexColor("#546B7F")),
+                        onPressed: () {
+                          setState(() {
+                            _textController.clear();
+                          });
+                          Navigator.pop(context);
+                        }),
+                suffixIcon: IconButton(
+                    icon: Icon(Icons.search, color: HexColor("#68AD56")),
+                    onPressed: () => _runSearch(_textController.text)),
+                hintText: tr('search_hint'),
+                filled: true,
+                fillColor: HexColor('#28384C'),
+                isDense: true,
+                hintStyle: TextStyle(
+                  fontSize: 12.0,
+                  color: HexColor('546B7F'),
+                  letterSpacing: -0.5,
+                ),
+                errorStyle: TextStyle(
+                  color: HexColor('EAD849'),
+                  fontSize: 14.0,
+                  letterSpacing: -0.5,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: const BorderSide(
+                      color: Colors.transparent, width: 0.0),
+                  borderRadius: BorderRadius.circular(3.5),
+                ),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: const BorderSide(
+                      color: Colors.transparent, width: 0.0),
+                  borderRadius: BorderRadius.circular(3.5),
+                ),
               ),
             ),
           );
@@ -370,6 +392,30 @@ class _SearchScreenState extends State<SearchScreen> {
                                 )
                               ]))));
             }));
+  }
+}
+
+/// Handles Enter on the search field when no suggestion is highlighted, so a
+/// hardware-keyboard Enter triggers the search rather than being silently
+/// swallowed by flutter_typeahead's ActivateIntent binding. Reports as
+/// disabled when a suggestion is highlighted, letting the intent bubble up
+/// to flutter_typeahead's own action so suggestion-selection still works.
+class _ActivateSearchAction extends Action<ActivateIntent> {
+  _ActivateSearchAction({required this.controller, required this.onActivate});
+
+  final SuggestionsController<TermModel> controller;
+  final VoidCallback onActivate;
+
+  @override
+  bool isEnabled(ActivateIntent intent) => controller.highlighted == null;
+
+  @override
+  bool consumesKey(ActivateIntent intent) => isEnabled(intent);
+
+  @override
+  Object? invoke(ActivateIntent intent) {
+    onActivate();
+    return null;
   }
 }
 

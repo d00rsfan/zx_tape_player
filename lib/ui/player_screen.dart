@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -392,9 +394,11 @@ class _PlayerScreenBloc {
       }
     }
     if (reviewNeeded) {
-      final inAppReview = InAppReview.instance;
-      var isAvailable = await inAppReview.isAvailable();
-      if (isAvailable) await inAppReview.requestReview();
+      if (!Platform.isLinux && !Platform.isWindows) {
+        final inAppReview = InAppReview.instance;
+        var isAvailable = await inAppReview.isAvailable();
+        if (isAvailable) await inAppReview.requestReview();
+      }
       prefs.setInt(key, DateTime.now().millisecondsSinceEpoch);
     }
   }

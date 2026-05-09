@@ -1,0 +1,27 @@
+output: dist/
+
+variables:
+
+releases:
+  - name: stable
+    jobs:
+      - name: linux-deb
+        package:
+          platform: linux
+          target: deb
+      - name: linux-rpm
+        package:
+          platform: linux
+          target: rpm
+      - name: linux-appimage
+        package:
+          platform: linux
+          target: appimage
+      - name: windows-zip
+        package:
+          platform: windows
+          target: zip
+      - name: macos-dmg
+        package:
+          platform: macos
+          target: dmg

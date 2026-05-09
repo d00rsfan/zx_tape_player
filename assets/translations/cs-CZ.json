@@ -21,7 +21,7 @@
   "invalid_file_format": "Neplatný formát souboru. Aplikace podporuje pouze soubory %s",
   "open_tape_web": "Otevřít v prohlížeči",
   "share_tape": "Sdílet",
-  "download_tape_success": "Pásek byla úspěšně stažen do zařízení.",
+  "download_tape_success": "Páska byla uložena do složky Stažené.",
   "block_browser": "Bloky pásku",
   "block_bytes": "bajtů",
   "tape_corrupted_warning": "Soubor pásku je poškozený. Přehrávání nemusí být úplné."

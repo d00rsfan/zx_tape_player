@@ -1,7 +1,12 @@
+import 'dart:io' show Platform;
+
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:just_audio_media_kit/just_audio_media_kit.dart';
+import 'package:media_store_plus/media_store_plus.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
@@ -22,6 +27,19 @@ final GetIt getIt = GetIt.instance;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb && (Platform.isLinux || Platform.isWindows)) {
+    JustAudioMediaKit.ensureInitialized(
+      linux: Platform.isLinux,
+      windows: Platform.isWindows,
+    );
+    JustAudioMediaKit.pitch = false;
+  }
+
+  if (!kIsWeb && Platform.isAndroid) {
+    await MediaStore.ensureInitialized();
+    MediaStore.appFolder = Definitions.appTitle;
+  }
 
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);

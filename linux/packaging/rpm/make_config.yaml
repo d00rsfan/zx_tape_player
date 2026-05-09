@@ -1,0 +1,22 @@
+display_name: ZX Tape Player
+icon: assets/icons/launcher/android.png
+summary: Virtual cassette player for ZX Spectrum
+group: Applications/Multimedia
+license: GPLv3
+vendor: d00rsfan
+packager: d00rsfan
+packagerEmail: d00rsfan@users.noreply.github.com
+url: https://github.com/d00rsfan/zx_tape_player
+generic_name: ZX Spectrum tape player
+categories:
+  - AudioVideo
+  - Audio
+  - Player
+keywords:
+  - ZX
+  - Spectrum
+  - tape
+  - TAP
+  - TZX
+  - retro
+startup_notify: true

@@ -10,9 +10,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:zx_tape_player/main.dart';
 import 'package:zx_tape_player/models/software_model.dart';
@@ -987,31 +987,35 @@ class _TapePlayerBloc {
   Future<bool> downloadSelectedTape() async {
     if (!software.isRemote) return false;
 
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
-      if (!status.isGranted) return false;
-    }
+    final url = files[_currentFileIndex];
+    final bytes = await _backendService.downloadTape(url);
+    final fileName = basename(url);
 
-    var url = files[_currentFileIndex];
-    var bytes = await _backendService.downloadTape(url);
-
-    String? filePath;
     if (Platform.isAndroid) {
-      var storagePath = (await getExternalStorageDirectory())?.path;
-      if (storagePath == null) return false;
-      filePath = '$storagePath/${Definitions.appTitle}/${basename(url)}';
-      var dir = Directory(dirname(filePath));
-      if (!dir.existsSync()) await dir.create(recursive: true);
-    } else {
-      var storagePath = (await getApplicationDocumentsDirectory()).path;
-      filePath = '$storagePath/${basename(url)}';
-    }
-    if (filePath.isNullOrEmpty()) return false;
+      final tmp = await getTemporaryDirectory();
+      final stagedPath = '${tmp.path}/$fileName';
+      await File(stagedPath).writeAsBytes(bytes, flush: true);
 
+      final result = await MediaStore().saveFile(
+        tempFilePath: stagedPath,
+        dirType: DirType.download,
+        dirName: DirName.download,
+      );
+
+      try {
+        await File(stagedPath).delete();
+      } catch (_) {}
+
+      return result?.isSuccessful ?? false;
+    }
+
+    final dir = Platform.isIOS
+        ? await getApplicationDocumentsDirectory()
+        : (await getDownloadsDirectory() ??
+            await getApplicationDocumentsDirectory());
+    final filePath = '${dir.path}/$fileName';
     await File(filePath)
         .writeAsBytes(bytes, mode: FileMode.writeOnly, flush: true);
-
     return true;
   }
 

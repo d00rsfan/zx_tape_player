@@ -21,7 +21,7 @@
   "invalid_file_format": "Ugyldigt filformat. Appen understøtter kun %s filer.",
   "open_tape_web": "Åbn i browser",
   "share_tape": "Delre",
-  "download_tape_success": "Båndet er downloadet med succes.",
+  "download_tape_success": "Båndet er gemt i mappen Downloads.",
   "block_browser": "Båndblokke",
   "block_bytes": "bytes",
   "tape_corrupted_warning": "Båndfilen ser ud til at være beskadiget. Afspilningen kan være ufuldstændig."

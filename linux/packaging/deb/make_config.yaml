@@ -1,0 +1,26 @@
+display_name: ZX Tape Player
+package_name: zx-tape-player
+icon: assets/icons/launcher/android.png
+maintainer:
+  name: d00rsfan
+  email: d00rsfan@users.noreply.github.com
+section: sound
+priority: optional
+installed_size: 53408
+dependencies:
+  # libmpv is loaded at runtime via dlopen() by media_kit, so dpkg-shlibdeps
+  # can't see it in the binary's ELF NEEDED section — declare it explicitly.
+  - libmpv2
+generic_name: ZX Spectrum tape player
+categories:
+  - AudioVideo
+  - Audio
+  - Player
+keywords:
+  - ZX
+  - Spectrum
+  - tape
+  - TAP
+  - TZX
+  - retro
+startup_notify: true

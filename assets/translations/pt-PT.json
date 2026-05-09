@@ -21,7 +21,7 @@
   "invalid_file_format": "Formato de arquivo inválido. O aplicativo oferece suporte apenas a arquivos %s",
   "open_tape_web": "Abra no navegador",
   "share_tape": "Compartilhar",
-  "download_tape_success": "A fita foi baixada com sucesso.",
+  "download_tape_success": "A fita foi guardada na pasta Transferências.",
   "block_browser": "Blocos da fita",
   "block_bytes": "bytes",
   "tape_corrupted_warning": "O ficheiro da fita parece estar corrompido. A reprodução pode ser incompleta."

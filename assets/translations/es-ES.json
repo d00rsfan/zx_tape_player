@@ -21,7 +21,7 @@
   "invalid_file_format": "Formato de archivo inválido. La aplicación solo admite archivos %s",
   "open_tape_web": "Abierta en el navegador",
   "share_tape": "Cuota",
-  "download_tape_success": "La cinta se descargó correctamente.",
+  "download_tape_success": "La cinta se ha guardado en la carpeta Descargas.",
   "block_browser": "Bloques de cinta",
   "block_bytes": "bytes",
   "tape_corrupted_warning": "El archivo de cinta parece estar dañado. La reproducción puede ser incompleta."

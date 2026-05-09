@@ -1,0 +1,15 @@
+display_name: ZX Tape Player
+icon: assets/icons/launcher/android.png
+generic_name: ZX Spectrum tape player
+categories:
+  - AudioVideo
+  - Audio
+  - Player
+keywords:
+  - ZX
+  - Spectrum
+  - tape
+  - TAP
+  - TZX
+  - retro
+startup_notify: true

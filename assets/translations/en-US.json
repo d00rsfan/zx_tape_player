@@ -21,7 +21,7 @@
   "invalid_file_format": "Invalid file format. The app supports %s files only.",
   "open_tape_web": "Open in browser",
   "share_tape": "Share",
-  "download_tape_success": "The tape has been downloaded successfully.",
+  "download_tape_success": "Tape saved to your Downloads folder.",
   "block_browser": "Tape Blocks",
   "block_bytes": "bytes",
   "tape_corrupted_warning": "This tape file appears to be corrupted. Playback may be incomplete."

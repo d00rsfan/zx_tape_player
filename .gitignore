@@ -57,3 +57,19 @@ android/app/release/
 
 # iOS ephemeral files
 ios/Flutter/ephemeral/
+
+# Desktop scaffolding ephemera
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+macos/Flutter/ephemeral/
+macos/Pods/
+
+# fastforge output
+/dist/
+
+# Build outputs not already covered
+*.dmg
+*.deb
+*.rpm
+*.AppImage
+*.msix

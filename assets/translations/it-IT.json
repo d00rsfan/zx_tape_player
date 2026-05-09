@@ -21,7 +21,7 @@
   "invalid_file_format": "Formato file non valido. L'app supporta solo i file %s.",
   "open_tape_web": "Apri nel browser",
   "share_tape": "Condividere",
-  "download_tape_success": "Il nastro è stato scaricato con successo.",
+  "download_tape_success": "Il nastro è stato salvato nella cartella Download.",
   "block_browser": "Blocchi del nastro",
   "block_bytes": "byte",
   "tape_corrupted_warning": "Il file del nastro sembra danneggiato. La riproduzione potrebbe essere incompleta."

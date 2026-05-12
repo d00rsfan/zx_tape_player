@@ -24,5 +24,19 @@
   "download_tape_success": "Båndet er gemt i mappen Downloads.",
   "block_browser": "Båndblokke",
   "block_bytes": "bytes",
-  "tape_corrupted_warning": "Båndfilen ser ud til at være beskadiget. Afspilningen kan være ufuldstændig."
+  "tape_corrupted_warning": "Båndfilen ser ud til at være beskadiget. Afspilningen kan være ufuldstændig.",
+  "tips_menu_item": "Tip",
+  "tips_title": "Tip",
+  "tip_carousel_title": "Båndversioner",
+  "tip_carousel_body": "Stryg filnavnsbjælken til venstre eller højre for at skifte mellem alternative dumps og dele af flerbåndsudgivelser. Prikkerne nedenfor viser, hvor mange versioner der findes, og hvilken der er valgt.",
+  "tip_download_title": "Gem et bånd til Downloads",
+  "tip_download_body": "Tryk længe på filnavnet for at kopiere det aktuelle bånd til mappen Downloads på din enhed, klar til brug andre steder.",
+  "tip_blocks_title": "Båndblokliste",
+  "tip_blocks_body": "Tryk på listeikonet under transportknapperne for at se alle blokke på båndet (header, loader, kode, skærm, data) og springe direkte til en hvilken som helst af dem.",
+  "tip_block_transport_title": "Spring mellem blokke",
+  "tip_block_transport_body": "Brug pilene forrige og næste til at springe mellem båndblokke; genstartsknappen spoler tilbage til starten af den blok, der spilles nu.",
+  "tip_stop_title": "Stop spoler også tilbage",
+  "tip_stop_body": "Stop-knappen stopper afspilningen og spoler båndet helt tilbage til starten, klar til næste indlæsning.",
+  "tip_speed_title": "Hastighed og tonehøjde",
+  "tip_speed_body": "Tryk på hastighedsmærket (f.eks. 1.00x) for at justere afspilningshastigheden. Tonehøjden følger hastigheden naturligt, ligesom en rigtig båndoptager, og forudindstillingerne dækker de mest nyttige indlæsningshastigheder."
 }

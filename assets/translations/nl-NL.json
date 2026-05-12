@@ -24,5 +24,19 @@
   "download_tape_success": "De tape is opgeslagen in de map Downloads.",
   "block_browser": "Tapeblokken",
   "block_bytes": "bytes",
-  "tape_corrupted_warning": "Dit tapebestand lijkt beschadigd. Afspelen kan onvolledig zijn."
+  "tape_corrupted_warning": "Dit tapebestand lijkt beschadigd. Afspelen kan onvolledig zijn.",
+  "tips_menu_item": "Tips",
+  "tips_title": "Tips",
+  "tip_carousel_title": "Bandversies",
+  "tip_carousel_body": "Veeg de bestandsnaambalk naar links of rechts om te wisselen tussen alternatieve dumps en delen van uitgaven met meerdere banden. De stippen eronder laten zien hoeveel versies er beschikbaar zijn en welke is geselecteerd.",
+  "tip_download_title": "Band opslaan in Downloads",
+  "tip_download_body": "Druk lang op de bestandsnaam om de huidige band te kopiëren naar de map Downloads op je apparaat, klaar voor gebruik elders.",
+  "tip_blocks_title": "Lijst van bandblokken",
+  "tip_blocks_body": "Tik op het lijst-icoon onder de transportknoppen om alle blokken van de band (header, loader, code, scherm, data) te zien en direct naar een ervan te springen.",
+  "tip_block_transport_title": "Springen tussen blokken",
+  "tip_block_transport_body": "Gebruik de vorige- en volgende-pijlen om tussen bandblokken te springen; de herstartknop spoelt terug naar het begin van het blok dat nu wordt afgespeeld.",
+  "tip_stop_title": "Stop spoelt ook terug",
+  "tip_stop_body": "De Stop-knop stopt het afspelen en spoelt de band helemaal terug naar het begin, klaar voor de volgende lading.",
+  "tip_speed_title": "Snelheid en toonhoogte",
+  "tip_speed_body": "Tik op de snelheidsindicator (bijv. 1.00x) om de afspeelsnelheid aan te passen. De toonhoogte volgt de snelheid op een natuurlijke manier, net als een echte bandrecorder, en de presets dekken de meest nuttige laadsnelheid-aanpassingen."
 }

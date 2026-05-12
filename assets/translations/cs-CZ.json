@@ -24,5 +24,19 @@
   "download_tape_success": "Páska byla uložena do složky Stažené.",
   "block_browser": "Bloky pásku",
   "block_bytes": "bajtů",
-  "tape_corrupted_warning": "Soubor pásku je poškozený. Přehrávání nemusí být úplné."
+  "tape_corrupted_warning": "Soubor pásku je poškozený. Přehrávání nemusí být úplné.",
+  "tips_menu_item": "Tipy",
+  "tips_title": "Tipy",
+  "tip_carousel_title": "Verze pásky",
+  "tip_carousel_body": "Posuňte pruh s názvem souboru doleva nebo doprava pro přepínání mezi alternativními verzemi a částmi vícepáskových vydání. Tečky pod pruhem ukazují, kolik verzí je k dispozici a která je vybrána.",
+  "tip_download_title": "Uložení pásky",
+  "tip_download_body": "Dlouhé stisknutí názvu souboru zkopíruje aktuální pásku do složky Stažené v zařízení, připravenou k použití v jiných aplikacích.",
+  "tip_blocks_title": "Seznam bloků pásky",
+  "tip_blocks_body": "Klepněte na ikonu seznamu pod ovládacími tlačítky pro zobrazení všech bloků pásky (záhlaví, zavaděč, kód, obrazovka, data) a okamžitý přechod na kterýkoli z nich.",
+  "tip_block_transport_title": "Přechod mezi bloky",
+  "tip_block_transport_body": "Šipky předchozí a další přeskakují mezi bloky pásky; tlačítko restart se vrátí na začátek aktuálně přehrávaného bloku.",
+  "tip_stop_title": "Stop s přetočením",
+  "tip_stop_body": "Tlačítko Stop zastaví přehrávání a přetočí pásku na úplný začátek, připravenou k dalšímu načtení.",
+  "tip_speed_title": "Rychlost a výška",
+  "tip_speed_body": "Klepněte na ukazatel rychlosti (např. 1.00x) pro úpravu rychlosti přehrávání. Výška se mění spolu s rychlostí jako u skutečného magnetofonu a předvolby pokrývají nejužitečnější nastavení rychlosti načítání."
 }

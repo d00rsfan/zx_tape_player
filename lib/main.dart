@@ -17,6 +17,7 @@ import 'package:zx_tape_player/services/zx_control/zx_volume_control_service.dar
 import 'package:zx_tape_player/services/zx_control/zx_wake_lock_control_service.dart';
 import 'package:zx_tape_player/ui/home_screen.dart';
 import 'package:zx_tape_player/ui/player_screen.dart';
+import 'package:zx_tape_player/ui/tips_screen.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
@@ -108,6 +109,7 @@ class ZxTapePlayer extends StatelessWidget {
           HomeScreen.routeName: (context) => const HomeScreen(),
           SearchScreen.routeName: (context) => const SearchScreen(),
           PlayerScreen.routeName: (context) => const PlayerScreen(),
+          TipsScreen.routeName: (context) => const TipsScreen(),
         });
   }
 }

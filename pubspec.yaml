@@ -3,7 +3,7 @@ description: ZX Tape Player makes able uploading of TAP/TZX files to ZX Spectrum
 
 publish_to: 'none'
 
-version: 1.4.0+4
+version: 1.4.1+5
 
 environment:
   sdk: ">=3.11.0 <4.0.0"

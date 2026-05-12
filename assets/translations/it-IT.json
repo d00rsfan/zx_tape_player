@@ -24,5 +24,19 @@
   "download_tape_success": "Il nastro è stato salvato nella cartella Download.",
   "block_browser": "Blocchi del nastro",
   "block_bytes": "byte",
-  "tape_corrupted_warning": "Il file del nastro sembra danneggiato. La riproduzione potrebbe essere incompleta."
+  "tape_corrupted_warning": "Il file del nastro sembra danneggiato. La riproduzione potrebbe essere incompleta.",
+  "tips_menu_item": "Suggerimenti",
+  "tips_title": "Suggerimenti",
+  "tip_carousel_title": "Versioni del nastro",
+  "tip_carousel_body": "Scorri la barra del nome del file verso sinistra o destra per passare da un dump alternativo all'altro e tra le parti di edizioni a più nastri. I puntini sottostanti mostrano quante versioni sono disponibili e quale è selezionata.",
+  "tip_download_title": "Salva un nastro in Download",
+  "tip_download_body": "Tieni premuto il nome del file per copiare il nastro corrente nella cartella Download del dispositivo, pronto per essere usato altrove.",
+  "tip_blocks_title": "Elenco blocchi del nastro",
+  "tip_blocks_body": "Tocca l'icona elenco sotto i comandi di trasporto per visualizzare tutti i blocchi del nastro (intestazione, loader, codice, schermo, dati) e saltare direttamente a uno qualsiasi di essi.",
+  "tip_block_transport_title": "Salta tra i blocchi",
+  "tip_block_transport_body": "Usa le frecce precedente e successivo per saltare tra i blocchi del nastro; il pulsante riavvio torna all'inizio del blocco attualmente in riproduzione.",
+  "tip_stop_title": "Stop riavvolge anche",
+  "tip_stop_body": "Il pulsante Stop interrompe la riproduzione e riavvolge il nastro fino all'inizio, pronto per il prossimo caricamento.",
+  "tip_speed_title": "Velocità e intonazione",
+  "tip_speed_body": "Tocca l'indicatore di velocità (ad es. 1.00x) per regolare la velocità di riproduzione. L'intonazione segue la velocità in modo naturale, proprio come un vero registratore a nastro, e le preselezioni coprono le regolazioni di caricamento più utili."
 }

@@ -14,6 +14,7 @@ import 'package:zx_tape_player/models/args/player_args.dart';
 import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/responses/api_response.dart';
+import 'package:zx_tape_player/ui/tips_screen.dart';
 import 'package:zx_tape_player/ui/widgets/app_error.dart';
 import 'package:zx_tape_player/ui/widgets/cassette.dart';
 import 'package:zx_tape_player/ui/widgets/loading_progress.dart';
@@ -91,8 +92,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     var model = response.data!;
 
     List<Choice> choices = <Choice>[
-      Choice(title: tr('open_tape_web'), icon: Icons.open_in_new_rounded),
-      Choice(title: tr('share_tape'), icon: Icons.share_rounded)
+      if (model.id != null) ...[
+        Choice(title: tr('open_tape_web'), icon: Icons.open_in_new_rounded),
+        Choice(title: tr('share_tape'), icon: Icons.share_rounded),
+      ],
+      Choice(title: tr('tips_menu_item'), icon: Icons.lightbulb_outline_rounded),
     ];
 
     return Scaffold(
@@ -108,38 +112,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
         actionsIconTheme:
             const IconThemeData(size: 30.0, color: Colors.white, opacity: 10.0),
         actions: [
-          (model.id == null)
-              ? const SizedBox.shrink()
-              : PopupMenuButton<Choice>(
-                  color: HexColor('#3B4E63'),
-                  onSelected: (value) async {
-                    if (value.title == tr('open_tape_web')) {
-                      await _bloc!.openExternalUrl(model.id!);
-                    } else if (value.title == tr('share_tape')) {
-                      await _bloc!.shareExternalUrl(model);
-                    }
-                  },
-                  itemBuilder: (BuildContext context) {
-                    return choices.map((Choice choice) {
-                      return PopupMenuItem<Choice>(
-                        value: choice,
-                        child: Row(
-                          children: <Widget>[
-                            Icon(
-                              choice.icon,
-                              size: 16.0,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 16.0),
-                            Text(choice.title,
-                                style: const TextStyle(
-                                    letterSpacing: -0.5, color: Colors.white)),
-                          ],
-                        ),
-                      );
-                    }).toList();
-                  },
-                ),
+          PopupMenuButton<Choice>(
+            color: HexColor('#3B4E63'),
+            onSelected: (value) async {
+              if (value.title == tr('open_tape_web')) {
+                await _bloc!.openExternalUrl(model.id!);
+              } else if (value.title == tr('share_tape')) {
+                await _bloc!.shareExternalUrl(model);
+              } else if (value.title == tr('tips_menu_item')) {
+                Navigator.of(context).pushNamed(TipsScreen.routeName);
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return choices.map((Choice choice) {
+                return PopupMenuItem<Choice>(
+                  value: choice,
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        choice.icon,
+                        size: 16.0,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 16.0),
+                      Text(choice.title,
+                          style: const TextStyle(
+                              letterSpacing: -0.5, color: Colors.white)),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+          ),
         ],
         title: Marquee(
           child: Text(model.title,

@@ -24,5 +24,19 @@
   "download_tape_success": "Taśma została zapisana w folderze Pobrane.",
   "block_browser": "Bloki taśmy",
   "block_bytes": "bajtów",
-  "tape_corrupted_warning": "Plik taśmy wydaje się uszkodzony. Odtwarzanie może być niekompletne."
+  "tape_corrupted_warning": "Plik taśmy wydaje się uszkodzony. Odtwarzanie może być niekompletne.",
+  "tips_menu_item": "Wskazówki",
+  "tips_title": "Wskazówki",
+  "tip_carousel_title": "Wersje taśmy",
+  "tip_carousel_body": "Przesuń pasek z nazwą pliku w lewo lub w prawo, aby przełączać się między alternatywnymi zrzutami i częściami wielotaśmowych wydań. Kropki poniżej pokazują, ile wersji jest dostępnych i która jest wybrana.",
+  "tip_download_title": "Zapisz taśmę",
+  "tip_download_body": "Długie naciśnięcie nazwy pliku kopiuje bieżącą taśmę do folderu Pobrane na urządzeniu, gotową do użycia w innych aplikacjach.",
+  "tip_blocks_title": "Lista bloków taśmy",
+  "tip_blocks_body": "Stuknij ikonę listy pod przyciskami transportu, aby zobaczyć wszystkie bloki taśmy (nagłówek, loader, kod, ekran, dane) i przeskoczyć bezpośrednio do dowolnego z nich.",
+  "tip_block_transport_title": "Skacz między blokami",
+  "tip_block_transport_body": "Strzałki poprzedni i następny przeskakują między blokami taśmy; przycisk restartu przewija do początku obecnie odtwarzanego bloku.",
+  "tip_stop_title": "Stop z przewijaniem",
+  "tip_stop_body": "Przycisk Stop zatrzymuje odtwarzanie i przewija taśmę na sam początek, gotową do następnego załadowania.",
+  "tip_speed_title": "Prędkość i ton",
+  "tip_speed_body": "Stuknij wskaźnik prędkości (np. 1.00x), aby zmienić prędkość odtwarzania. Ton zmienia się wraz z prędkością, jak w prawdziwym magnetofonie, a presety obejmują najprzydatniejsze ustawienia prędkości ładowania."
 }

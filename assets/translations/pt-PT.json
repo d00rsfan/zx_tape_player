@@ -24,5 +24,19 @@
   "download_tape_success": "A fita foi guardada na pasta Transferências.",
   "block_browser": "Blocos da fita",
   "block_bytes": "bytes",
-  "tape_corrupted_warning": "O ficheiro da fita parece estar corrompido. A reprodução pode ser incompleta."
+  "tape_corrupted_warning": "O ficheiro da fita parece estar corrompido. A reprodução pode ser incompleta.",
+  "tips_menu_item": "Dicas",
+  "tips_title": "Dicas",
+  "tip_carousel_title": "Versões da fita",
+  "tip_carousel_body": "Deslize a barra do nome do ficheiro para a esquerda ou para a direita para alternar entre dumps alternativos e partes de lançamentos de várias fitas. Os pontos abaixo mostram quantas versões estão disponíveis e qual está selecionada.",
+  "tip_download_title": "Guardar uma fita em Transferências",
+  "tip_download_body": "Mantenha premido o nome do ficheiro para copiar a fita atual para a pasta Transferências do seu dispositivo, pronta para utilização noutras aplicações.",
+  "tip_blocks_title": "Lista de blocos da fita",
+  "tip_blocks_body": "Toque no ícone de lista por baixo dos controlos de transporte para ver todos os blocos da fita (cabeçalho, loader, código, ecrã, dados) e saltar diretamente para qualquer um deles.",
+  "tip_block_transport_title": "Saltar entre blocos",
+  "tip_block_transport_body": "Use as setas anterior e seguinte para saltar entre blocos da fita; o botão de reinício recua ao início do bloco que está a ser reproduzido.",
+  "tip_stop_title": "Parar também rebobina",
+  "tip_stop_body": "O botão Parar interrompe a reprodução e rebobina a fita até ao início, pronta para o próximo carregamento.",
+  "tip_speed_title": "Velocidade e tom",
+  "tip_speed_body": "Toque no indicador de velocidade (por exemplo, 1.00x) para ajustar a velocidade de reprodução. O tom segue a velocidade naturalmente, tal como num verdadeiro gravador de cassetes, e as predefinições cobrem os ajustes de velocidade de carregamento mais úteis."
 }

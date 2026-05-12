@@ -24,5 +24,19 @@
   "download_tape_success": "Tape saved to your Downloads folder.",
   "block_browser": "Tape Blocks",
   "block_bytes": "bytes",
-  "tape_corrupted_warning": "This tape file appears to be corrupted. Playback may be incomplete."
+  "tape_corrupted_warning": "This tape file appears to be corrupted. Playback may be incomplete.",
+  "tips_menu_item": "Tips",
+  "tips_title": "Tips",
+  "tip_carousel_title": "Browse tape versions",
+  "tip_carousel_body": "Swipe the file-name strip left or right to switch between alternative dumps and multi-tape parts of the same release. The dots beneath show how many versions are available and which one is selected.",
+  "tip_download_title": "Save a tape to Downloads",
+  "tip_download_body": "Long-press the file name to copy the current tape to your device's Downloads folder, ready to use elsewhere.",
+  "tip_blocks_title": "Tape block list",
+  "tip_blocks_body": "Tap the list icon below the transport controls to view every block of the tape (header, loader, code, screen, data) and jump straight to any of them.",
+  "tip_block_transport_title": "Skip between blocks",
+  "tip_block_transport_body": "Use the previous and next arrows to jump between tape blocks; the restart button rewinds to the start of the block that's currently playing.",
+  "tip_stop_title": "Stop also rewinds",
+  "tip_stop_body": "The Stop button stops playback and rewinds to the very beginning of the tape, ready for the next load.",
+  "tip_speed_title": "Speed and pitch",
+  "tip_speed_body": "Tap the speed badge (e.g. 1.00x) to adjust playback speed. Pitch follows the speed naturally, just like a real tape recorder, and the presets cover the most useful loading-speed tweaks."
 }

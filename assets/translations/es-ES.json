@@ -24,5 +24,19 @@
   "download_tape_success": "La cinta se ha guardado en la carpeta Descargas.",
   "block_browser": "Bloques de cinta",
   "block_bytes": "bytes",
-  "tape_corrupted_warning": "El archivo de cinta parece estar dañado. La reproducción puede ser incompleta."
+  "tape_corrupted_warning": "El archivo de cinta parece estar dañado. La reproducción puede ser incompleta.",
+  "tips_menu_item": "Consejos",
+  "tips_title": "Consejos",
+  "tip_carousel_title": "Versiones de la cinta",
+  "tip_carousel_body": "Desliza la barra del nombre del archivo a izquierda o derecha para cambiar entre volcados alternativos y partes de lanzamientos de varias cintas. Los puntos debajo muestran cuántas versiones hay disponibles y cuál está seleccionada.",
+  "tip_download_title": "Guardar una cinta en Descargas",
+  "tip_download_body": "Mantén pulsado el nombre del archivo para copiar la cinta actual a la carpeta Descargas del dispositivo, lista para usar en otros sitios.",
+  "tip_blocks_title": "Lista de bloques",
+  "tip_blocks_body": "Toca el icono de lista debajo de los controles de transporte para ver todos los bloques de la cinta (cabecera, cargador, código, pantalla, datos) y saltar directamente a cualquiera de ellos.",
+  "tip_block_transport_title": "Saltar entre bloques",
+  "tip_block_transport_body": "Usa las flechas anterior y siguiente para saltar entre bloques de la cinta; el botón de reinicio retrocede al principio del bloque que se está reproduciendo.",
+  "tip_stop_title": "Parar también rebobina",
+  "tip_stop_body": "El botón Parar detiene la reproducción y rebobina la cinta hasta el principio, lista para la siguiente carga.",
+  "tip_speed_title": "Velocidad y tono",
+  "tip_speed_body": "Toca el indicador de velocidad (por ejemplo, 1.00x) para ajustar la velocidad de reproducción. El tono sigue a la velocidad de forma natural, como en una grabadora de cinta real, y los preajustes cubren los ajustes de carga más útiles."
 }

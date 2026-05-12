@@ -24,5 +24,19 @@
   "download_tape_success": "Bandet har sparats i mappen Hämtade filer.",
   "block_browser": "Kassettblock",
   "block_bytes": "byte",
-  "tape_corrupted_warning": "Kassettfilen verkar vara skadad. Uppspelningen kan vara ofullständig."
+  "tape_corrupted_warning": "Kassettfilen verkar vara skadad. Uppspelningen kan vara ofullständig.",
+  "tips_menu_item": "Tips",
+  "tips_title": "Tips",
+  "tip_carousel_title": "Bandversioner",
+  "tip_carousel_body": "Svep filnamnsraden åt vänster eller höger för att växla mellan alternativa dumpar och delar av flerbandsutgåvor. Punkterna nedanför visar hur många versioner som finns och vilken som är vald.",
+  "tip_download_title": "Spara ett band till Nedladdningar",
+  "tip_download_body": "Tryck länge på filnamnet för att kopiera det aktuella bandet till mappen Nedladdningar på din enhet, redo att användas på andra ställen.",
+  "tip_blocks_title": "Lista över bandblock",
+  "tip_blocks_body": "Tryck på listikonen under transportknapparna för att se alla block på bandet (header, loader, kod, skärm, data) och hoppa direkt till något av dem.",
+  "tip_block_transport_title": "Hoppa mellan block",
+  "tip_block_transport_body": "Använd pilarna föregående och nästa för att hoppa mellan bandblock; omstartsknappen spolar tillbaka till början av det block som spelas just nu.",
+  "tip_stop_title": "Stopp spolar också tillbaka",
+  "tip_stop_body": "Stopp-knappen stoppar uppspelningen och spolar tillbaka bandet ända till början, redo för nästa laddning.",
+  "tip_speed_title": "Hastighet och tonhöjd",
+  "tip_speed_body": "Tryck på hastighetsmärket (t.ex. 1.00x) för att justera uppspelningshastigheten. Tonhöjden följer hastigheten naturligt, precis som en riktig bandspelare, och förinställningarna täcker de mest användbara laddningshastigheterna."
 }

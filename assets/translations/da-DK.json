@@ -22,6 +22,7 @@
   "open_tape_web": "Åbn i browser",
   "share_tape": "Delre",
   "download_tape_success": "Båndet er gemt i mappen Downloads.",
+  "download_tape_error": "Båndet kunne ikke gemmes i mappen Downloads.",
   "block_browser": "Båndblokke",
   "block_bytes": "bytes",
   "tape_corrupted_warning": "Båndfilen ser ud til at være beskadiget. Afspilningen kan være ufuldstændig.",

@@ -13,6 +13,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:zx_tape_player/main.dart';
 import 'package:zx_tape_player/models/software_model.dart';
@@ -65,6 +66,12 @@ const TextStyle _carouselSourceStyle = TextStyle(
 
 class _TapePlayerState extends State<TapePlayer> {
   late _TapePlayerBloc _bloc;
+
+  // Drives the download-in-progress indicator shown over the filename strip.
+  // Held visible for at least [_minDownloadIndicator] so a fast save (<200ms
+  // on Wi-Fi) doesn't reduce it to an unnoticeable flicker.
+  bool _downloading = false;
+  static const _minDownloadIndicator = Duration(milliseconds: 500);
 
   @override
   void initState() {
@@ -342,13 +349,45 @@ class _TapePlayerState extends State<TapePlayer> {
                             Column(children: [
                               GestureDetector(
                                 onLongPress: () async {
+                                  if (_downloading) return;
                                   HapticFeedback.vibrate();
-                                  if (await _bloc.downloadSelectedTape()) {
-                                    if (mounted) {
-                                      BarHelper.showSnackBar(
-                                          message: tr('download_tape_success'),
-                                          context: context);
-                                    }
+                                  setState(() => _downloading = true);
+                                  final startedAt = DateTime.now();
+                                  bool saved = false;
+                                  Object? error;
+                                  try {
+                                    saved = await _bloc.downloadSelectedTape();
+                                  } catch (e) {
+                                    error = e;
+                                  }
+                                  final elapsed =
+                                      DateTime.now().difference(startedAt);
+                                  if (elapsed < _minDownloadIndicator) {
+                                    await Future.delayed(
+                                        _minDownloadIndicator - elapsed);
+                                  }
+                                  if (!mounted) return;
+                                  setState(() => _downloading = false);
+                                  if (error != null) {
+                                    BarHelper.showSnackBar(
+                                        message: tr('download_tape_error'),
+                                        barType: SnackBarType.error,
+                                        context: context);
+                                  } else if (saved) {
+                                    BarHelper.showSnackBar(
+                                        message: tr('download_tape_success'),
+                                        context: context);
+                                  } else if (widget.software.isRemote) {
+                                    // Remote save attempted but didn't land —
+                                    // e.g. user tapped Deny on the storage
+                                    // permission prompt on API ≤ 29, or
+                                    // MediaStore returned null. Without this
+                                    // branch the long-press would just vibrate
+                                    // into silence on those devices.
+                                    BarHelper.showSnackBar(
+                                        message: tr('download_tape_error'),
+                                        barType: SnackBarType.error,
+                                        context: context);
                                   }
                                 },
                                 child: Container(
@@ -362,58 +401,72 @@ class _TapePlayerState extends State<TapePlayer> {
                                           borderRadius:
                                               BorderRadius.circular(3.5),
                                         ),
-                                        child: CarouselSlider(
-                                          items: _bloc.files
-                                              .map((filePath) {
-                                                final source = _getFileSource(filePath);
-                                                return Container(
-                                                  padding:
-                                                      const EdgeInsets.all(
-                                                          12.0),
-                                                  child: Center(
-                                                      child: Column(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Text(
-                                                            basename(filePath),
-                                                            style: _carouselNameStyle,
-                                                            textAlign:
-                                                                TextAlign.center,
-                                                            overflow:
-                                                                TextOverflow.ellipsis,
-                                                            maxLines: 3,
-                                                          ),
-                                                          if (source.isNotEmpty)
-                                                            Padding(
-                                                              padding: const EdgeInsets.only(top: 2.0),
-                                                              child: Text(
-                                                                source,
-                                                                style: _carouselSourceStyle,
+                                        child: Stack(
+                                          children: [
+                                            CarouselSlider(
+                                              items: _bloc.files
+                                                  .map((filePath) {
+                                                    final source = _getFileSource(filePath);
+                                                    return Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              12.0),
+                                                      child: Center(
+                                                          child: Column(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Text(
+                                                                basename(filePath),
+                                                                style: _carouselNameStyle,
+                                                                textAlign:
+                                                                    TextAlign.center,
+                                                                overflow:
+                                                                    TextOverflow.ellipsis,
+                                                                maxLines: 3,
                                                               ),
-                                                          ),
-                                                        ],
-                                                      )),
-                                                );
-                                              })
-                                              .toList(),
-                                          options: CarouselOptions(
-                                              scrollPhysics: _bloc.player
-                                                              .position !=
-                                                          Duration.zero ||
-                                                      _bloc.files.length == 1 ||
-                                                      tapeLoading
-                                                  ? const NeverScrollableScrollPhysics()
-                                                  : const AlwaysScrollableScrollPhysics(),
-                                              autoPlay: false,
-                                              enlargeCenterPage: false,
-                                              height: carouselHeight,
-                                              viewportFraction: 1.0,
-                                              initialPage:
-                                                  _bloc.currentFileIndex,
-                                              onPageChanged:
-                                                  (index, reason) async {
-                                                _bloc.currentFileIndex = index;
-                                              }),
+                                                              if (source.isNotEmpty)
+                                                                Padding(
+                                                                  padding: const EdgeInsets.only(top: 2.0),
+                                                                  child: Text(
+                                                                    source,
+                                                                    style: _carouselSourceStyle,
+                                                                  ),
+                                                              ),
+                                                            ],
+                                                          )),
+                                                    );
+                                                  })
+                                                  .toList(),
+                                              options: CarouselOptions(
+                                                  scrollPhysics: _bloc.player
+                                                                  .position !=
+                                                              Duration.zero ||
+                                                          _bloc.files.length == 1 ||
+                                                          tapeLoading
+                                                      ? const NeverScrollableScrollPhysics()
+                                                      : const AlwaysScrollableScrollPhysics(),
+                                                  autoPlay: false,
+                                                  enlargeCenterPage: false,
+                                                  height: carouselHeight,
+                                                  viewportFraction: 1.0,
+                                                  initialPage:
+                                                      _bloc.currentFileIndex,
+                                                  onPageChanged:
+                                                      (index, reason) async {
+                                                    _bloc.currentFileIndex = index;
+                                                  }),
+                                            ),
+                                            if (_downloading)
+                                              Positioned(
+                                                top: 6,
+                                                right: 8,
+                                                child: Icon(
+                                                  Icons.download_rounded,
+                                                  size: 16,
+                                                  color: HexColor('#4CAF50'),
+                                                ),
+                                              ),
+                                          ],
                                         ))),
                               ),
                               Padding(
@@ -987,6 +1040,18 @@ class _TapePlayerBloc {
   Future<bool> downloadSelectedTape() async {
     if (!software.isRemote) return false;
 
+    if (Platform.isAndroid) {
+      // media_store_plus uses scoped MediaStore.Downloads on API ≥ 30 (no
+      // permission needed) but falls back to direct File I/O on API ≤ 29,
+      // which requires WRITE_EXTERNAL_STORAGE. On API 29 the manifest's
+      // requestLegacyExternalStorage="true" reopens that path.
+      final sdkInt = await MediaStore().getPlatformSDKInt();
+      if (sdkInt < 30) {
+        final status = await Permission.storage.request();
+        if (!status.isGranted) return false;
+      }
+    }
+
     final url = files[_currentFileIndex];
     final bytes = await _backendService.downloadTape(url);
     final fileName = basename(url);
@@ -1006,7 +1071,11 @@ class _TapePlayerBloc {
         await File(stagedPath).delete();
       } catch (_) {}
 
-      return result?.isSuccessful ?? false;
+      // SaveStatus.duplicated still means the bytes landed on disk — just
+      // with a "(1)" suffix because something with the same name was already
+      // there and the plugin couldn't delete it. From the user's standpoint
+      // that's a successful save; only a null result is a real failure.
+      return result != null;
     }
 
     final dir = Platform.isIOS

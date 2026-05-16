@@ -22,6 +22,7 @@
   "open_tape_web": "Öppna i webbläsare",
   "share_tape": "Dela",
   "download_tape_success": "Bandet har sparats i mappen Hämtade filer.",
+  "download_tape_error": "Det gick inte att spara bandet i mappen Hämtade filer.",
   "block_browser": "Kassettblock",
   "block_bytes": "byte",
   "tape_corrupted_warning": "Kassettfilen verkar vara skadad. Uppspelningen kan vara ofullständig.",

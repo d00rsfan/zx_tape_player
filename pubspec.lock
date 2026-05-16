@@ -1294,11 +1294,10 @@ packages:
   zx_tape_to_wav_x:
     dependency: "direct main"
     description:
-      name: zx_tape_to_wav_x
-      sha256: "52c0da67cfd2e60e8bb8c30c019e8d1c617761cffd381cfce40fefe4a62ae149"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
+      path: "../zx_tape_to_wav"
+      relative: true
+    source: path
+    version: "1.2.0"
 sdks:
   dart: ">=3.11.0 <4.0.0"
   flutter: ">=3.41.0"

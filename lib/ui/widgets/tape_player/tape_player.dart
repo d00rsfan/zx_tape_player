@@ -18,6 +18,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:zx_tape_player/main.dart';
 import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
+import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
 import 'package:zx_tape_player/services/wake_lock_service.dart';
@@ -793,6 +794,9 @@ class _TapePlayerBloc {
   final _wakeUpService = getIt<WakeLockControlService>();
   final _muteControlService = getIt<SilenceControlService>();
   final _volumeControlService = getIt<VolumeControlService>();
+  final _settingsService = getIt<SettingsService>();
+  StreamSubscription<AudioFilterType>? _filterSub;
+  bool _pendingFilterRefresh = false;
 
   List<TapeBlockInfo>? _blockInfos;
 
@@ -823,6 +827,20 @@ class _TapePlayerBloc {
   _TapePlayerBloc(this.software) {
     _player.setVolume(1.00);
     currentFileIndex = software.currentFileIndex;
+    _filterSub = _settingsService.filterChanges.listen((_) async {
+      await _player.stop();
+      await _player.seek(Duration.zero);
+      if (_preparing) {
+        // A prepare is in flight with a stale filter snapshot. Flag the
+        // change so that prepare re-runs with the new filter before binding
+        // the player. Calling _prepareTapeForPlay() here would return false
+        // (because _preparing is true) and lose the update.
+        _pendingFilterRefresh = true;
+        return;
+      }
+      _blockInfos = null;
+      await _prepareTapeForPlay();
+    });
   }
 
   static Future<(List<TapeBlockInfo>, List<String>)> _getAndConvertImage(
@@ -838,7 +856,7 @@ class _TapePlayerBloc {
     }
     var tape = await ZxTape.create(bytes);
     var result = await tape.toWavBytesWithBlocks(
-        audioFilterType: AudioFilterType.bassBoost,
+        audioFilterType: data.audioFilter,
         frequency: Definitions.wavFrequency,
         progress: (percent) {
           var sink = LoadingProgressData(data.filePath, percent);
@@ -861,7 +879,7 @@ class _TapePlayerBloc {
     throw Exception('No tape file found in zip archive');
   }
 
-  Future<String> _getWavPath() async {
+  Future<String> _getWavPath(AudioFilterType filter) async {
     var filePath = files[_currentFileIndex];
     // Use the application support directory rather than the temporary
     // directory: on Android the temp dir is the OS cache directory, which
@@ -874,9 +892,13 @@ class _TapePlayerBloc {
         .format([(await getApplicationSupportDirectory()).path]);
     var dir = await Directory(wavPath).create(recursive: true);
     // Hash the source path so the cache filename uses only [0-9a-f]
-    // characters and never collides for different tapes.
+    // characters and never collides for different tapes. The filter name is
+    // appended so switching filters yields distinct cached files instead of
+    // replaying stale audio. The filter is passed in (rather than read from
+    // the service inside) so a single prepare iteration always uses the same
+    // filter for both the cache path and the conversion call.
     final hash = sha1.convert(utf8.encode(filePath)).toString();
-    return Definitions.wafFilePath.format([dir.path, hash]);
+    return Definitions.wafFilePath.format([dir.path, '${hash}_${filter.name}']);
   }
 
   Future<bool> _prepareTapeForPlay({bool force = true}) async {
@@ -884,28 +906,58 @@ class _TapePlayerBloc {
     _preparing = true;
     var filePath = files[_currentFileIndex];
     try {
-      var wavFileName = await _getWavPath();
-      var file = File(wavFileName);
-      final wavExists = await file.exists();
-      if (!wavExists && !force) {
-        return false;
+      while (true) {
+        _pendingFilterRefresh = false;
+        final iterationFilter = _settingsService.audioFilter;
+        var wavFileName = await _getWavPath(iterationFilter);
+        var file = File(wavFileName);
+        final wavExists = await file.exists();
+        if (!wavExists && !force) {
+          return false;
+        }
+        List<String> warnings = const [];
+        if (!wavExists || _blockInfos == null) {
+          _tapePlayerController.sink
+              .add(TapePlayerData(TapePlayerState.Loading, filePath));
+          var convertModel = ConverterComputationData(
+              filePath,
+              software.isRemote,
+              file,
+              _backendService,
+              _progressController,
+              iterationFilter);
+          var (blocks, w) =
+              await compute(_getAndConvertImage, convertModel);
+          if (_pendingFilterRefresh &&
+              _settingsService.audioFilter != iterationFilter) {
+            // Filter changed during conversion. The WAV we just wrote is for
+            // the previous filter (still cached on disk for later re-use,
+            // since paths are filter-namespaced). Loop to re-prepare for
+            // the new filter before binding the player.
+            _blockInfos = null;
+            continue;
+          }
+          _blockInfos = blocks;
+          warnings = w;
+        } else if (_pendingFilterRefresh &&
+            _settingsService.audioFilter != iterationFilter) {
+          _blockInfos = null;
+          continue;
+        }
+        await _player.setFilePath(wavFileName);
+        if (_pendingFilterRefresh &&
+            _settingsService.audioFilter != iterationFilter) {
+          // Last async gap: a filter change arrived while just_audio was
+          // binding the WAV. Discard this binding and re-prepare so we never
+          // emit Idle for the previous filter.
+          _blockInfos = null;
+          continue;
+        }
+        _tapePlayerController.sink.add(TapePlayerData(
+            TapePlayerState.Idle, filePath,
+            blocks: _blockInfos, warnings: warnings));
+        return true;
       }
-      List<String> warnings = const [];
-      if (!wavExists || _blockInfos == null) {
-        _tapePlayerController.sink
-            .add(TapePlayerData(TapePlayerState.Loading, filePath));
-        var convertModel = ConverterComputationData(filePath, software.isRemote,
-            file, _backendService, _progressController);
-        var (blocks, w) =
-            await compute(_getAndConvertImage, convertModel);
-        _blockInfos = blocks;
-        warnings = w;
-      }
-      await _player.setFilePath(wavFileName);
-      _tapePlayerController.sink.add(TapePlayerData(
-          TapePlayerState.Idle, filePath,
-          blocks: _blockInfos, warnings: warnings));
-      return true;
     } catch (e) {
       _tapePlayerController.sink.add(TapePlayerData(
           TapePlayerState.Error, filePath,
@@ -1030,6 +1082,7 @@ class _TapePlayerBloc {
   }
 
   void dispose() {
+    _filterSub?.cancel();
     _looseControl()
         .then((value) => _cleanWavCache())
         .then((value) => _player.dispose())

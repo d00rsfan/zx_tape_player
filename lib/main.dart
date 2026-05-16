@@ -8,15 +8,18 @@ import 'package:get_it/get_it.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:media_store_plus/media_store_plus.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
+import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
 import 'package:zx_tape_player/services/wake_lock_service.dart';
 import 'package:zx_tape_player/services/zx_api/zxapi_service.dart';
+import 'package:zx_tape_player/services/zx_control/zx_settings_service.dart';
 import 'package:zx_tape_player/services/zx_control/zx_silence_control_service.dart';
 import 'package:zx_tape_player/services/zx_control/zx_volume_control_service.dart';
 import 'package:zx_tape_player/services/zx_control/zx_wake_lock_control_service.dart';
 import 'package:zx_tape_player/ui/home_screen.dart';
 import 'package:zx_tape_player/ui/player_screen.dart';
+import 'package:zx_tape_player/ui/settings_screen.dart';
 import 'package:zx_tape_player/ui/tips_screen.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
@@ -64,6 +67,9 @@ void main() async {
       () => ZxWakeLockControlService());
   getIt.registerLazySingleton<VolumeControlService>(
       () => ZxVolumeControlService());
+  final settingsService = ZxSettingsService();
+  await settingsService.load();
+  getIt.registerSingleton<SettingsService>(settingsService);
 
   await EasyLocalization.ensureInitialized();
 
@@ -84,6 +90,10 @@ void main() async {
       ],
       path: 'assets/translations',
       fallbackLocale: const Locale('en', 'US'),
+      // Fall back to en-US for any key missing in the current locale,
+      // rather than rendering the raw key string. Keeps newly added UI
+      // text readable even when translations for some locales lag behind.
+      useFallbackTranslations: true,
       child: const ZxTapePlayer()));
 }
 
@@ -110,6 +120,7 @@ class ZxTapePlayer extends StatelessWidget {
           SearchScreen.routeName: (context) => const SearchScreen(),
           PlayerScreen.routeName: (context) => const PlayerScreen(),
           TipsScreen.routeName: (context) => const TipsScreen(),
+          SettingsScreen.routeName: (context) => const SettingsScreen(),
         });
   }
 }

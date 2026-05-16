@@ -29,7 +29,7 @@ dependencies:
   url_launcher: ^6.3.2
   marquee_widget: ^1.2.0
   archive: ^4.0.9
-  zx_tape_to_wav_x: ^1.1.0
+  zx_tape_to_wav_x: ^1.2.0
   sound_mode: ^3.0.0
   shared_preferences: ^2.5.5
   internet_connection_checker: ^3.0.1
@@ -60,6 +60,12 @@ dependency_overrides:
       url: https://github.com/d00rsfan/just_audio.git
       ref: 0c0cf436811ed196064380120b484efbbed71d91
       path: just_audio
+  # Local-path override for the sibling zx_tape_to_wav_x repo so the
+  # player picks up unreleased work (e.g. sine-writer midpoint-sampling
+  # tweak) on rebuild without round-tripping through pub.dev. Drop this
+  # block once the changes are published.
+  zx_tape_to_wav_x:
+    path: ../zx_tape_to_wav
 
 dev_dependencies:
   flutter_test:

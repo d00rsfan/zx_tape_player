@@ -6,6 +6,15 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## v1.4.2 - Moonlight Drive
 
+### New Features
+- **Settings** — new item in the player's overflow menu opens a dedicated settings screen with two choices on launch:
+  - **Audio filter** — pick how the TAP/TZX signal is shaped before output: *Bass boost* (default, the previous behaviour: peak around 250 Hz to thicken low frequencies — recommended for loading into a real ZX Spectrum), *None* (pure square wave, no post-processing — alternative for loading into a real ZX Spectrum if Bass boost fails), *Sine* (smooth sinusoidal pulses with minimal harmonic content — recommended for re-recording to magnetic tape) or *Tapir* (analog microphone-circuit simulation; mostly legacy — useful for tapes with non-standard data formats such as generalized data blocks, and the slowest to convert). The currently playing tape rewinds to the start and switches over immediately; the converted WAV is cached per filter so flipping back is instant.
+  - **Reset settings to default** — restores the audio filter to *Bass boost* and the system playback volume to maximum.
+
+### Improvements
+- WAV cache filenames now include the audio filter, so changing the filter never replays stale audio from a previously cached conversion.
+- Bumped `zx_tape_to_wav_x` to 1.2.0, which adds the *Sine* filter and fixes block-time offsets and an off-by-one sample at the start of every WAV produced with a buffered filter (*Tapir*, *Sine*).
+
 ### Bug Fixes
 - Long-pressing the file name to save a tape to **Downloads/ZX Tape Player/** now works on every supported Android version. The v1.4.0 MediaStore migration silently broke the feature on Android 7–10 — `media_store_plus` falls back to legacy file I/O on API ≤ 29, but the `WRITE_EXTERNAL_STORAGE` permission and `requestLegacyExternalStorage` manifest flag had been removed along with the old storage path. Both are restored, scoped to `maxSdkVersion="29"` so Android 11+ never sees a runtime permission prompt and keeps using scoped `MediaStore.Downloads`. The success toast also failed to fire on Android 11+ when a same-named tape already existed and got auto-suffixed (e.g. `Game (1).tap`) — that auto-rename is now correctly treated as a successful save. Real failures (no network, permission denied) now surface a red error snackbar instead of vibrating into silence. Removed the bogus `READ_INTERNAL_STORAGE` entry from the Android manifest.
 

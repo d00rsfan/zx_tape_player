@@ -12,7 +12,8 @@ class ZxVolumeControlService extends VolumeControlService {
     if (_hasSet) return;
     _hasSet = true;
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getDouble(_prefsKey) ?? 1.0;
+    final saved =
+        prefs.getDouble(_prefsKey) ?? VolumeControlService.defaultVolume;
     VolumeController.instance.setVolume(saved);
     // Persist subsequent user-initiated changes so the next session
     // restores them. fetchInitialVolume is false so the listener does
@@ -24,5 +25,14 @@ class ZxVolumeControlService extends VolumeControlService {
       },
       fetchInitialVolume: false,
     );
+  }
+
+  @override
+  Future resetToDefault() async {
+    VolumeController.instance.setVolume(VolumeControlService.defaultVolume);
+    // The listener registered in applySavedVolume() persists the change.
+    // Persist eagerly too in case applySavedVolume() has not run yet.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_prefsKey, VolumeControlService.defaultVolume);
   }
 }

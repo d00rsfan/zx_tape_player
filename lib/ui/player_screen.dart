@@ -14,6 +14,7 @@ import 'package:zx_tape_player/models/args/player_args.dart';
 import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/responses/api_response.dart';
+import 'package:zx_tape_player/ui/settings_screen.dart';
 import 'package:zx_tape_player/ui/tips_screen.dart';
 import 'package:zx_tape_player/ui/widgets/app_error.dart';
 import 'package:zx_tape_player/ui/widgets/cassette.dart';
@@ -96,6 +97,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         Choice(title: tr('open_tape_web'), icon: Icons.open_in_new_rounded),
         Choice(title: tr('share_tape'), icon: Icons.share_rounded),
       ],
+      Choice(title: tr('settings_menu_item'), icon: Icons.settings_rounded),
       Choice(title: tr('tips_menu_item'), icon: Icons.lightbulb_outline_rounded),
     ];
 
@@ -119,6 +121,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 await _bloc!.openExternalUrl(model.id!);
               } else if (value.title == tr('share_tape')) {
                 await _bloc!.shareExternalUrl(model);
+              } else if (value.title == tr('settings_menu_item')) {
+                Navigator.of(context).pushNamed(SettingsScreen.routeName);
               } else if (value.title == tr('tips_menu_item')) {
                 Navigator.of(context).pushNamed(TipsScreen.routeName);
               }

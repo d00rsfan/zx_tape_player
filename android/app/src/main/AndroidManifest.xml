@@ -6,13 +6,18 @@
          additional functionality it is fine to subclass or reimplement
          FlutterApplication and put your custom class here. -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.READ_INTERNAL_STORAGE"/>
+    <!-- API ≤ 29: media_store_plus falls back to direct File I/O for the
+         public Downloads folder and needs the legacy permission. API 30+
+         writes via scoped MediaStore.Downloads and needs no permission. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="29"/>
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
 
     <application
             android:name="${applicationName}"
             android:label="ZX Tape Player"
-            android:icon="@mipmap/ic_launcher">
+            android:icon="@mipmap/ic_launcher"
+            android:requestLegacyExternalStorage="true">
         <meta-data
                 android:name="flutterEmbedding"
                 android:value="2" />

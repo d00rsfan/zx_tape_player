@@ -22,6 +22,7 @@
   "open_tape_web": "Open in de browser",
   "share_tape": "Delen",
   "download_tape_success": "De tape is opgeslagen in de map Downloads.",
+  "download_tape_error": "De tape kon niet worden opgeslagen in de map Downloads.",
   "block_browser": "Tapeblokken",
   "block_bytes": "bytes",
   "tape_corrupted_warning": "Dit tapebestand lijkt beschadigd. Afspelen kan onvolledig zijn.",

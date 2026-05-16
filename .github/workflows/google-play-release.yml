@@ -1,8 +1,9 @@
 name: Google Play
 
+# Disabled: auto-deploy on GitHub release is paused. Re-enable by restoring
+# the `release:` trigger below alongside `workflow_dispatch:`.
 on:
-  release:
-    types: [prereleased, released]
+  workflow_dispatch:
 
 jobs:
     deploy:

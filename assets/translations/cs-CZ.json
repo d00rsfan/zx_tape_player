@@ -22,6 +22,7 @@
   "open_tape_web": "Otevřít v prohlížeči",
   "share_tape": "Sdílet",
   "download_tape_success": "Páska byla uložena do složky Stažené.",
+  "download_tape_error": "Pásku se nepodařilo uložit do složky Stažené.",
   "block_browser": "Bloky pásku",
   "block_bytes": "bajtů",
   "tape_corrupted_warning": "Soubor pásku je poškozený. Přehrávání nemusí být úplné.",

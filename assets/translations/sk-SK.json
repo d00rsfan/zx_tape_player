@@ -22,6 +22,7 @@
   "open_tape_web": "Otvoriť v prehliadači",
   "share_tape": "Zdieľam",
   "download_tape_success": "Páska bola uložená do priečinka Stiahnuté.",
+  "download_tape_error": "Pásku sa nepodarilo uložiť do priečinka Stiahnuté.",
   "block_browser": "Bloky pásky",
   "block_bytes": "bajtov",
   "tape_corrupted_warning": "Súbor pásky je poškodený. Prehrávanie nemusí byť úplné.",

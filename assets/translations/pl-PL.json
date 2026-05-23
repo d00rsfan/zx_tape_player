@@ -52,5 +52,11 @@
   "tip_stop_title": "Stop z przewijaniem",
   "tip_stop_body": "Przycisk Stop zatrzymuje odtwarzanie i przewija taśmę na sam początek, gotową do następnego załadowania.",
   "tip_speed_title": "Prędkość i ton",
-  "tip_speed_body": "Stuknij wskaźnik prędkości (np. 1.00x), aby zmienić prędkość odtwarzania. Ton zmienia się wraz z prędkością, jak w prawdziwym magnetofonie, a presety obejmują najprzydatniejsze ustawienia prędkości ładowania."
+  "tip_speed_body": "Stuknij wskaźnik prędkości (np. 1.00x), aby zmienić prędkość odtwarzania. Ton zmienia się wraz z prędkością, jak w prawdziwym magnetofonie, a presety obejmują najprzydatniejsze ustawienia prędkości ładowania.",
+  "export_menu_item": "Eksportuj…",
+  "export_title": "Eksportuj",
+  "export_tape_image": "Obraz taśmy",
+  "export_wav_audio": "Audio (WAV)",
+  "export_original_archive": "Oryginalne archiwum (.zip)",
+  "export_error": "Eksport nie powiódł się."
 }

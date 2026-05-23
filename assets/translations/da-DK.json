@@ -52,5 +52,11 @@
   "tip_stop_title": "Stop spoler også tilbage",
   "tip_stop_body": "Stop-knappen stopper afspilningen og spoler båndet helt tilbage til starten, klar til næste indlæsning.",
   "tip_speed_title": "Hastighed og tonehøjde",
-  "tip_speed_body": "Tryk på hastighedsmærket (f.eks. 1.00x) for at justere afspilningshastigheden. Tonehøjden følger hastigheden naturligt, ligesom en rigtig båndoptager, og forudindstillingerne dækker de mest nyttige indlæsningshastigheder."
+  "tip_speed_body": "Tryk på hastighedsmærket (f.eks. 1.00x) for at justere afspilningshastigheden. Tonehøjden følger hastigheden naturligt, ligesom en rigtig båndoptager, og forudindstillingerne dækker de mest nyttige indlæsningshastigheder.",
+  "export_menu_item": "Eksportér…",
+  "export_title": "Eksportér",
+  "export_tape_image": "Båndaftryk",
+  "export_wav_audio": "Lyd (WAV)",
+  "export_original_archive": "Originalt arkiv (.zip)",
+  "export_error": "Eksport mislykkedes."
 }

@@ -52,5 +52,11 @@
   "tip_stop_title": "Stop riavvolge anche",
   "tip_stop_body": "Il pulsante Stop interrompe la riproduzione e riavvolge il nastro fino all'inizio, pronto per il prossimo caricamento.",
   "tip_speed_title": "Velocità e intonazione",
-  "tip_speed_body": "Tocca l'indicatore di velocità (ad es. 1.00x) per regolare la velocità di riproduzione. L'intonazione segue la velocità in modo naturale, proprio come un vero registratore a nastro, e le preselezioni coprono le regolazioni di caricamento più utili."
+  "tip_speed_body": "Tocca l'indicatore di velocità (ad es. 1.00x) per regolare la velocità di riproduzione. L'intonazione segue la velocità in modo naturale, proprio come un vero registratore a nastro, e le preselezioni coprono le regolazioni di caricamento più utili.",
+  "export_menu_item": "Esporta…",
+  "export_title": "Esporta",
+  "export_tape_image": "Immagine nastro",
+  "export_wav_audio": "Audio (WAV)",
+  "export_original_archive": "Archivio originale (.zip)",
+  "export_error": "Esportazione non riuscita."
 }

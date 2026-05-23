@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'dart:io' show Platform;
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -20,6 +21,8 @@ import 'package:zx_tape_player/ui/widgets/app_error.dart';
 import 'package:zx_tape_player/ui/widgets/cassette.dart';
 import 'package:zx_tape_player/ui/widgets/loading_progress.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/tape_player.dart';
+import 'package:path/path.dart' show basename;
+import 'package:zx_tape_player/utils/bar_helper.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -40,6 +43,7 @@ class Choice {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   _PlayerScreenBloc? _bloc;
+  final _tapePlayerController = TapePlayerController();
 
   @override
   void initState() {
@@ -97,6 +101,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         Choice(title: tr('open_tape_web'), icon: Icons.open_in_new_rounded),
         Choice(title: tr('share_tape'), icon: Icons.share_rounded),
       ],
+      if (model.tapeFiles.isNotEmpty)
+        Choice(title: tr('export_menu_item'), icon: Icons.save_alt_rounded),
       Choice(title: tr('settings_menu_item'), icon: Icons.settings_rounded),
       Choice(title: tr('tips_menu_item'), icon: Icons.lightbulb_outline_rounded),
     ];
@@ -121,6 +127,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 await _bloc!.openExternalUrl(model.id!);
               } else if (value.title == tr('share_tape')) {
                 await _bloc!.shareExternalUrl(model);
+              } else if (value.title == tr('export_menu_item')) {
+                if (mounted) _showExportSheet(context);
               } else if (value.title == tr('settings_menu_item')) {
                 Navigator.of(context).pushNamed(SettingsScreen.routeName);
               } else if (value.title == tr('tips_menu_item')) {
@@ -164,7 +172,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
           children: <Widget>[
             _buildInfoWidget(context, response),
             model.tapeFiles.isNotEmpty
-                ? TapePlayer(software: model)
+                ? TapePlayer(
+                    software: model,
+                    controller: _tapePlayerController)
                 : Container(
                     color: HexColor('#3B4E63'),
                     height: 50.0,
@@ -178,6 +188,148 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ))
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportFile(String sourcePath) async {
+    final fileName = basename(sourcePath);
+    if (Platform.isAndroid) {
+      await FilePicker.saveFile(
+        dialogTitle: tr('export_title'),
+        fileName: fileName,
+        bytes: await File(sourcePath).readAsBytes(),
+      );
+    } else if (Platform.isLinux || Platform.isWindows) {
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: tr('export_title'),
+        fileName: fileName,
+      );
+      if (savedPath != null) {
+        await File(sourcePath).copy(savedPath);
+      }
+    } else {
+      await SharePlus.instance
+          .share(ShareParams(files: [XFile(sourcePath)]));
+    }
+  }
+
+  void _showExportSheet(BuildContext parentContext) {
+    final wavReady = _tapePlayerController.isWavReady;
+    final isZip = _tapePlayerController.isCurrentFileZip;
+    showModalBottomSheet(
+      context: parentContext,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+          color: HexColor('#3B4E63'),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(16.0)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8.0),
+              Container(
+                width: 40.0,
+                height: 4.0,
+                decoration: BoxDecoration(
+                  color: HexColor('#546B7F'),
+                  borderRadius: BorderRadius.circular(2.0),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
+                child: Text(
+                  tr('export_title'),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_rounded,
+                    color: Colors.white, size: 20.0),
+                title: Text(tr('export_tape_image'),
+                    style: const TextStyle(
+                        color: Colors.white, letterSpacing: -0.5)),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  try {
+                    final path =
+                        await _tapePlayerController.prepareTapeImageExport();
+                    await _exportFile(path);
+                  } catch (_) {
+                    if (mounted) {
+                      BarHelper.showSnackBar(
+                          message: tr('export_error'),
+                          barType: SnackBarType.error,
+                          context: parentContext);
+                    }
+                  }
+                },
+              ),
+              if (isZip)
+                ListTile(
+                  leading: const Icon(Icons.archive_rounded,
+                      color: Colors.white, size: 20.0),
+                  title: Text(tr('export_original_archive'),
+                      style: const TextStyle(
+                          color: Colors.white, letterSpacing: -0.5)),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    try {
+                      final path = await _tapePlayerController
+                          .prepareOriginalArchiveExport();
+                      await _exportFile(path);
+                    } catch (_) {
+                      if (mounted) {
+                        BarHelper.showSnackBar(
+                            message: tr('export_error'),
+                            barType: SnackBarType.error,
+                            context: parentContext);
+                      }
+                    }
+                  },
+                ),
+              ListTile(
+                leading: Icon(Icons.audiotrack_rounded,
+                    color: wavReady ? Colors.white : HexColor('#546B7F'),
+                    size: 20.0),
+                title: Text(tr('export_wav_audio'),
+                    style: TextStyle(
+                        color:
+                            wavReady ? Colors.white : HexColor('#546B7F'),
+                        letterSpacing: -0.5)),
+                enabled: wavReady,
+                onTap: wavReady
+                    ? () async {
+                        Navigator.pop(sheetContext);
+                        try {
+                          final path =
+                              await _tapePlayerController.prepareWavExport();
+                          if (path != null) {
+                            await _exportFile(path);
+                          }
+                        } catch (_) {
+                          if (mounted) {
+                            BarHelper.showSnackBar(
+                                message: tr('export_error'),
+                                barType: SnackBarType.error,
+                                context: parentContext);
+                          }
+                        }
+                      }
+                    : null,
+              ),
+              const SizedBox(height: 16.0),
+            ],
+          ),
         ),
       ),
     );

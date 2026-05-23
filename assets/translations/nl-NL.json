@@ -52,5 +52,11 @@
   "tip_stop_title": "Stop spoelt ook terug",
   "tip_stop_body": "De Stop-knop stopt het afspelen en spoelt de band helemaal terug naar het begin, klaar voor de volgende lading.",
   "tip_speed_title": "Snelheid en toonhoogte",
-  "tip_speed_body": "Tik op de snelheidsindicator (bijv. 1.00x) om de afspeelsnelheid aan te passen. De toonhoogte volgt de snelheid op een natuurlijke manier, net als een echte bandrecorder, en de presets dekken de meest nuttige laadsnelheid-aanpassingen."
+  "tip_speed_body": "Tik op de snelheidsindicator (bijv. 1.00x) om de afspeelsnelheid aan te passen. De toonhoogte volgt de snelheid op een natuurlijke manier, net als een echte bandrecorder, en de presets dekken de meest nuttige laadsnelheid-aanpassingen.",
+  "export_menu_item": "Exporteren…",
+  "export_title": "Exporteren",
+  "export_tape_image": "Tape-image",
+  "export_wav_audio": "Audio (WAV)",
+  "export_original_archive": "Origineel archief (.zip)",
+  "export_error": "Exporteren mislukt."
 }

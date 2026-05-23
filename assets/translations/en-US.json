@@ -52,5 +52,11 @@
   "tip_stop_title": "Stop also rewinds",
   "tip_stop_body": "The Stop button stops playback and rewinds to the very beginning of the tape, ready for the next load.",
   "tip_speed_title": "Speed and pitch",
-  "tip_speed_body": "Tap the speed badge (e.g. 1.00x) to adjust playback speed. Pitch follows the speed naturally, just like a real tape recorder, and the presets cover the most useful loading-speed tweaks."
+  "tip_speed_body": "Tap the speed badge (e.g. 1.00x) to adjust playback speed. Pitch follows the speed naturally, just like a real tape recorder, and the presets cover the most useful loading-speed tweaks.",
+  "export_menu_item": "Export…",
+  "export_title": "Export",
+  "export_tape_image": "Tape image",
+  "export_wav_audio": "Audio (WAV)",
+  "export_original_archive": "Original archive (.zip)",
+  "export_error": "Export failed."
 }

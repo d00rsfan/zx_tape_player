@@ -52,5 +52,11 @@
   "tip_stop_title": "Stop s pretočením",
   "tip_stop_body": "Tlačidlo Stop zastaví prehrávanie a pretočí pásku na úplný začiatok, pripravenú na ďalšie načítanie.",
   "tip_speed_title": "Rýchlosť a výška",
-  "tip_speed_body": "Klepnite na ukazovateľ rýchlosti (napr. 1.00x) na úpravu rýchlosti prehrávania. Výška sa mení spolu s rýchlosťou ako u skutočného magnetofónu a predvoľby pokrývajú najužitočnejšie nastavenia rýchlosti načítania."
+  "tip_speed_body": "Klepnite na ukazovateľ rýchlosti (napr. 1.00x) na úpravu rýchlosti prehrávania. Výška sa mení spolu s rýchlosťou ako u skutočného magnetofónu a predvoľby pokrývajú najužitočnejšie nastavenia rýchlosti načítania.",
+  "export_menu_item": "Export…",
+  "export_title": "Export",
+  "export_tape_image": "Obraz pásky",
+  "export_wav_audio": "Zvuk (WAV)",
+  "export_original_archive": "Pôvodný archív (.zip)",
+  "export_error": "Export zlyhal."
 }

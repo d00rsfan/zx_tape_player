@@ -34,10 +34,26 @@ import 'package:zx_tape_player/utils/extensions.dart';
 import 'package:archive/archive.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 
+class TapePlayerController {
+  Future<String> Function()? _prepareTapeImageExport;
+  Future<String?> Function()? _prepareWavExport;
+  Future<String> Function()? _prepareOriginalArchiveExport;
+  bool Function()? _isWavReady;
+  bool Function()? _isCurrentFileZip;
+
+  Future<String> prepareTapeImageExport() => _prepareTapeImageExport!();
+  Future<String?> prepareWavExport() => _prepareWavExport!();
+  Future<String> prepareOriginalArchiveExport() =>
+      _prepareOriginalArchiveExport!();
+  bool get isWavReady => _isWavReady?.call() ?? false;
+  bool get isCurrentFileZip => _isCurrentFileZip?.call() ?? false;
+}
+
 class TapePlayer extends StatefulWidget {
   final SoftwareModel software;
+  final TapePlayerController? controller;
 
-  const TapePlayer({super.key, required this.software});
+  const TapePlayer({super.key, required this.software, this.controller});
 
   @override
   State<TapePlayer> createState() => _TapePlayerState();
@@ -76,7 +92,7 @@ class _TapePlayerState extends State<TapePlayer> {
 
   @override
   void initState() {
-    _bloc = _TapePlayerBloc(widget.software);
+    _bloc = _TapePlayerBloc(widget.software, controller: widget.controller);
     super.initState();
   }
 
@@ -797,6 +813,11 @@ class _TapePlayerBloc {
   final _settingsService = getIt<SettingsService>();
   StreamSubscription<AudioFilterType>? _filterSub;
   bool _pendingFilterRefresh = false;
+  // Set when a filter change interrupts ongoing playback so that
+  // _prepareTapeForPlay() can resume play() automatically after rebinding
+  // the new WAV. Cleared on every consumption and on explicit stop/pause so
+  // a user-initiated halt during a slow conversion is never overridden.
+  bool _pendingAutoResume = false;
 
   List<TapeBlockInfo>? _blockInfos;
 
@@ -824,12 +845,29 @@ class _TapePlayerBloc {
 
   Stream<LoadingProgressData> get progressStream => _progressController.stream;
 
-  _TapePlayerBloc(this.software) {
+  _TapePlayerBloc(this.software, {TapePlayerController? controller}) {
+    controller?._prepareTapeImageExport = _prepareTapeImageExport;
+    controller?._prepareWavExport = _prepareWavExport;
+    controller?._prepareOriginalArchiveExport = _prepareOriginalArchiveExport;
+    controller?._isWavReady = () => _blockInfos != null;
+    controller?._isCurrentFileZip = () =>
+        extension(files[_currentFileIndex]).toLowerCase() == '.zip';
+
     _player.setVolume(1.00);
     currentFileIndex = software.currentFileIndex;
     _filterSub = _settingsService.filterChanges.listen((_) async {
-      await _player.stop();
+      // pause() (not stop()) keeps the audio session active and decoders
+      // alive. just_audio's stop() calls _setPlatformActive(false), releasing
+      // the platform; the next play() then races to re-activate the session
+      // alongside setFilePath's pending load — a known issue still tagged
+      // with a TODO in just_audio 0.10.5's play() implementation. The
+      // user-visible symptom is "progress bar advances but no audio", until
+      // a manual stop+play fully cycles the session. pause() avoids the race
+      // entirely: the same active session is reused for the rebound WAV.
+      final wasPlaying = _player.playing;
+      await _player.pause();
       await _player.seek(Duration.zero);
+      if (wasPlaying) _pendingAutoResume = true;
       if (_preparing) {
         // A prepare is in flight with a stale filter snapshot. Flag the
         // change so that prepare re-runs with the new filter before binding
@@ -956,6 +994,11 @@ class _TapePlayerBloc {
         _tapePlayerController.sink.add(TapePlayerData(
             TapePlayerState.Idle, filePath,
             blocks: _blockInfos, warnings: warnings));
+        if (_pendingAutoResume) {
+          _pendingAutoResume = false;
+          await _takeControl();
+          await _player.play();
+        }
         return true;
       }
     } catch (e) {
@@ -995,12 +1038,17 @@ class _TapePlayerBloc {
   }
 
   Future stop() async {
+    // Cancel any in-flight auto-resume from a pending filter change — an
+    // explicit stop during conversion must not be overridden.
+    _pendingAutoResume = false;
     await _player.stop();
     await _player.seek(Duration.zero);
     await _looseControl();
   }
 
   Future pause() async {
+    // Same rationale as stop(): user-pressed pause cancels pending resume.
+    _pendingAutoResume = false;
     await _player.pause();
   }
 
@@ -1139,6 +1187,81 @@ class _TapePlayerBloc {
     await File(filePath)
         .writeAsBytes(bytes, mode: FileMode.writeOnly, flush: true);
     return true;
+  }
+
+  static Future<(Uint8List, String)> _extractTapeForExport(
+      (Uint8List, String) args) {
+    var (bytes, filePath) = args;
+    String fileName = basename(filePath);
+
+    if (extension(filePath).toLowerCase() == '.zip') {
+      final archive = ZipDecoder().decodeBytes(bytes);
+      for (final file in archive) {
+        if (file.isFile) {
+          var ext = extension(file.name).toLowerCase();
+          if (ext == '.tap' || ext == '.tzx') {
+            bytes = Uint8List.fromList(file.content as List<int>);
+            fileName = basename(file.name);
+            break;
+          }
+        }
+      }
+    }
+
+    return Future.value((bytes, fileName));
+  }
+
+  Future<String> _prepareTapeImageExport() async {
+    final filePath = files[_currentFileIndex];
+    Uint8List bytes;
+
+    if (software.isRemote) {
+      bytes = await _backendService.downloadTape(filePath);
+    } else {
+      bytes = await File(filePath).readAsBytes();
+    }
+
+    final (extractedBytes, fileName) =
+        await compute(_extractTapeForExport, (bytes, filePath));
+
+    final tmp = await getTemporaryDirectory();
+    final tmpPath = '${tmp.path}/$fileName';
+    await File(tmpPath).writeAsBytes(extractedBytes, flush: true);
+    return tmpPath;
+  }
+
+  Future<String> _prepareOriginalArchiveExport() async {
+    final filePath = files[_currentFileIndex];
+    Uint8List bytes;
+
+    if (software.isRemote) {
+      bytes = await _backendService.downloadTape(filePath);
+    } else {
+      bytes = await File(filePath).readAsBytes();
+    }
+
+    final fileName = basename(filePath);
+    final tmp = await getTemporaryDirectory();
+    final tmpPath = '${tmp.path}/$fileName';
+    await File(tmpPath).writeAsBytes(bytes, flush: true);
+    return tmpPath;
+  }
+
+  Future<String?> _prepareWavExport() async {
+    final filter = _settingsService.audioFilter;
+    final wavPath = await _getWavPath(filter);
+    final wavFile = File(wavPath);
+    if (!await wavFile.exists()) return null;
+
+    String tapeFileName = basename(files[_currentFileIndex]);
+    if (extension(tapeFileName).toLowerCase() == '.zip') {
+      tapeFileName = basenameWithoutExtension(tapeFileName);
+    }
+    final wavName = '${basenameWithoutExtension(tapeFileName)}.wav';
+    final tmp = await getTemporaryDirectory();
+    final tmpPath = '${tmp.path}/$wavName';
+    await wavFile.copy(tmpPath);
+    return tmpPath;
   }
 
   Future _takeControl() async {

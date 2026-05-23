@@ -52,5 +52,11 @@
   "tip_stop_title": "Stopp spolar också tillbaka",
   "tip_stop_body": "Stopp-knappen stoppar uppspelningen och spolar tillbaka bandet ända till början, redo för nästa laddning.",
   "tip_speed_title": "Hastighet och tonhöjd",
-  "tip_speed_body": "Tryck på hastighetsmärket (t.ex. 1.00x) för att justera uppspelningshastigheten. Tonhöjden följer hastigheten naturligt, precis som en riktig bandspelare, och förinställningarna täcker de mest användbara laddningshastigheterna."
+  "tip_speed_body": "Tryck på hastighetsmärket (t.ex. 1.00x) för att justera uppspelningshastigheten. Tonhöjden följer hastigheten naturligt, precis som en riktig bandspelare, och förinställningarna täcker de mest användbara laddningshastigheterna.",
+  "export_menu_item": "Exportera…",
+  "export_title": "Exportera",
+  "export_tape_image": "Bandavbild",
+  "export_wav_audio": "Ljud (WAV)",
+  "export_original_archive": "Originalarkiv (.zip)",
+  "export_error": "Exporten misslyckades."
 }

@@ -52,5 +52,11 @@
   "tip_stop_title": "Parar também rebobina",
   "tip_stop_body": "O botão Parar interrompe a reprodução e rebobina a fita até ao início, pronta para o próximo carregamento.",
   "tip_speed_title": "Velocidade e tom",
-  "tip_speed_body": "Toque no indicador de velocidade (por exemplo, 1.00x) para ajustar a velocidade de reprodução. O tom segue a velocidade naturalmente, tal como num verdadeiro gravador de cassetes, e as predefinições cobrem os ajustes de velocidade de carregamento mais úteis."
+  "tip_speed_body": "Toque no indicador de velocidade (por exemplo, 1.00x) para ajustar a velocidade de reprodução. O tom segue a velocidade naturalmente, tal como num verdadeiro gravador de cassetes, e as predefinições cobrem os ajustes de velocidade de carregamento mais úteis.",
+  "export_menu_item": "Exportar…",
+  "export_title": "Exportar",
+  "export_tape_image": "Imagem da fita",
+  "export_wav_audio": "Áudio (WAV)",
+  "export_original_archive": "Arquivo original (.zip)",
+  "export_error": "Falha na exportação."
 }

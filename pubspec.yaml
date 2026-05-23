@@ -3,7 +3,7 @@ description: ZX Tape Player makes able uploading of TAP/TZX files to ZX Spectrum
 
 publish_to: 'none'
 
-version: 1.4.2+6
+version: 1.4.2+7
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
@@ -60,12 +60,6 @@ dependency_overrides:
       url: https://github.com/d00rsfan/just_audio.git
       ref: 0c0cf436811ed196064380120b484efbbed71d91
       path: just_audio
-  # Local-path override for the sibling zx_tape_to_wav_x repo so the
-  # player picks up unreleased work (e.g. sine-writer midpoint-sampling
-  # tweak) on rebuild without round-tripping through pub.dev. Drop this
-  # block once the changes are published.
-  zx_tape_to_wav_x:
-    path: ../zx_tape_to_wav
 
 dev_dependencies:
   flutter_test:

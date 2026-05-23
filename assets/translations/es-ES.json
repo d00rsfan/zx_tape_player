@@ -52,5 +52,11 @@
   "tip_stop_title": "Parar también rebobina",
   "tip_stop_body": "El botón Parar detiene la reproducción y rebobina la cinta hasta el principio, lista para la siguiente carga.",
   "tip_speed_title": "Velocidad y tono",
-  "tip_speed_body": "Toca el indicador de velocidad (por ejemplo, 1.00x) para ajustar la velocidad de reproducción. El tono sigue a la velocidad de forma natural, como en una grabadora de cinta real, y los preajustes cubren los ajustes de carga más útiles."
+  "tip_speed_body": "Toca el indicador de velocidad (por ejemplo, 1.00x) para ajustar la velocidad de reproducción. El tono sigue a la velocidad de forma natural, como en una grabadora de cinta real, y los preajustes cubren los ajustes de carga más útiles.",
+  "export_menu_item": "Exportar…",
+  "export_title": "Exportar",
+  "export_tape_image": "Imagen de cinta",
+  "export_wav_audio": "Audio (WAV)",
+  "export_original_archive": "Archivo original (.zip)",
+  "export_error": "Error al exportar."
 }

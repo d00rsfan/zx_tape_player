@@ -1,6 +1,9 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
+    // kotlin-android is intentionally NOT applied here: the Flutter Gradle
+    // plugin manages Kotlin itself (KGP today via android.builtInKotlin=false,
+    // AGP built-in Kotlin once the plugin ecosystem migrates). An explicit
+    // kotlin-android id here triggers the "app applies KGP" deprecation.
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -31,18 +34,11 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "io.github.d00rsfan.zx_tape_player"
     compileSdk = 36
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    kotlinOptions {
-        jvmTarget = "21"
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
     }
 
     lint {
@@ -52,7 +48,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.d00rsfan.zx_tape_player"
-        minSdkVersion = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
@@ -78,6 +74,14 @@ android {
             }
         }
     }
+}
+
+// Pin the compile toolchain to JDK 21 so javac/kotlinc come from a 21
+// installation regardless of which JVM runs the Gradle daemon (e.g. a
+// user-global org.gradle.java.home pointing at an older JDK). Also implies
+// jvmTarget=21 for Kotlin, matching compileOptions above.
+kotlin {
+    jvmToolchain(21)
 }
 
 flutter {

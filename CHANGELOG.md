@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## v1.4.3 - People Are Strange
+
+### New Features
+- **Search by publisher** — start a search with a SPACE to look up tapes by publisher instead of title: the suggestion list completes publisher names from the ZXInfo database, and picking one (or just submitting the query) lists every compatible tape from that publisher, sorted by title. Hints on the home screen and on the not-yet-searched search screen explain the trick, and a new first entry in Tips documents it too. Translated across all 12 supported languages.
+
+### Improvements
+- Search results now show each tape's publisher after the year and genre.
+
+### Maintenance
+- Dependencies refreshed; the discontinued `sound_mode` package was replaced by its maintained successor `sound_mode_advanced`.
+- Android edge-to-edge compliance for the Play Console deprecation warnings (proper `enableEdgeToEdge()` styling and display-cutout handling on Android 11+).
+- Toolchain: Flutter 3.44 / Dart 3.12, Gradle 8.14.3, AGP 8.13.0, Kotlin 2.3.20, Java 21; Gradle-9-ready build scripts.
+- CI/packaging: signed APKs are now attached to GitHub releases, and the Linux AppImage bundles libmpv with a self-containment check.
+
 ## v1.4.2 - Moonlight Drive
 
 ### New Features

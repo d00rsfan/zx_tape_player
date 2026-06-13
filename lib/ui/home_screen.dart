@@ -119,7 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 65.0),
+                  const SizedBox(height: 12.0),
+                  Text(tr('search_publisher_hint'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12.0,
+                          height: 1.4,
+                          color: HexColor('#546B7F'),
+                          letterSpacing: -0.5)),
+                  const SizedBox(height: 53.0),
                   Text(tr('select_file'),
                       textAlign: TextAlign.center,
                       style: TextStyle(

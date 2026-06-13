@@ -3,7 +3,7 @@ description: ZX Tape Player makes able uploading of TAP/TZX files to ZX Spectrum
 
 publish_to: 'none'
 
-version: 1.4.2+7
+version: 1.4.3+8
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
@@ -14,6 +14,9 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
   flutter_typeahead: ^6.0.0
+  # win32 cluster hold: file_picker (latest stable 11.0.2) pins win32 ^5.9,
+  # while package_info_plus 10.x, share_plus 13.x and wakelock_plus 1.6.x all
+  # need win32 ^6. Bump all four together once file_picker 12 ships stable.
   package_info_plus: ^9.0.0
   http: ^1.6.0
   easy_localization: ^3.0.8
@@ -30,12 +33,14 @@ dependencies:
   marquee_widget: ^1.2.0
   archive: ^4.0.9
   zx_tape_to_wav_x: ^1.2.0
-  sound_mode: ^3.0.0
+  # Community-maintained successor of the discontinued sound_mode (pub.dev
+  # replacedBy). Same SoundMode/RingerModeStatus API.
+  sound_mode_advanced: ^4.0.0
   shared_preferences: ^2.5.5
   internet_connection_checker: ^3.0.1
-  wakelock_plus: ^1.5.2
+  wakelock_plus: ^1.5.2 # win32 cluster hold, see package_info_plus
   volume_controller: ^3.4.4
-  share_plus: ^12.0.2
+  share_plus: ^12.0.2 # win32 cluster hold, see package_info_plus
   in_app_review: ^2.0.11
   # Android-only: save downloaded tapes into the public Downloads/ZX Tape Player
   # folder via MediaStore. Self-disables on iOS/desktop.
@@ -64,6 +69,7 @@ dependency_overrides:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^6.0.0
   flutter_native_splash: ^2.4.5
   build_runner: ^2.4.14
 

@@ -14,15 +14,15 @@ flutter analyze                # static analysis
 
 ## Tech Stack
 
-- **Flutter 3.41+** / **Dart 3.11+**
-- **Android**: compileSdk 36, targetSdk 35, minSdk 24, Java 21, Gradle 8.13, AGP 8.12.1, Kotlin 2.2.0
+- **Flutter 3.44+** / **Dart 3.12+**
+- **Android**: compileSdk 36, targetSdk 35, minSdk 24, Java 21 (via jvmToolchain), Gradle 8.14.3, AGP 8.13.0, Kotlin 2.3.20
 - **iOS**: minimum deployment target 13.0
 
 ## Architecture
 
 - **DI**: `GetIt` service locator — services registered in `main.dart`, accessed via `getIt<T>()`
 - **State**: Stream-based with `StreamController` + `StreamBuilder`, `RxDart` for combining streams
-- **API layer**: `BackendService` (abstract) → `ZxApiService` (implementation) using ZXInfo REST API v3
+- **API layer**: `BackendService` (abstract) → `ZxApiService` (implementation) using ZXInfo REST API v5
 - **Audio**: `just_audio` for WAV playback, `zx_tape_to_wav` for TAP/TZX→WAV conversion (runs in isolate via `compute()`)
 - **Localization**: `easy_localization` with 12 languages in `assets/translations/`
 
@@ -57,7 +57,7 @@ lib/
 
 ## Key APIs & External Services
 
-- **ZXInfo API**: `https://api.zxinfo.dk/v3` — search, game details, file identification (SHA512)
+- **ZXInfo API**: `https://api.zxinfo.dk/v5` — search (titles / by publisher), game details, file identification (SHA512)
 - **ZXInfo Media**: `https://zxinfo.dk/media` — screenshots
 - **Archive.org**: TOSEC tape downloads
 - User-Agent: `ZX Tape Player/1.0`

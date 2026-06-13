@@ -5,59 +5,47 @@ name: Google Play
 on:
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
     deploy:
       name: Build Release
       runs-on: ubuntu-latest
 
-      steps:     
+      steps:
         - name: "Check Beta"
           if: github.event.release.prerelease == true
           run: echo "LANE=beta" >> $GITHUB_ENV
-            
+
         - name: "Check Production"
           if: github.event.release.prerelease != true
           run: echo "LANE=production" >> $GITHUB_ENV
-            
+
         - name: Checkout
-          uses: actions/checkout@v1
-          with: 
-            ref: ${{ steps.latest.outputs.tag_name }}
-      
-        - name: Setup Java
-          uses: actions/setup-java@v1
+          uses: actions/checkout@v4
           with:
-            java-version: '12.x'
-            
+            ref: ${{ steps.latest.outputs.tag_name }}
+
+        - name: Setup Java
+          uses: actions/setup-java@v4
+          with:
+            distribution: temurin
+            java-version: '21'
+
         - uses: subosito/flutter-action@v2
           with:
-            channel: 'stable' # or: 'beta' or 'master'
-            cache: true
-            cache-key: flutter # optional, change this to force refresh cache
-            cache-path: ${{ runner.tool_cache }}/flutter # optional, change this to specify the cache path
-
-        - name: Flutter version
-          run: flutter --version
-
-        - name: Cache pub dependencies
-          uses: actions/cache@v2
-          with:
-            path: ${{ env.FLUTTER_HOME }}/.pub-cache
-            key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-            restore-keys: ${{ runner.os }}-pub-
+            channel: 'stable'
 
         - name: Download pub dependencies
           run: flutter pub get
 
-        - name: Run build_runner
-          run: flutter pub run build_runner build --delete-conflicting-outputs
-
         - name: Run analyzer
           run: flutter analyze
-          
+
         - name: Download Android keystore
           id: android_keystore
-          uses: timheuer/base64-to-file@v1.0.3
+          uses: timheuer/base64-to-file@v1.2
           with:
             fileName: key.jks
             encodedString: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -67,16 +55,16 @@ jobs:
             echo "storeFile=${{ steps.android_keystore.outputs.filePath }}" > android/key.properties
             echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> android/key.properties
             echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/key.properties
-            echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties 
-            
-        - name: Build Android App 
+            echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
+
+        - name: Build Android App
           run: flutter build appbundle --release --no-pub
-          
+
         - name: Update Android Changelog
-          run: echo "${{ github.event.release.body }}" > android/fastlane/metadata/android/en-US/changelogs/default.txt 
-      
+          run: echo "${{ github.event.release.body }}" > android/fastlane/metadata/android/en-US/changelogs/default.txt
+
         - name: Publish Android
-          uses: maierj/fastlane-action@v2.0.1
+          uses: maierj/fastlane-action@v3.1.0
           with:
             lane: '$LANE'
             subdirectory: 'android'
@@ -84,4 +72,3 @@ jobs:
           env:
             SUPPLY_PACKAGE_NAME: ${{ secrets.ANDROID_PACKAGE_NAME }}
             SUPPLY_JSON_KEY_DATA: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
-               

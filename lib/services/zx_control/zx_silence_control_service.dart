@@ -1,8 +1,7 @@
 import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sound_mode/sound_mode.dart';
-import 'package:sound_mode/utils/ringer_mode_statuses.dart';
+import 'package:sound_mode_advanced/sound_mode_advanced.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
 
 class ZxSilenceControlService implements SilenceControlService {

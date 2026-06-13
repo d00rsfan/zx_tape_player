@@ -92,7 +92,20 @@ class _SearchScreenState extends State<SearchScreen> {
                                 );
                             }
                           }
-                          return const SizedBox.shrink();
+                          // No search has been submitted yet — explain the
+                          // publisher-search trick instead of a blank area.
+                          return Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                  32.0, 24.0, 32.0, 0.0),
+                              child: Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Text(tr('search_publisher_hint'),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          fontSize: 13.0,
+                                          height: 1.4,
+                                          color: HexColor('#546B7F'),
+                                          letterSpacing: -0.5))));
                         })))
           ],
         )),
@@ -213,6 +226,8 @@ class _SearchScreenState extends State<SearchScreen> {
           var text = suggestion.text;
           if (suggestion.type == Definitions.letterType) {
             text = tr('all_tapes_by_letter').format([text]);
+          } else if (suggestion.type == Definitions.publisherType) {
+            text = tr('all_tapes_by_publisher').format([text]);
           }
           return ListTile(
               contentPadding:
@@ -228,7 +243,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   )));
         },
         onSelected: (suggestion) async {
-          _textController.text = suggestion.text;
+          var text = suggestion.text;
+          // Keep the leading space so the query stays in publisher mode.
+          if (suggestion.type == Definitions.publisherType) {
+            text = Definitions.publisherQueryPrefix + text;
+          }
+          _textController.text = text;
           await _bloc!.fetchHitsList(_textController.text);
         });
   }
@@ -345,6 +365,10 @@ class _SearchScreenState extends State<SearchScreen> {
                                   if (item.genre != null) {
                                     if (result.isNotEmpty) result += ' \u2022 ';
                                     result += item.genre!;
+                                  }
+                                  if (item.publisher != null) {
+                                    if (result.isNotEmpty) result += ' \u2022 ';
+                                    result += item.publisher!;
                                   }
                                   return Text(
                                     result,

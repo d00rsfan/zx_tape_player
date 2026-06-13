@@ -31,9 +31,12 @@ class ZxApiService implements BackendService {
       "https://archive.org/download/mirror-ftp-nvg/Mirror_ftp_nvg.zip/";
   static const _zxdbBaseUrl = "https://spectrumcomputing.co.uk/zxdb/";
   static const _termsUrl = '/suggest/%s?machinetype=ZXSPECTRUM&contenttype=SOFTWARE';
-  static const _itemsUrl = '/search/titles/%s?mode=tiny' +
+  static const _publisherTermsUrl = '/suggest/publisher/%s';
+  static const _itemsUrl = '/search/titles/%s?mode=tiny'
       '&sort=rel_desc&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
-  static const _letterUrl = '/entries/byletter/%s?mode=tiny' +
+  static const _publisherItemsUrl = '/entries/bypublisher/%s?mode=tiny'
+      '&sort=title_asc&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
+  static const _letterUrl = '/entries/byletter/%s?mode=tiny'
       '&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
   static const _itemUrl = '/entries/%s?mode=full';
   static const _fileCheckUrl = '/filecheck/%s';
@@ -47,6 +50,18 @@ class ZxApiService implements BackendService {
   @override
   Future<List<TermModel>> fetchTermsList(String query) async {
     var result = <TermModel>[];
+    if (query.startsWith(Definitions.publisherQueryPrefix)) {
+      var term = query.trim();
+      if (term.isEmpty) return result;
+      var jsonResponse =
+          await _helper.get(_publisherTermsUrl.format([term.safeEncode()]));
+      result = (jsonResponse as List)
+          .map((e) => TermDto.fromJson(e))
+          .where((element) => !element.text.isNullOrEmpty())
+          .map((e) => TermModel(e.text!, Definitions.publisherType))
+          .toList();
+      return result;
+    }
     if (query.isEmpty) return result;
     if (query.length == 1) {
       var letter = await _tryGetLetter(query);
@@ -70,13 +85,19 @@ class ZxApiService implements BackendService {
   Future<List<HitModel>> fetchHitsList(String query, int size,
       {int offset = 0}) async {
     var result = <HitModel>[];
-    if (query.isEmpty) return result;
     var url = '';
-    if (query.length == 1) {
-      var letter = await _tryGetLetter(query);
-      if (letter != null && letter.isNotEmpty) url += _letterUrl;
+    if (query.startsWith(Definitions.publisherQueryPrefix)) {
+      query = query.trim();
+      if (query.isEmpty) return result;
+      url += _publisherItemsUrl;
+    } else {
+      if (query.isEmpty) return result;
+      if (query.length == 1) {
+        var letter = await _tryGetLetter(query);
+        if (letter != null && letter.isNotEmpty) url += _letterUrl;
+      }
+      if (url.isEmpty) url += _itemsUrl;
     }
-    if (url.isEmpty) url += _itemsUrl;
 
     url = url.format([query.safeEncode(), size, offset]);
     url += Definitions.supportedTapeExtensions
@@ -98,6 +119,7 @@ class ZxApiService implements BackendService {
               e.source!.title!,
               e.source!.originalYearOfRelease?.toString(),
               e.source!.genreType,
+              _firstPublisherName(e.source!.publishers),
               e.source!.score?.votes,
               e.source!.score?.score))
           .toList();
@@ -204,6 +226,14 @@ class ZxApiService implements BackendService {
         .get(Uri.parse(base + encodedPath));
     if (response.statusCode == 200) return response.bodyBytes;
     throw Exception('Failed to download tape: ${response.statusCode}');
+  }
+
+  static String? _firstPublisherName(List<Publishers>? publishers) {
+    if (publishers == null) return null;
+    for (var publisher in publishers) {
+      if (!publisher.name.isNullOrEmpty()) return publisher.name;
+    }
+    return null;
   }
 
   static Future<String?> _tryGetLetter(String query) async {

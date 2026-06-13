@@ -10,6 +10,11 @@ class TipsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final tips = <_Tip>[
       _Tip(
+        icon: Icons.search_rounded,
+        titleKey: 'tip_publisher_search_title',
+        bodyKey: 'tip_publisher_search_body',
+      ),
+      _Tip(
         icon: Icons.view_carousel_rounded,
         titleKey: 'tip_carousel_title',
         bodyKey: 'tip_carousel_body',

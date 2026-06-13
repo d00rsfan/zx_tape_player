@@ -35,6 +35,7 @@
 .pub-cache/
 .pub/
 /build/
+android/build/
 
 # Web related
 lib/generated_plugin_registrant.dart
@@ -66,6 +67,10 @@ macos/Pods/
 
 # fastforge output
 /dist/
+
+# Host-specific AppImage bundle list — regenerated at build time by
+# linux/packaging/appimage/generate_make_config.sh (sonames differ per distro)
+linux/packaging/appimage/make_config.yaml
 
 # Build outputs not already covered
 *.dmg

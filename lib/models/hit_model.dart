@@ -4,9 +4,10 @@ class HitModel {
   final String title;
   final String? year;
   final String? genre;
+  final String? publisher;
   final int? votes;
   final double? score;
 
   HitModel(this.id, this.iconUrl, this.title, this.year, this.genre,
-      this.votes, this.score);
+      this.publisher, this.votes, this.score);
 }

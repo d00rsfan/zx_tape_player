@@ -5,61 +5,49 @@ name: Test Flight
 on:
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
     deploy:
       name: Build Release
       runs-on: macos-latest
 
-      steps:     
+      steps:
         - name: "Check Beta"
           if: github.event.release.prerelease == true
           run: echo "LANE=beta" >> $GITHUB_ENV
-            
+
         - name: "Check Production"
           if: github.event.release.prerelease != true
           run: echo "LANE=production" >> $GITHUB_ENV
-            
+
         - name: Checkout
-          uses: actions/checkout@v1
-          with: 
-            ref: ${{ steps.latest.outputs.tag_name }}
-      
-        - name: Setup Java
-          uses: actions/setup-java@v1
+          uses: actions/checkout@v4
           with:
-            java-version: '12.x'
+            ref: ${{ steps.latest.outputs.tag_name }}
+
+        - name: Setup Java
+          uses: actions/setup-java@v4
+          with:
+            distribution: temurin
+            java-version: '21'
 
         - uses: subosito/flutter-action@v2
           with:
-            channel: 'stable' # or: 'beta' or 'master'
-            cache: true
-            cache-key: flutter # optional, change this to force refresh cache
-            cache-path: ${{ runner.tool_cache }}/flutter # optional, change this to specify the cache path
-
-        - name: Flutter version
-          run: flutter --version
-
-        - name: Cache pub dependencies
-          uses: actions/cache@v2
-          with:
-            path: ${{ env.FLUTTER_HOME }}/.pub-cache
-            key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-            restore-keys: ${{ runner.os }}-pub-
+            channel: 'stable'
 
         - name: Download pub dependencies
           run: flutter pub get
 
-        - name: Run build_runner
-          run: flutter pub run build_runner build --delete-conflicting-outputs
-
         - name: Run analyzer
           run: flutter analyze
-          
-        - name: Build iOS App 
-          run: flutter build ios --release --no-pub --no-codesign 
-          
-        - name: Publish iOS 
-          uses: maierj/fastlane-action@v2.0.1
+
+        - name: Build iOS App
+          run: flutter build ios --release --no-pub --no-codesign
+
+        - name: Publish iOS
+          uses: maierj/fastlane-action@v3.1.0
           with:
             lane: '$LANE'
             subdirectory: 'ios'
@@ -83,5 +71,3 @@ jobs:
             APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
             APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
             PILOT_CHANGELOG: ${{ github.event.release.body }}
-          
-               

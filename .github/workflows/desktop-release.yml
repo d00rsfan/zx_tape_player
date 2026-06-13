@@ -6,21 +6,20 @@ on:
       - 'v*'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  APPIMAGE_EXTRACT_AND_RUN: 1
+
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          # linux-appimage temporarily disabled: produced AppImage starts but
-          # MediaKit.ensureInitialized() fails because libmpv.so.2 + ALSA
-          # plugins/configs are not bundled. Re-enable once
-          # linux/packaging/appimage/make_config.yaml gains the required
-          # `include:` block and a clean-container run is verified.
           - os: ubuntu-24.04
             target: linux
-            jobs: linux-deb,linux-rpm
-          - os: windows-latest
+            jobs: linux-deb,linux-rpm,linux-appimage
+          - os: windows-2022
             target: windows
             jobs: windows-zip
           - os: macos-latest
@@ -32,7 +31,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.9'
+          flutter-version: '3.44.2'
           channel: stable
 
       - name: Install Linux build deps
@@ -43,7 +42,54 @@ jobs:
             clang cmake ninja-build pkg-config \
             libgtk-3-dev liblzma-dev libstdc++-12-dev libblkid-dev \
             libmpv-dev mpv \
-            rpm patchelf
+            rpm patchelf \
+            libfuse2t64 \
+            wget ca-certificates
+
+      - name: Install appimagetool (Linux)
+        if: matrix.target == 'linux'
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/local/bin
+          sudo wget -q -O /usr/local/bin/appimagetool \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          sudo chmod +x /usr/local/bin/appimagetool
+
+      - name: Patch rpmbuild for fastforge (Linux)
+        if: matrix.target == 'linux'
+        run: |
+          # 1. Setup a local writable RPM database to avoid Ubuntu sqlite permission errors
+          mkdir -p /tmp/rpmdb
+          rpm --initdb --dbpath /tmp/rpmdb || true
+          
+          # 2. Physically replace /usr/bin/rpmbuild with our wrapper
+          sudo mv /usr/bin/rpmbuild /usr/bin/rpmbuild.orig
+          cat << 'EOF' | sed 's/^[[:space:]]*//' | sudo tee /usr/bin/rpmbuild > /dev/null
+            #!/bin/bash
+            set -euo pipefail
+            SPEC_FILE=""
+            for arg in "$@"; do
+              if [[ "$arg" == *.spec ]]; then
+                SPEC_FILE="$arg"
+              fi
+            done
+            if [[ -n "$SPEC_FILE" && -f "$SPEC_FILE" ]]; then
+              echo "Wrapper: Patching spec file $SPEC_FILE"
+              # fastforge 0.6.10 copies to BUILD/zx_tape_player, but spec expects it inside the -build subdir.
+              # Rewrite the cp command to look in the parent directory (../zx_tape_player/*).
+              sed -i 's#cp -r zx_tape_player/\*#cp -r ../zx_tape_player/*#g' "$SPEC_FILE"
+            fi
+            exec /usr/bin/rpmbuild.orig "$@" --nodeps --dbpath /tmp/rpmdb
+          EOF
+          sudo chmod +x /usr/bin/rpmbuild
+
+      - name: Generate AppImage make_config
+        if: matrix.target == 'linux'
+        run: ./linux/packaging/appimage/generate_make_config.sh
+
+      - name: Use committed locate shim for AppImage
+        if: matrix.target == 'linux'
+        run: echo "$PWD/linux/packaging/appimage/bin" >> $GITHUB_PATH
 
       - name: Install macOS packaging deps
         if: matrix.target == 'macos'
@@ -86,6 +132,7 @@ jobs:
           files: |
             dist/**/*.deb
             dist/**/*.rpm
+            dist/**/*.AppImage
             dist/**/*.zip
             dist/**/*.dmg
           fail_on_unmatched_files: true

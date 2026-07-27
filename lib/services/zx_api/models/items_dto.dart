@@ -137,7 +137,12 @@ class Source {
     if (json["screens"] != null) {
       _screens = [];
       json["screens"].forEach((v) {
-        _screens!.add(Screens.fromJson(v));
+        // Some ZXInfo records contain a nested empty array (`screens: [[]]`)
+        // instead of a screen object. Ignore malformed members so one bad
+        // catalogue record cannot make the entire search page fail to parse.
+        if (v is Map<String, dynamic>) {
+          _screens!.add(Screens.fromJson(v));
+        }
       });
     }
     _originalYearOfRelease = json["originalYearOfRelease"];

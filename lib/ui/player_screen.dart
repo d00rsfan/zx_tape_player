@@ -15,6 +15,7 @@ import 'package:zx_tape_player/models/args/player_args.dart';
 import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/responses/api_response.dart';
+import 'package:zx_tape_player/services/tape_image_service.dart';
 import 'package:zx_tape_player/ui/settings_screen.dart';
 import 'package:zx_tape_player/ui/tips_screen.dart';
 import 'package:zx_tape_player/ui/widgets/app_error.dart';
@@ -200,7 +201,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         Platform.isWindows) {
       await FilePicker.saveFile(
         dialogTitle: tr('export_title'),
-        fileName: fileName,
+        fileName: filePickerCompatibleTapeName(
+            fileName, android: Platform.isAndroid),
         bytes: await File(sourcePath).readAsBytes(),
       );
     } else {

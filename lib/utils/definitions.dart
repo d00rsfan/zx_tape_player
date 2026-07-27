@@ -7,7 +7,18 @@ class Definitions {
   // A query starting with a space searches by publisher instead of title.
   static const publisherQueryPrefix = ' ';
   static const pageSize = 30;
-  static const supportedTapeExtensions = <String>['tap', 'tzx'];
+  // Formats the app can play: ZX Spectrum TAP/TZX, ZX81 P/81/P81, and ZX80
+  // O/80. The extensions requested from ZXInfo are model-specific; see
+  // ZxModel.remoteTapeExtensions.
+  static const supportedTapeExtensions = <String>[
+    'tap',
+    'tzx',
+    'p',
+    '81',
+    'p81',
+    'o',
+    '80',
+  ];
   static const tapeDir = '%s/tapes';
   static const wafFilePath = '%s/%s.wav';
   static const wavFrequency = 44100;

@@ -8,12 +8,14 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zx_tape_player/models/args/player_args.dart';
+import 'package:zx_tape_player/services/tape_conversion_service.dart';
 import 'package:zx_tape_player/ui/player_screen.dart';
 import 'package:zx_tape_player/ui/search_screen.dart';
+import 'package:zx_tape_player/ui/settings_screen.dart';
+import 'package:zx_tape_player/ui/tips_screen.dart';
 import 'package:zx_tape_player/utils/bar_helper.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
-import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +31,8 @@ class _ExtractedTape {
   _ExtractedTape(this.name, this.bytes);
 }
 
+enum _HomeMenuAction { settings, tips }
+
 class _HomeScreenState extends State<HomeScreen> {
   final _controller = TextEditingController();
 
@@ -36,8 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final archive = ZipDecoder().decodeBytes(zipBytes);
     for (final file in archive) {
       if (file.isFile) {
-        var ext = p.extension(file.name).toLowerCase();
-        if (ext == '.tap' || ext == '.tzx') {
+        var ext = p.extension(file.name).replaceAll('.', '').toLowerCase();
+        if (Definitions.supportedTapeExtensions.contains(ext)) {
           return _ExtractedTape(p.basename(file.name), file.content as List<int>);
         }
       }
@@ -60,10 +64,56 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          toolbarHeight: 60.0,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          actions: [
+            PopupMenuButton<_HomeMenuAction>(
+              key: const ValueKey('home_menu_button'),
+              color: HexColor('#3B4E63'),
+              icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+              onSelected: (action) {
+                if (action == _HomeMenuAction.settings) {
+                  Navigator.of(context).pushNamed(SettingsScreen.routeName);
+                } else {
+                  Navigator.of(context).pushNamed(TipsScreen.routeName);
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: _HomeMenuAction.settings,
+                  child: Row(children: [
+                    const Icon(Icons.settings_rounded,
+                        size: 16.0, color: Colors.white),
+                    const SizedBox(width: 16.0),
+                    Text(tr('settings_menu_item'),
+                        style: const TextStyle(
+                            letterSpacing: -0.5, color: Colors.white)),
+                  ]),
+                ),
+                PopupMenuItem(
+                  value: _HomeMenuAction.tips,
+                  child: Row(children: [
+                    const Icon(Icons.lightbulb_outline_rounded,
+                        size: 16.0, color: Colors.white),
+                    const SizedBox(width: 16.0),
+                    Text(tr('tips_menu_item'),
+                        style: const TextStyle(
+                            letterSpacing: -0.5, color: Colors.white)),
+                  ]),
+                ),
+              ],
+            ),
+          ],
+        ),
         body: SafeArea(
+          top: false,
           child: Center(
             child: Container(
-                padding: const EdgeInsets.fromLTRB(16.0, 100.0, 16.0, 0),
+                padding: const EdgeInsets.fromLTRB(16.0, 40.0, 16.0, 0),
                 child: Column(children: <Widget>[
                   Text(tr('find_tape'),
                       textAlign: TextAlign.center,
@@ -171,8 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           }
                         }
 
-                        var tape = await ZxTape.create(bytes);
-                        if (tape.tapeType != TapeType.unknown) {
+                        final supported = await isTapeImageSupported(
+                            bytes, p.basename(filePath));
+                        if (supported) {
                           if (mounted) {
                             Navigator.pushNamed(
                                 context, PlayerScreen.routeName,

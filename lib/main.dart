@@ -48,7 +48,6 @@ void main() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
-  getIt.registerLazySingleton<BackendService>(() => ZxApiService());
   getIt.registerLazySingleton<SilenceControlService>(
       () => ZxSilenceControlService());
   getIt.registerLazySingleton<WakeLockControlService>(
@@ -58,6 +57,8 @@ void main() async {
   final settingsService = ZxSettingsService();
   await settingsService.load();
   getIt.registerSingleton<SettingsService>(settingsService);
+  getIt.registerLazySingleton<BackendService>(
+      () => ZxApiService(settingsService));
 
   await EasyLocalization.ensureInitialized();
 

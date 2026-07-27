@@ -10,7 +10,9 @@ import 'package:path/path.dart';
 import 'package:zx_tape_player/models/hit_model.dart';
 import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/models/term_model.dart';
+import 'package:zx_tape_player/models/zx_model.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
+import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/utils/api_base_helper.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
@@ -29,15 +31,14 @@ class ZxApiService implements BackendService {
       "https://archive.org/download/World_of_Spectrum_June_2017_Mirror/World%20of%20Spectrum%20June%202017%20Mirror.zip/World%20of%20Spectrum%20June%202017%20Mirror";
   static const _nvgBaseUrl =
       "https://archive.org/download/mirror-ftp-nvg/Mirror_ftp_nvg.zip/";
-  static const _zxdbBaseUrl = "https://spectrumcomputing.co.uk/zxdb/";
-  static const _termsUrl = '/suggest/%s?machinetype=ZXSPECTRUM&contenttype=SOFTWARE';
+  static const _termsUrl = '/suggest/%s?machinetype=%s&contenttype=SOFTWARE';
   static const _publisherTermsUrl = '/suggest/publisher/%s';
   static const _itemsUrl = '/search/titles/%s?mode=tiny'
-      '&sort=rel_desc&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
+      '&sort=rel_desc&contenttype=SOFTWARE&machinetype=%s&size=%s&offset=%s';
   static const _publisherItemsUrl = '/entries/bypublisher/%s?mode=tiny'
-      '&sort=title_asc&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
+      '&sort=title_asc&contenttype=SOFTWARE&machinetype=%s&size=%s&offset=%s';
   static const _letterUrl = '/entries/byletter/%s?mode=tiny'
-      '&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&size=%s&offset=%s';
+      '&contenttype=SOFTWARE&machinetype=%s&size=%s&offset=%s';
   static const _itemUrl = '/entries/%s?mode=full';
   static const _fileCheckUrl = '/filecheck/%s';
   static const _externalUrl =
@@ -45,7 +46,13 @@ class ZxApiService implements BackendService {
   static const _contentType = 'SOFTWARE';
   static const _userAgent = 'ZX Tape Player/1.0';
 
-  final _helper = ApiBaseHelper(_baseUrl, _userAgent);
+  final SettingsService _settings;
+  final ApiBaseHelper _helper;
+  final http.Client _client;
+
+  ZxApiService(this._settings, {ApiBaseHelper? helper, http.Client? client})
+      : _helper = helper ?? ApiBaseHelper(_baseUrl, _userAgent),
+        _client = client ?? http.Client();
 
   @override
   Future<List<TermModel>> fetchTermsList(String query) async {
@@ -71,8 +78,10 @@ class ZxApiService implements BackendService {
         return result;
       }
     }
-    var jsonResponse =
-        await _helper.get(_termsUrl.format([query.safeEncode()]));
+    final model = _settings.zxModel;
+    var jsonResponse = await _helper.get(
+      _termsUrl.format([query.safeEncode(), model.apiMachineType]),
+    );
     result = (jsonResponse as List)
         .map((e) => TermDto.fromJson(e))
         .where((element) => element.type == _contentType)
@@ -86,6 +95,8 @@ class ZxApiService implements BackendService {
       {int offset = 0}) async {
     var result = <HitModel>[];
     var url = '';
+    String? fallbackUrl;
+    final model = _settings.zxModel;
     if (query.startsWith(Definitions.publisherQueryPrefix)) {
       query = query.trim();
       if (query.isEmpty) return result;
@@ -94,16 +105,37 @@ class ZxApiService implements BackendService {
       if (query.isEmpty) return result;
       if (query.length == 1) {
         var letter = await _tryGetLetter(query);
-        if (letter != null && letter.isNotEmpty) url += _letterUrl;
+        if (letter != null && letter.isNotEmpty) {
+          // The by-letter endpoint can fail independently of ordinary title
+          // search. Normalize its route parameter and keep title search as a
+          // transparent fallback for every model.
+          query = letter;
+          url += _letterUrl;
+          fallbackUrl = _itemsUrl;
+        }
       }
       if (url.isEmpty) url += _itemsUrl;
     }
 
-    url = url.format([query.safeEncode(), size, offset]);
-    url += Definitions.supportedTapeExtensions
-        .map((e) => "&tosectype=%s".format([e]))
-        .join();
-    var jsonResponse = await _helper.get(url);
+    String formatUrl(String template) {
+      var formatted = template
+          .format([query.safeEncode(), model.apiMachineType, size, offset]);
+      return formatted +
+          model.remoteTapeExtensions
+              .map((e) => "&tosectype=%s".format([e]))
+              .join();
+    }
+
+    url = formatUrl(url);
+    if (fallbackUrl != null) fallbackUrl = formatUrl(fallbackUrl);
+
+    dynamic jsonResponse;
+    try {
+      jsonResponse = await _helper.get(url);
+    } catch (_) {
+      if (fallbackUrl == null) rethrow;
+      jsonResponse = await _helper.get(fallbackUrl);
+    }
     var data = ItemsDto.fromJson(jsonResponse).hits?.hits;
     if (data != null && data.isNotEmpty) {
       result = data
@@ -130,9 +162,10 @@ class ZxApiService implements BackendService {
   @override
   Future<SoftwareModel> fetchSoftware(String id,
       {String? recognizedTapeFileName}) async {
+    final model = _settings.zxModel;
     var url = _baseUrl + _itemUrl.format([id]);
     var response =
-        await UserAgentClient(_userAgent, http.Client()).get(Uri.parse(url));
+        await UserAgentClient(_userAgent, _client).get(Uri.parse(url));
     if (response.statusCode == 200) {
       var item = ItemDto.fromJson(json.decode(response.body));
       var e = item;
@@ -164,11 +197,11 @@ class ZxApiService implements BackendService {
           recognizedTapeFileName,
           [
             ...(e.source?.tosec ?? [])
-                .where((t) => _isSupportedTapeFile(t.path ?? ''))
+                .where((t) => _isSupportedTapeFile(t.path ?? '', model))
                 .map((t) => _fixToSecUrl(t.path ?? '')),
             ...(e.source?.releases ?? [])
                 .expand((r) => r.files ?? <Tosec>[])
-                .where((f) => _isSupportedTapeFile(f.path ?? ''))
+                .where((f) => _isSupportedTapeFile(f.path ?? '', model))
                 .map((f) => _fixReleaseFileUrl(f.path ?? '')),
           ]);
     }
@@ -185,7 +218,7 @@ class ZxApiService implements BackendService {
 
     if (!await InternetConnectionChecker.instance.hasConnection) return result;
 
-    var response = await UserAgentClient(_userAgent, http.Client())
+    var response = await UserAgentClient(_userAgent, _client)
         .get(Uri.parse(fileCheckUrl));
     if (response.statusCode == 200) {
       var fileCheck = FileCheckDto.fromJson(json.decode(response.body));
@@ -222,7 +255,7 @@ class ZxApiService implements BackendService {
         .split('/')
         .map((s) => Uri.encodeComponent(Uri.decodeComponent(s)))
         .join('/');
-    var response = await UserAgentClient(_userAgent, http.Client())
+    var response = await UserAgentClient(_userAgent, _client)
         .get(Uri.parse(base + encodedPath));
     if (response.statusCode == 200) return response.bodyBytes;
     throw Exception('Failed to download tape: ${response.statusCode}');
@@ -248,13 +281,27 @@ class ZxApiService implements BackendService {
     return _contentBaseUrl + url;
   }
 
-  static bool _isSupportedTapeFile(String path) {
+  static bool _isSupportedTapeFile(String path, ZxModel model) {
     var ext = extension(path).replaceAll('.', '').toLowerCase();
-    if (Definitions.supportedTapeExtensions.contains(ext)) return true;
+    if (model.remoteTapeExtensions.contains(ext)) return true;
     if (ext == 'zip') {
       var innerExt =
           extension(withoutExtension(path)).replaceAll('.', '').toLowerCase();
-      return Definitions.supportedTapeExtensions.contains(innerExt);
+      if (model.remoteTapeExtensions.contains(innerExt)) return true;
+
+      // Some World of Spectrum ZX80/ZX81 archives have generic names such as
+      // SCRMBL81.ZIP, while the archive itself contains a supported .p or .o
+      // image. In that case the machine directory is the only type metadata.
+      // Do not override an explicit, incompatible tape suffix such as
+      // .tap.zip; the archive extractor will validate generic ZIP contents.
+      if (Definitions.supportedTapeExtensions.contains(innerExt)) return false;
+      final machineDirectory = switch (model) {
+        ZxModel.zx81 => 'zx81',
+        ZxModel.zx80 => 'zx80',
+        ZxModel.zxSpectrum => null,
+      };
+      return machineDirectory != null &&
+          path.toLowerCase().split('/').contains(machineDirectory);
     }
     return false;
   }
@@ -271,7 +318,10 @@ class ZxApiService implements BackendService {
     } else if (path.startsWith('/nvg/')) {
       return _nvgBaseUrl + path.substring('/nvg/'.length);
     } else if (path.startsWith('/zxdb/')) {
-      return _zxdbBaseUrl + path.substring('/zxdb/'.length);
+      // ZXInfo mirrors every ZXDB asset beneath the same /media base used
+      // for screenshots. The former Spectrum Computing host is not reliably
+      // reachable, which broke playback and all export paths.
+      return _contentBaseUrl + path;
     }
     return _fixToSecUrl(path);
   }

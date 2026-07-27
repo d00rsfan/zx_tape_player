@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:carousel_slider/carousel_slider.dart';
@@ -20,9 +21,10 @@ import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
+import 'package:zx_tape_player/services/tape_conversion_service.dart';
+import 'package:zx_tape_player/services/tape_image_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
 import 'package:zx_tape_player/services/wake_lock_service.dart';
-import 'package:zx_tape_player/ui/widgets/tape_player/models/converter_computation_data.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/position_data.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/progress_model.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/tape_player_data.dart';
@@ -881,42 +883,6 @@ class _TapePlayerBloc {
     });
   }
 
-  static Future<(List<TapeBlockInfo>, List<String>)> _getAndConvertImage(
-      ConverterComputationData data) async {
-    Uint8List bytes;
-    if (data.isRemote) {
-      bytes = await data.backendService.downloadTape(data.filePath);
-    } else {
-      bytes = await File(data.filePath).readAsBytes();
-    }
-    if (extension(data.filePath).toLowerCase() == '.zip') {
-      bytes = _extractTapeFromZip(bytes);
-    }
-    var tape = await ZxTape.create(bytes);
-    var result = await tape.toWavBytesWithBlocks(
-        audioFilterType: data.audioFilter,
-        frequency: Definitions.wavFrequency,
-        progress: (percent) {
-          var sink = LoadingProgressData(data.filePath, percent);
-          data.controller.sink.add(sink);
-        });
-    await data.file.writeAsBytes(result.wavBytes);
-    return (result.blocks, result.warnings);
-  }
-
-  static Uint8List _extractTapeFromZip(Uint8List zipBytes) {
-    final archive = ZipDecoder().decodeBytes(zipBytes);
-    for (final file in archive) {
-      if (file.isFile) {
-        var ext = extension(file.name).toLowerCase();
-        if (ext == '.tap' || ext == '.tzx') {
-          return Uint8List.fromList(file.content as List<int>);
-        }
-      }
-    }
-    throw Exception('No tape file found in zip archive');
-  }
-
   Future<String> _getWavPath(AudioFilterType filter) async {
     var filePath = files[_currentFileIndex];
     // Use the application support directory rather than the temporary
@@ -957,15 +923,30 @@ class _TapePlayerBloc {
         if (!wavExists || _blockInfos == null) {
           _tapePlayerController.sink
               .add(TapePlayerData(TapePlayerState.Loading, filePath));
-          var convertModel = ConverterComputationData(
-              filePath,
-              software.isRemote,
-              file,
-              _backendService,
-              _progressController,
-              iterationFilter);
-          var (blocks, w) =
-              await compute(_getAndConvertImage, convertModel);
+          final tapeBytes = software.isRemote
+              ? await _backendService.downloadTape(filePath)
+              : await File(filePath).readAsBytes();
+          final progressPort = ReceivePort();
+          final progressSubscription = progressPort.listen((message) {
+            if (message is int) {
+              _progressController.sink
+                  .add(LoadingProgressData(filePath, message));
+            }
+          });
+          late TapeConversionResponse response;
+          try {
+            response = await compute(
+                convertTapeImage,
+                TapeConversionRequest(
+                    tapeBytes: tapeBytes,
+                    fileName: basename(filePath),
+                    outputPath: file.path,
+                    progressPort: progressPort.sendPort,
+                    audioFilterIndex: iterationFilter.index));
+          } finally {
+            await progressSubscription.cancel();
+            progressPort.close();
+          }
           if (_pendingFilterRefresh &&
               _settingsService.audioFilter != iterationFilter) {
             // Filter changed during conversion. The WAV we just wrote is for
@@ -975,8 +956,8 @@ class _TapePlayerBloc {
             _blockInfos = null;
             continue;
           }
-          _blockInfos = blocks;
-          warnings = w;
+          _blockInfos = response.blocks;
+          warnings = response.warnings;
         } else if (_pendingFilterRefresh &&
             _settingsService.audioFilter != iterationFilter) {
           _blockInfos = null;
@@ -1198,8 +1179,8 @@ class _TapePlayerBloc {
       final archive = ZipDecoder().decodeBytes(bytes);
       for (final file in archive) {
         if (file.isFile) {
-          var ext = extension(file.name).toLowerCase();
-          if (ext == '.tap' || ext == '.tzx') {
+          var ext = extension(file.name).replaceAll('.', '').toLowerCase();
+          if (Definitions.supportedTapeExtensions.contains(ext)) {
             bytes = Uint8List.fromList(file.content as List<int>);
             fileName = basename(file.name);
             break;
@@ -1225,9 +1206,8 @@ class _TapePlayerBloc {
         await compute(_extractTapeForExport, (bytes, filePath));
 
     final tmp = await getTemporaryDirectory();
-    final tmpPath = '${tmp.path}/$fileName';
-    await File(tmpPath).writeAsBytes(extractedBytes, flush: true);
-    return tmpPath;
+    return stageTapeImageForExport(
+        TapeImageData(extractedBytes, fileName), tmp.path);
   }
 
   Future<String> _prepareOriginalArchiveExport() async {

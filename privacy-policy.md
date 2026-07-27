@@ -1,10 +1,10 @@
 # Privacy Policy — ZX Tape Player
 
-**Last updated:** April 3, 2026
+**Last updated:** August 1, 2026
 
 ## Overview
 
-ZX Tape Player is a virtual cassette player for ZX Spectrum. This policy describes how the application handles user data.
+ZX Tape Player is a virtual cassette player for ZX Spectrum, ZX81, and ZX80. This policy describes how the application handles user data.
 
 ## Data Collection
 
@@ -19,7 +19,7 @@ ZX Tape Player **does not collect, store, or transmit** any personal data. The a
 
 The application connects to the following external services solely to provide its core functionality:
 
-- **ZXInfo API** (`api.zxinfo.dk`) — to search and retrieve metadata about ZX Spectrum software
+- **ZXInfo API** (`api.zxinfo.dk`) — to search and retrieve metadata about ZX Spectrum, ZX81, and ZX80 software
 - **ZXInfo Media** (`zxinfo.dk/media`) — to display screenshots
 - **Archive.org** and other public sources — to download tape files
 
@@ -27,7 +27,7 @@ These requests are made on behalf of the user and no personal information is sen
 
 ## Local Files
 
-When you open local tape files (TAP, TZX, ZIP), they are converted to audio entirely on your device. The file contents are not uploaded to any server. However, a SHA512 hash of the file may be sent to the ZXInfo API to identify the software and retrieve its metadata.
+When you open local tape files (TAP, TZX, P, 81, P81, O, 80, or ZIP), they are converted to audio entirely on your device. The file contents are not uploaded to any server. However, a SHA512 hash of the file may be sent to the ZXInfo API to identify the software and retrieve its metadata.
 
 ## Third-Party Services
 

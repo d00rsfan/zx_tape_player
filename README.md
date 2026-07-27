@@ -1,10 +1,18 @@
-# ZX Tape Player [![License GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green.svg)](https://github.com/semack/zx_tape_player/blob/master/LICENSE.md)
+# ZX Tape Player [![License GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green.svg)](https://github.com/d00rsfan/zx_tape_player/blob/master/LICENSE.md)
 
-ZX Tape Player is a utility that converts your device into a virtual cassette player for the British home computer ZX Spectrum that was quite popular in many countries from 1982 and forward. This player lets you playback virtual tapes in the TZX or TAP format used by many emulators and lets you play them back via the jack/headphone plug into your ZX Spectrum.
+ZX Tape Player turns your device into a virtual cassette player for the Sinclair ZX Spectrum, ZX81, and ZX80 home computers. It converts tape images to audio for loading software onto the real machines through your device's jack/headphone output.
 
-The app lets you select TAP or TZX files on your local device to playback, and tries to identify your file and show additional information such as publisher and screenshots - provided by the online Open Source API ZXInfo that contains information for more than 32,000 software titles from 1982 and up to date.
+## Supported Models and Formats
 
-**PLEASE NOTE:** This is NOT an emulator and can not run the programs on TAP/TZX files. In order to run the program, you need a real physical ZX Spectrum connected to your device using the mini-jack lead that came with the machine.
+| Model | Tape image formats |
+| --- | --- |
+| ZX Spectrum | `.tap`, `.tzx` |
+| ZX81 | `.p`, `.81`, `.p81` |
+| ZX80 | `.o`, `.80` |
+
+Files can be selected directly or from a `.zip` archive. The app tries to identify local tapes and show metadata such as publisher and screenshots from the open [ZXInfo](https://zxinfo.dk) catalogue. You can also search that catalogue and download compatible tapes; choose the target model in Settings on the home screen. ZX Spectrum is selected by default.
+
+**PLEASE NOTE:** This is NOT an emulator and cannot run the programs in tape-image files. To run a program, you need a real ZX Spectrum, ZX81, or ZX80 connected to your device with an appropriate audio lead.
 
 ## In Memory of Andriy S'omak
 
@@ -24,7 +32,7 @@ The app is no longer available on app stores. I plan to publish it on Google Pla
 
 ### Prerequisites
 
-- [Flutter SDK](https://docs.flutter.dev/install) 3.41+
+- [Flutter SDK](https://docs.flutter.dev/install) (tested with Flutter 3.44.8 stable, which includes Dart 3.12.2; the project requires Dart `>=3.11.0 <4.0.0`)
 - Java 21+
 
 ### Generate a Signing Key
@@ -141,7 +149,7 @@ For questions, bug reports, or feature requests, reach out through [GitHub Issue
 
 ## Thanks to
 
-- [Thomas Kolbeck Kjaer Heckmann](mailto:zxinfo_dev@kolbeck.dk) for providing his [API](https://api.zxinfo.dk/v3/#/) to the [ZXInfo](https://zxinfo.dk) database and involvement in the project;
+- [Thomas Kolbeck Kjaer Heckmann](mailto:zxinfo_dev@kolbeck.dk) for providing his [API v5](https://api.zxinfo.dk/v5) to the [ZXInfo](https://zxinfo.dk) database and involvement in the project;
 - [Pavlo Hladkov](https://www.behance.net/hladkovpavlo) for the UI/UX of the application;
 - [Sergey Kireev](https://github.com/psk7) for help in stabilizing the sound converter with custom loaders;
 - [Mikie](https://www.alessandrogrussu.it/tapir/index.html) for his Tapir audio post-processing implementation;

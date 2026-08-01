@@ -5,9 +5,6 @@ name: Test Flight
 on:
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
     deploy:
       name: Build Release
@@ -23,12 +20,12 @@ jobs:
           run: echo "LANE=production" >> $GITHUB_ENV
 
         - name: Checkout
-          uses: actions/checkout@v4
+          uses: actions/checkout@v7
           with:
             ref: ${{ steps.latest.outputs.tag_name }}
 
         - name: Setup Java
-          uses: actions/setup-java@v4
+          uses: actions/setup-java@v5
           with:
             distribution: temurin
             java-version: '21'
@@ -47,7 +44,7 @@ jobs:
           run: flutter build ios --release --no-pub --no-codesign
 
         - name: Publish iOS
-          uses: maierj/fastlane-action@v3.1.0
+          uses: maierj/fastlane-action@v3.2.0
           with:
             lane: '$LANE'
             subdirectory: 'ios'

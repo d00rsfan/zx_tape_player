@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   APPIMAGE_EXTRACT_AND_RUN: 1
 
 jobs:
@@ -27,7 +26,7 @@ jobs:
             jobs: macos-dmg
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -55,33 +54,18 @@ jobs:
             https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           sudo chmod +x /usr/local/bin/appimagetool
 
-      - name: Patch rpmbuild for fastforge (Linux)
+      - name: Configure rpmbuild for fastforge (Linux)
         if: matrix.target == 'linux'
         run: |
-          # 1. Setup a local writable RPM database to avoid Ubuntu sqlite permission errors
-          mkdir -p /tmp/rpmdb
-          rpm --initdb --dbpath /tmp/rpmdb || true
-          
-          # 2. Physically replace /usr/bin/rpmbuild with our wrapper
-          sudo mv /usr/bin/rpmbuild /usr/bin/rpmbuild.orig
-          cat << 'EOF' | sed 's/^[[:space:]]*//' | sudo tee /usr/bin/rpmbuild > /dev/null
-            #!/bin/bash
-            set -euo pipefail
-            SPEC_FILE=""
-            for arg in "$@"; do
-              if [[ "$arg" == *.spec ]]; then
-                SPEC_FILE="$arg"
-              fi
-            done
-            if [[ -n "$SPEC_FILE" && -f "$SPEC_FILE" ]]; then
-              echo "Wrapper: Patching spec file $SPEC_FILE"
-              # fastforge 0.6.10 copies to BUILD/zx_tape_player, but spec expects it inside the -build subdir.
-              # Rewrite the cp command to look in the parent directory (../zx_tape_player/*).
-              sed -i 's#cp -r zx_tape_player/\*#cp -r ../zx_tape_player/*#g' "$SPEC_FILE"
-            fi
-            exec /usr/bin/rpmbuild.orig "$@" --nodeps --dbpath /tmp/rpmdb
+          mkdir -p "$RUNNER_TEMP/rpmdb" "$RUNNER_TEMP/rpmbuild-bin"
+          rpm --initdb --dbpath "$RUNNER_TEMP/rpmdb"
+          cat << 'EOF' > "$RUNNER_TEMP/rpmbuild-bin/rpmbuild"
+          #!/bin/bash
+          set -euo pipefail
+          exec /usr/bin/rpmbuild "$@" --nodeps --dbpath "$RUNNER_TEMP/rpmdb"
           EOF
-          sudo chmod +x /usr/bin/rpmbuild
+          chmod +x "$RUNNER_TEMP/rpmbuild-bin/rpmbuild"
+          echo "$RUNNER_TEMP/rpmbuild-bin" >> "$GITHUB_PATH"
 
       - name: Generate AppImage make_config
         if: matrix.target == 'linux'
@@ -97,7 +81,7 @@ jobs:
 
       - run: flutter pub get
 
-      - run: dart pub global activate fastforge
+      - run: dart pub global activate fastforge 0.6.12
 
       - name: Ensure pub global bin on PATH (Unix)
         if: matrix.target != 'windows'
@@ -110,7 +94,7 @@ jobs:
 
       - run: fastforge release --name stable --jobs ${{ matrix.jobs }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.target }}
           path: dist/
@@ -123,11 +107,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/**/*.deb

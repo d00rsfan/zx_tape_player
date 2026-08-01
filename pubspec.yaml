@@ -14,13 +14,15 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
   flutter_typeahead: ^6.0.0
-  # win32 cluster hold: file_picker (latest stable 11.0.2) pins win32 ^5.9,
-  # while package_info_plus 10.x, share_plus 13.x and wakelock_plus 1.6.x all
-  # need win32 ^6. Bump all four together once file_picker 12 ships stable.
-  package_info_plus: ^9.0.0
+  package_info_plus: ^10.2.1
   http: ^1.6.0
   easy_localization: ^3.0.8
-  file_picker: ^11.0.2
+  # Upstream's BitmapFactory downsampling fix is not published yet. Pin the
+  # exact 12.0.0-beta.8 commit until it is available as a hosted release.
+  file_picker:
+    git:
+      url: https://github.com/miguelpruivo/flutter_file_picker.git
+      ref: 34c682373ba7410c148f3aa019aa9551a245b5a8
   cached_network_image: ^3.4.1
   pull_to_refresh_flutter3: ^2.0.2
   carousel_slider: ^5.0.0
@@ -38,9 +40,9 @@ dependencies:
   sound_mode_advanced: ^4.0.0
   shared_preferences: ^2.5.5
   internet_connection_checker: ^3.0.1
-  wakelock_plus: ^1.5.2 # win32 cluster hold, see package_info_plus
+  wakelock_plus: ^1.7.0
   volume_controller: ^3.4.4
-  share_plus: ^12.0.2 # win32 cluster hold, see package_info_plus
+  share_plus: ^13.3.0
   in_app_review: ^2.0.11
   # Android-only: save downloaded tapes into the public Downloads/ZX Tape Player
   # folder via MediaStore. Self-disables on iOS/desktop.

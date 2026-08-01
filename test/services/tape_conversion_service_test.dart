@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' hide BytesBuilder;
 import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
@@ -110,6 +111,27 @@ void main() {
     }
   });
 
+  test('remote-style generalized TZX archive converts end to end', () async {
+    final tzxBytes = _buildGeneralizedTzx();
+    final archive = Archive()
+      ..addFile(ArchiveFile('Trader(Trimp).tzx', tzxBytes.length, tzxBytes));
+    final zipBytes = Uint8List.fromList(ZipEncoder().encode(archive));
+
+    expect(
+      await isTapeImageSupported(zipBytes, 'Trader(Trimp).tzx.zip'),
+      isTrue,
+    );
+    final (response, wav) = await _convert(zipBytes, 'Trader(Trimp).tzx.zip');
+
+    expect(response.blocks.first.typeName, 'Data');
+    expect(response.blocks.first.dataLength, 8);
+    expect(response.blocks.first.timeOffset, Duration.zero);
+    expect(response.blocks.first.sampleOffset, 0);
+    expect(response.warnings, isEmpty);
+    expect(wav.sublist(0, 4), orderedEquals('RIFF'.codeUnits));
+    expect(wav[44], greaterThanOrEqualTo(128));
+  });
+
   test('truncated ZX80 memory images are rejected', () async {
     final bytes = _buildOFile(80);
     bytes[10] = 0xff;
@@ -151,6 +173,58 @@ Uint8List _buildTap() {
   // Two valid two-byte TAP blocks. Each block is prefixed by its little-endian
   // length and ends in the XOR checksum of its preceding byte.
   return Uint8List.fromList([2, 0, 0x00, 0x00, 2, 0, 0xff, 0xff]);
+}
+
+Uint8List _buildGeneralizedTzx() {
+  const maximumPulsesPerSymbol = 19;
+  final block = BytesBuilder();
+  _addUint16(block, 100); // Pause after the generalized data block, in ms.
+  _addUint32(block, 0); // No pilot/sync symbols.
+  block.addByte(0); // Maximum pulses per pilot symbol (unused).
+  block.addByte(0); // Pilot alphabet size (unused).
+  _addUint32(block, 8); // Eight data symbols, or one byte.
+  block.addByte(maximumPulsesPerSymbol);
+  block.addByte(2); // Binary data-symbol alphabet.
+
+  final zeroPulses = <int>[530, 520, 530, 520, 530, 520, 530, 520, 4689];
+  final onePulses = <int>[
+    for (var i = 0; i < 9; i++) ...<int>[530, 520],
+    4689,
+  ];
+  _addGeneralizedSymbol(block, zeroPulses, maximumPulsesPerSymbol);
+  _addGeneralizedSymbol(block, onePulses, maximumPulsesPerSymbol);
+  block.addByte(0x41); // Eight symbol indexes: 0,1,0,0,0,0,0,1.
+
+  final blockBytes = block.toBytes();
+  final tzx = BytesBuilder()
+    ..add('ZXTape!'.codeUnits)
+    ..addByte(0x1a)
+    ..add(<int>[1, 20])
+    ..addByte(0x19);
+  _addUint32(tzx, blockBytes.length);
+  tzx.add(blockBytes);
+  return tzx.toBytes();
+}
+
+void _addGeneralizedSymbol(
+  BytesBuilder block,
+  List<int> pulses,
+  int maximumPulses,
+) {
+  block.addByte(0); // Toggle the signal level for the first pulse.
+  for (var index = 0; index < maximumPulses; index++) {
+    _addUint16(block, index < pulses.length ? pulses[index] : 0);
+  }
+}
+
+void _addUint16(BytesBuilder target, int value) {
+  final data = ByteData(2)..setUint16(0, value, Endian.little);
+  target.add(data.buffer.asUint8List());
+}
+
+void _addUint32(BytesBuilder target, int value) {
+  final data = ByteData(4)..setUint32(0, value, Endian.little);
+  target.add(data.buffer.asUint8List());
 }
 
 Uint8List _buildPFile(int length) {

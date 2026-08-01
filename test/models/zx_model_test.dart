@@ -7,13 +7,18 @@ void main() {
     expect(ZxModel.zxSpectrum.remoteTapeExtensions, <String>['tap', 'tzx']);
   });
 
-  test('ZX81 uses the ZX81 P-file API filter', () {
+  test('ZX81 uses P-file and TZX API filters', () {
     expect(ZxModel.zx81.apiMachineType, 'ZX81');
-    expect(ZxModel.zx81.remoteTapeExtensions, <String>['p', '81', 'p81']);
+    expect(ZxModel.zx81.remoteTapeExtensions, <String>[
+      'p',
+      '81',
+      'p81',
+      'tzx',
+    ]);
   });
 
-  test('ZX80 uses the ZX80 O-file API filter', () {
+  test('ZX80 uses O-file and TZX API filters', () {
     expect(ZxModel.zx80.apiMachineType, 'ZX80');
-    expect(ZxModel.zx80.remoteTapeExtensions, <String>['o', '80']);
+    expect(ZxModel.zx80.remoteTapeExtensions, <String>['o', '80', 'tzx']);
   });
 }

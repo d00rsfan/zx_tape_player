@@ -7,8 +7,8 @@ ZX Tape Player turns your device into a virtual cassette player for the Sinclair
 | Model | Tape image formats |
 | --- | --- |
 | ZX Spectrum | `.tap`, `.tzx` |
-| ZX81 | `.p`, `.81`, `.p81` |
-| ZX80 | `.o`, `.80` |
+| ZX81 | `.p`, `.81`, `.p81`, `.tzx` |
+| ZX80 | `.o`, `.80`, `.tzx` |
 
 Files can be selected directly or from a `.zip` archive. The app tries to identify local tapes and show metadata such as publisher and screenshots from the open [ZXInfo](https://zxinfo.dk) catalogue. You can also search that catalogue and download compatible tapes; choose the target model in Settings on the home screen. ZX Spectrum is selected by default.
 

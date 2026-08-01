@@ -58,7 +58,7 @@ void main() {
     );
   });
 
-  test('uses ZX81 machine and P-file filters when selected', () async {
+  test('uses ZX81 machine, P-file, and TZX filters when selected', () async {
     settings.zxModel = ZxModel.zx81;
 
     await service.fetchHitsList('3d', 30);
@@ -67,11 +67,11 @@ void main() {
       helper.urls.single,
       '/search/titles/3d?mode=tiny&sort=rel_desc&contenttype=SOFTWARE'
       '&machinetype=ZX81&size=30&offset=0&tosectype=p&tosectype=81'
-      '&tosectype=p81',
+      '&tosectype=p81&tosectype=tzx',
     );
   });
 
-  test('uses ZX80 machine and O-file filters when selected', () async {
+  test('uses ZX80 machine, O-file, and TZX filters when selected', () async {
     settings.zxModel = ZxModel.zx80;
 
     await service.fetchHitsList('chess', 30);
@@ -79,7 +79,8 @@ void main() {
     expect(
       helper.urls.single,
       '/search/titles/chess?mode=tiny&sort=rel_desc&contenttype=SOFTWARE'
-      '&machinetype=ZX80&size=30&offset=0&tosectype=o&tosectype=80',
+      '&machinetype=ZX80&size=30&offset=0&tosectype=o&tosectype=80'
+      '&tosectype=tzx',
     );
   });
 
@@ -94,10 +95,10 @@ void main() {
       expect(helper.urls, <String>[
         '/entries/bypublisher/Greye?mode=tiny&sort=title_asc'
             '&contenttype=SOFTWARE&machinetype=ZX81&size=30&offset=0'
-            '&tosectype=p&tosectype=81&tosectype=p81',
+            '&tosectype=p&tosectype=81&tosectype=p81&tosectype=tzx',
         '/entries/byletter/A?mode=tiny&contenttype=SOFTWARE'
             '&machinetype=ZX81&size=30&offset=0&tosectype=p&tosectype=81'
-            '&tosectype=p81',
+            '&tosectype=p81&tosectype=tzx',
       ]);
     },
   );
@@ -228,6 +229,29 @@ void main() {
       'ComplexMathsAddition(1K).o.zip',
     );
     expect(requests.last.url.host, 'zxinfo.dk');
+  });
+
+  test('accepts explicit TZX releases for ZX81 and ZX80', () async {
+    const path =
+        '/zxdb/sinclair/entries/0031849/Trader(Trimp).tzx.zip';
+    const expectedUrl =
+        'https://zxinfo.dk/media/zxdb/sinclair/entries/0031849/'
+        'Trader(Trimp).tzx.zip';
+
+    for (final model in <ZxModel>[ZxModel.zx81, ZxModel.zx80]) {
+      settings.zxModel = model;
+      final client = MockClient(
+        (_) async => http.Response(
+          _softwareResponse(id: '0031849', title: 'Trader', path: path),
+          200,
+        ),
+      );
+      final remoteService = ZxApiService(settings, client: client);
+
+      final software = await remoteService.fetchSoftware('0031849');
+
+      expect(software.tapeFiles, <String>[expectedUrl], reason: model.name);
+    }
   });
 
   test('accepts generic ZIP names in ZX81 and ZX80 directories', () async {

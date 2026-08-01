@@ -1,6 +1,6 @@
 # ZX Tape Player
 
-Virtual cassette player that converts `.tap`/`.tzx` (ZX Spectrum), `.p`/`.81`/`.p81` (ZX81), and `.o`/`.80` (ZX80) tape images to audio for loading software onto real Sinclair computers. Local files and `.zip` archives are supported. ZXInfo API v5 provides tape identification, metadata, model-specific catalogue search, and remote downloads. ZX Spectrum is the default model.
+Virtual cassette player that converts `.tap`/`.tzx` (ZX Spectrum), `.p`/`.81`/`.p81`/`.tzx` (ZX81), and `.o`/`.80`/`.tzx` (ZX80) tape images to audio for loading software onto real Sinclair computers. Local files and `.zip` archives are supported. ZXInfo API v5 provides tape identification, metadata, model-specific catalogue search, and remote downloads. ZX Spectrum is the default model.
 
 ## Build & Run
 
@@ -69,7 +69,7 @@ lib/
 - **Archive.org**: Spectrum TOSEC and legacy mirror downloads
 - User-Agent: `ZX Tape Player/1.0`
 
-Catalogue requests use the selected model's ZXInfo `machinetype` and `tosectype` filters: `ZXSPECTRUM` + `tap`/`tzx`, `ZX81` + `p`/`81`/`p81`, or `ZX80` + `o`/`80`. Changing the model returns to a fresh search screen and clears the old query.
+Catalogue requests use the selected model's ZXInfo `machinetype` and `tosectype` filters: `ZXSPECTRUM` + `tap`/`tzx`, `ZX81` + `p`/`81`/`p81`/`tzx`, or `ZX80` + `o`/`80`/`tzx`. Changing the model returns to a fresh search screen and clears the old query.
 
 ## Signing
 

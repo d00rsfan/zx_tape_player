@@ -5,9 +5,12 @@ enum ZxModel {
   ),
   zx81(
     apiMachineType: 'ZX81',
-    remoteTapeExtensions: <String>['p', '81', 'p81'],
+    remoteTapeExtensions: <String>['p', '81', 'p81', 'tzx'],
   ),
-  zx80(apiMachineType: 'ZX80', remoteTapeExtensions: <String>['o', '80']);
+  zx80(
+    apiMachineType: 'ZX80',
+    remoteTapeExtensions: <String>['o', '80', 'tzx'],
+  );
 
   const ZxModel({
     required this.apiMachineType,

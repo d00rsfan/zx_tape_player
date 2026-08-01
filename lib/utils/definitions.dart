@@ -7,9 +7,9 @@ class Definitions {
   // A query starting with a space searches by publisher instead of title.
   static const publisherQueryPrefix = ' ';
   static const pageSize = 30;
-  // Formats the app can play: ZX Spectrum TAP/TZX, ZX81 P/81/P81, and ZX80
-  // O/80. The extensions requested from ZXInfo are model-specific; see
-  // ZxModel.remoteTapeExtensions.
+  // Formats the app can play: TZX recordings for every supported model,
+  // ZX Spectrum TAP, ZX81 P/81/P81, and ZX80 O/80. The extensions requested
+  // from ZXInfo are model-specific; see ZxModel.remoteTapeExtensions.
   static const supportedTapeExtensions = <String>[
     'tap',
     'tzx',

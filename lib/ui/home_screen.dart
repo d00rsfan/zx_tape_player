@@ -47,8 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: [SystemUiOverlay.bottom, SystemUiOverlay.top]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.initState();
   }
 
@@ -150,11 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     onPressed: () async {
                       FilePicker.clearTemporaryFiles();
-                      final result = await FilePicker.pickFiles(
-                          type: FileType.any,
-                          allowMultiple: false);
-                      if (result != null) {
-                        PlatformFile selection = result.files.first;
+                      final selection =
+                          await FilePicker.pickFile(type: FileType.any);
+                      if (selection != null) {
                         var filePath = selection.path!;
                         var file = File(filePath);
                         var bytes = await file.readAsBytes();

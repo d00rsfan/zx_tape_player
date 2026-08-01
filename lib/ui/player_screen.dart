@@ -195,20 +195,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _exportFile(String sourcePath) async {
     final fileName = basename(sourcePath);
-    if (Platform.isAndroid) {
+    if (Platform.isAndroid ||
+        Platform.isLinux ||
+        Platform.isWindows) {
       await FilePicker.saveFile(
         dialogTitle: tr('export_title'),
         fileName: fileName,
         bytes: await File(sourcePath).readAsBytes(),
       );
-    } else if (Platform.isLinux || Platform.isWindows) {
-      final savedPath = await FilePicker.saveFile(
-        dialogTitle: tr('export_title'),
-        fileName: fileName,
-      );
-      if (savedPath != null) {
-        await File(sourcePath).copy(savedPath);
-      }
     } else {
       await SharePlus.instance
           .share(ShareParams(files: [XFile(sourcePath)]));

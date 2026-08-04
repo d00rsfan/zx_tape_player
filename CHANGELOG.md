@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## v1.5.1 - I Can't See Your Face in My Mind
+
+### Bug Fixes
+- Android edge-to-edge mode is now enabled during application startup instead of waiting for the Home screen, so every Flutter-rendered screen uses it from the first frame.
+- The Tape Block Browser now keeps its content above the bottom navigation or gesture inset while its background continues to extend edge-to-edge.
+
 ## v1.5.0 - My Eyes Have Seen You
 
 ### New Features

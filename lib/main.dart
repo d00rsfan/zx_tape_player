@@ -31,6 +31,7 @@ final GetIt getIt = GetIt.instance;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   if (!kIsWeb && (Platform.isLinux || Platform.isWindows)) {
     JustAudioMediaKit.ensureInitialized(

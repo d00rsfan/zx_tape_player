@@ -23,41 +23,44 @@ class BlockBrowser extends StatelessWidget {
         color: HexColor('#3B4E63'),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16.0)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8.0),
-          Container(
-            width: 40.0,
-            height: 4.0,
-            decoration: BoxDecoration(
-              color: HexColor('#546B7F'),
-              borderRadius: BorderRadius.circular(2.0),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8.0),
+            Container(
+              width: 40.0,
+              height: 4.0,
+              decoration: BoxDecoration(
+                color: HexColor('#546B7F'),
+                borderRadius: BorderRadius.circular(2.0),
+              ),
             ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: Text(
-              tr('block_browser'),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.w600),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Text(
+                tr('block_browser'),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600),
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: blocks.length,
-              padding: const EdgeInsets.only(bottom: 16.0),
-              itemBuilder: (context, index) {
-                final block = blocks[index];
-                final isCurrent = _isCurrentBlock(block);
-                return _buildBlockRow(block, isCurrent);
-              },
+            Expanded(
+              child: ListView.builder(
+                itemCount: blocks.length,
+                padding: const EdgeInsets.only(bottom: 16.0),
+                itemBuilder: (context, index) {
+                  final block = blocks[index];
+                  final isCurrent = _isCurrentBlock(block);
+                  return _buildBlockRow(block, isCurrent);
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

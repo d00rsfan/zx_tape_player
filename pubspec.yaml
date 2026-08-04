@@ -3,7 +3,7 @@ description: ZX Tape Player sends Spectrum TAP/TZX, ZX81 P/81/P81, and ZX80 O/80
 
 publish_to: 'none'
 
-version: 1.5.0+10
+version: 1.5.1+11
 
 environment:
   sdk: ">=3.11.0 <4.0.0"

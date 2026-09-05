@@ -69,32 +69,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<ApiResponse<SoftwareModel>>(
-        stream: _bloc!.softwareStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            switch (snapshot.data!.status) {
-              case Status.LOADING:
-                return Scaffold(
-                    body: LoadingProgress(
-                  loadingText: tr("loading"),
-                ));
-              case Status.COMPLETED:
-                return _buildScreen(context, snapshot.data!);
-              case Status.ERROR:
-                return Scaffold(
-                    body: AppError(
+      stream: _bloc!.softwareStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          switch (snapshot.data!.status) {
+            case Status.loading:
+              return Scaffold(
+                body: LoadingProgress(loadingText: tr("loading")),
+              );
+            case Status.completed:
+              return _buildScreen(context, snapshot.data!);
+            case Status.error:
+              return Scaffold(
+                body: AppError(
                   text: tr('data_retrieving_error'),
                   buttonText: tr('retry'),
                   action: () => _bloc!.refresh(),
-                ));
-            }
+                ),
+              );
           }
-          return const SizedBox.shrink();
-        });
+        }
+        return const SizedBox.shrink();
+      },
+    );
   }
 
   Widget _buildScreen(
-      BuildContext context, ApiResponse<SoftwareModel> response) {
+    BuildContext context,
+    ApiResponse<SoftwareModel> response,
+  ) {
     var model = response.data!;
 
     List<Choice> choices = <Choice>[
@@ -105,7 +108,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
       if (model.tapeFiles.isNotEmpty)
         Choice(title: tr('export_menu_item'), icon: Icons.save_alt_rounded),
       Choice(title: tr('settings_menu_item'), icon: Icons.settings_rounded),
-      Choice(title: tr('tips_menu_item'), icon: Icons.lightbulb_outline_rounded),
+      Choice(
+        title: tr('tips_menu_item'),
+        icon: Icons.lightbulb_outline_rounded,
+      ),
     ];
 
     return Scaffold(
@@ -118,8 +124,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actionsIconTheme:
-            const IconThemeData(size: 30.0, color: Colors.white, opacity: 10.0),
+        actionsIconTheme: const IconThemeData(
+          size: 30.0,
+          color: Colors.white,
+          opacity: 10.0,
+        ),
         actions: [
           PopupMenuButton<Choice>(
             color: HexColor('#3B4E63'),
@@ -142,15 +151,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   value: choice,
                   child: Row(
                     children: <Widget>[
-                      Icon(
-                        choice.icon,
-                        size: 16.0,
-                        color: Colors.white,
-                      ),
+                      Icon(choice.icon, size: 16.0, color: Colors.white),
                       const SizedBox(width: 16.0),
-                      Text(choice.title,
-                          style: const TextStyle(
-                              letterSpacing: -0.5, color: Colors.white)),
+                      Text(
+                        choice.title,
+                        style: const TextStyle(
+                          letterSpacing: -0.5,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -159,9 +168,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
         ],
         title: Marquee(
-          child: Text(model.title,
-              style:
-                  const TextStyle(color: Colors.white, letterSpacing: 0.1)),
+          child: Text(
+            model.title,
+            style: const TextStyle(color: Colors.white, letterSpacing: 0.1),
+          ),
         ),
         titleSpacing: 0.0,
         toolbarHeight: 60.0,
@@ -173,9 +183,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           children: <Widget>[
             _buildInfoWidget(context, response),
             model.tapeFiles.isNotEmpty
-                ? TapePlayer(
-                    software: model,
-                    controller: _tapePlayerController)
+                ? TapePlayer(software: model, controller: _tapePlayerController)
                 : Container(
                     color: HexColor('#3B4E63'),
                     height: 50.0,
@@ -183,11 +191,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       child: Text(
                         tr('no_tapes'),
                         style: TextStyle(
-                            fontSize: 14,
-                            color: HexColor('#AFB6BB'),
-                            letterSpacing: -0.5),
+                          fontSize: 14,
+                          color: HexColor('#AFB6BB'),
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ))
+                    ),
+                  ),
           ],
         ),
       ),
@@ -196,18 +206,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _exportFile(String sourcePath) async {
     final fileName = basename(sourcePath);
-    if (Platform.isAndroid ||
-        Platform.isLinux ||
-        Platform.isWindows) {
+    if (Platform.isAndroid || Platform.isLinux || Platform.isWindows) {
       await FilePicker.saveFile(
         dialogTitle: tr('export_title'),
         fileName: filePickerCompatibleTapeName(
-            fileName, android: Platform.isAndroid),
+          fileName,
+          android: Platform.isAndroid,
+        ),
         bytes: await File(sourcePath).readAsBytes(),
       );
     } else {
-      await SharePlus.instance
-          .share(ShareParams(files: [XFile(sourcePath)]));
+      await SharePlus.instance.share(ShareParams(files: [XFile(sourcePath)]));
     }
   }
 
@@ -220,8 +229,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       builder: (sheetContext) => Container(
         decoration: BoxDecoration(
           color: HexColor('#3B4E63'),
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(16.0)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16.0)),
         ),
         child: SafeArea(
           top: false,
@@ -239,44 +247,62 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 12.0),
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
                 child: Text(
                   tr('export_title'),
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w600),
+                    color: Colors.white,
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.description_rounded,
-                    color: Colors.white, size: 20.0),
-                title: Text(tr('export_tape_image'),
-                    style: const TextStyle(
-                        color: Colors.white, letterSpacing: -0.5)),
+                leading: const Icon(
+                  Icons.description_rounded,
+                  color: Colors.white,
+                  size: 20.0,
+                ),
+                title: Text(
+                  tr('export_tape_image'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 onTap: () async {
                   Navigator.pop(sheetContext);
                   try {
-                    final path =
-                        await _tapePlayerController.prepareTapeImageExport();
+                    final path = await _tapePlayerController
+                        .prepareTapeImageExport();
                     await _exportFile(path);
                   } catch (_) {
-                    if (mounted) {
+                    if (parentContext.mounted) {
                       BarHelper.showSnackBar(
-                          message: tr('export_error'),
-                          barType: SnackBarType.error,
-                          context: parentContext);
+                        message: tr('export_error'),
+                        barType: SnackBarType.error,
+                        context: parentContext,
+                      );
                     }
                   }
                 },
               ),
               if (isZip)
                 ListTile(
-                  leading: const Icon(Icons.archive_rounded,
-                      color: Colors.white, size: 20.0),
-                  title: Text(tr('export_original_archive'),
-                      style: const TextStyle(
-                          color: Colors.white, letterSpacing: -0.5)),
+                  leading: const Icon(
+                    Icons.archive_rounded,
+                    color: Colors.white,
+                    size: 20.0,
+                  ),
+                  title: Text(
+                    tr('export_original_archive'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
                     try {
@@ -284,40 +310,46 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           .prepareOriginalArchiveExport();
                       await _exportFile(path);
                     } catch (_) {
-                      if (mounted) {
+                      if (parentContext.mounted) {
                         BarHelper.showSnackBar(
-                            message: tr('export_error'),
-                            barType: SnackBarType.error,
-                            context: parentContext);
+                          message: tr('export_error'),
+                          barType: SnackBarType.error,
+                          context: parentContext,
+                        );
                       }
                     }
                   },
                 ),
               ListTile(
-                leading: Icon(Icons.audiotrack_rounded,
+                leading: Icon(
+                  Icons.audiotrack_rounded,
+                  color: wavReady ? Colors.white : HexColor('#546B7F'),
+                  size: 20.0,
+                ),
+                title: Text(
+                  tr('export_wav_audio'),
+                  style: TextStyle(
                     color: wavReady ? Colors.white : HexColor('#546B7F'),
-                    size: 20.0),
-                title: Text(tr('export_wav_audio'),
-                    style: TextStyle(
-                        color:
-                            wavReady ? Colors.white : HexColor('#546B7F'),
-                        letterSpacing: -0.5)),
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 enabled: wavReady,
                 onTap: wavReady
                     ? () async {
                         Navigator.pop(sheetContext);
                         try {
-                          final path =
-                              await _tapePlayerController.prepareWavExport();
+                          final path = await _tapePlayerController
+                              .prepareWavExport();
                           if (path != null) {
                             await _exportFile(path);
                           }
                         } catch (_) {
-                          if (mounted) {
+                          if (parentContext.mounted) {
                             BarHelper.showSnackBar(
-                                message: tr('export_error'),
-                                barType: SnackBarType.error,
-                                context: parentContext);
+                              message: tr('export_error'),
+                              barType: SnackBarType.error,
+                              context: parentContext,
+                            );
                           }
                         }
                       }
@@ -333,154 +365,172 @@ class _PlayerScreenState extends State<PlayerScreen> {
 }
 
 Widget _buildInfoWidget(
-    BuildContext context, ApiResponse<SoftwareModel> response) {
+  BuildContext context,
+  ApiResponse<SoftwareModel> response,
+) {
   var model = response.data!;
   return Expanded(
-      child: Container(
-          color: HexColor('#172434'),
-          child: model.id == null
-              ? const Center(
-                  child: Cassette(animated: false),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Builder(builder: (context) {
-                          var result = model.year ?? '';
-                          if (model.genre != null) {
-                            if (result.isNotEmpty) result += ' \u2022 ';
-                            result += model.genre!;
-                          }
-                          return Text(
-                            result,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: HexColor('#B1B8C1'),
-                                letterSpacing: 0.3,
-                                fontSize: 12.0),
-                          );
-                        }),
-                        const SizedBox(height: 14.0),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+    child: Container(
+      color: HexColor('#172434'),
+      child: model.id == null
+          ? const Center(child: Cassette(animated: false))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Builder(
+                    builder: (context) {
+                      var result = model.year ?? '';
+                      if (model.genre != null) {
+                        if (result.isNotEmpty) result += ' \u2022 ';
+                        result += model.genre!;
+                      }
+                      return Text(
+                        result,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: HexColor('#B1B8C1'),
+                          letterSpacing: 0.3,
+                          fontSize: 12.0,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 14.0),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.thumb_up_rounded,
+                        color: HexColor('#B1B8C1'),
+                        size: 12.0,
+                      ),
+                      const SizedBox(width: 5.0),
+                      Text(
+                        model.votes?.toString() ?? tr('na'),
+                        style: TextStyle(
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                          fontSize: 12.0,
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Icon(
+                        Icons.star_rounded,
+                        color: HexColor('#B1B8C1'),
+                        size: 14.0,
+                      ),
+                      const SizedBox(width: 5.0),
+                      Text(
+                        model.score != null && model.score! > 0
+                            ? model.score.toString()
+                            : tr('na'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                          fontSize: 12.0,
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: HexColor('#B1B8C1'),
+                        size: 12.0,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        model.price.isNullOrEmpty() ? tr('na') : model.price!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                          fontSize: 12.0,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                  model.remarks.isNullOrEmpty()
+                      ? const SizedBox.shrink()
+                      : const SizedBox(height: 24.0),
+                  model.remarks.isNullOrEmpty()
+                      ? const SizedBox.shrink()
+                      : Row(
                           children: [
-                            Icon(
-                              Icons.thumb_up_rounded,
-                              color: HexColor('#B1B8C1'),
-                              size: 12.0,
-                            ),
-                            const SizedBox(width: 5.0),
-                            Text(
-                              model.votes?.toString() ?? tr('na'),
-                              style: TextStyle(
+                            Expanded(
+                              child: Text(
+                                model.remarks!.removeAllHtmlTags(),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   letterSpacing: 0.3,
-                                  fontSize: 12.0),
-                            ),
-                            const SizedBox(width: 20),
-                            Icon(
-                              Icons.star_rounded,
-                              color: HexColor('#B1B8C1'),
-                              size: 14.0,
-                            ),
-                            const SizedBox(width: 5.0),
-                            Text(
-                              model.score != null && model.score! > 0
-                                  ? model.score.toString()
-                                  : tr('na'),
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  letterSpacing: 0.3,
-                                  fontSize: 12.0),
-                            ),
-                            const SizedBox(width: 20),
-                            Icon(
-                              Icons.account_balance_wallet_rounded,
-                              color: HexColor('#B1B8C1'),
-                              size: 12.0,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              model.price.isNullOrEmpty()
-                                  ? tr('na')
-                                  : model.price!,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  letterSpacing: 0.3,
-                                  fontSize: 12.0),
-                              overflow: TextOverflow.ellipsis,
+                                  height: 1.4,
+                                  fontSize: 14.0,
+                                ),
+                                maxLines: 256,
+                              ),
                             ),
                           ],
                         ),
-                        model.remarks.isNullOrEmpty()
-                            ? const SizedBox.shrink()
-                            : const SizedBox(height: 24.0),
-                        model.remarks.isNullOrEmpty()
-                            ? const SizedBox.shrink()
-                            : Row(children: [
-                                Expanded(
-                                    child: Text(
-                                  model.remarks!.removeAllHtmlTags(),
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      letterSpacing: 0.3,
-                                      height: 1.4,
-                                      fontSize: 14.0),
-                                  maxLines: 256,
-                                ))
-                              ]),
-                        model.authors.isNotEmpty
-                            ? const SizedBox(height: 24.0)
-                            : const SizedBox.shrink(),
-                        model.authors.isNotEmpty
-                            ? Row(children: [
-                                Expanded(
-                                  child: Text(
-                                    model.authors
-                                        .map((a) =>
-                                            '\u00B7 ${a.name} - ${a.role}')
-                                        .join('\r\n'),
-                                    style: TextStyle(
-                                        color: HexColor('#B1B8C1'),
-                                        letterSpacing: 0.3,
-                                        height: 1.6,
-                                        fontSize: 12.0),
-                                    overflow: TextOverflow.clip,
+                  model.authors.isNotEmpty
+                      ? const SizedBox(height: 24.0)
+                      : const SizedBox.shrink(),
+                  model.authors.isNotEmpty
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                model.authors
+                                    .map((a) => '\u00B7 ${a.name} - ${a.role}')
+                                    .join('\r\n'),
+                                style: TextStyle(
+                                  color: HexColor('#B1B8C1'),
+                                  letterSpacing: 0.3,
+                                  height: 1.6,
+                                  fontSize: 12.0,
+                                ),
+                                overflow: TextOverflow.clip,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+                  const SizedBox(height: 24.0),
+                  Column(
+                    children: model.screenShotUrls
+                        .map(
+                          (e) => Center(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
+                              child: Column(
+                                children: [
+                                  CachedNetworkImage(
+                                    imageUrl: e.url,
+                                    imageBuilder: (context, provider) {
+                                      return Image(image: provider);
+                                    },
                                   ),
-                                )
-                              ])
-                            : const SizedBox.shrink(),
-                        const SizedBox(height: 24.0),
-                        Column(
-                            children: model.screenShotUrls
-                                .map(
-                                  (e) => Center(
-                                      child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                              0, 0, 0, 24),
-                                          child: Column(children: [
-                                            CachedNetworkImage(
-                                              imageUrl: e.url,
-                                              imageBuilder:
-                                                  (context, provider) {
-                                                return Image(image: provider);
-                                              },
-                                            ),
-                                            const SizedBox(height: 8.0),
-                                            Text(
-                                              e.type,
-                                              style: TextStyle(
-                                                  color: HexColor('#B1B8C1'),
-                                                  letterSpacing: 0.3,
-                                                  fontSize: 12.0),
-                                            )
-                                          ]))),
-                                )
-                                .toList())
-                      ]))));
+                                  const SizedBox(height: 8.0),
+                                  Text(
+                                    e.type,
+                                    style: TextStyle(
+                                      color: HexColor('#B1B8C1'),
+                                      letterSpacing: 0.3,
+                                      fontSize: 12.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+    ),
+  );
 }
 
 class _PlayerScreenBloc {
@@ -526,8 +576,10 @@ class _PlayerScreenBloc {
       if (args.isRemote) {
         model = await _backendService.fetchSoftware(args.id);
       } else {
-        model = await _backendService.recognizeTape(args.id,
-            localTitle: tr('local_file'));
+        model = await _backendService.recognizeTape(
+          args.id,
+          localTitle: tr('local_file'),
+        );
       }
       softwareSink.add(ApiResponse.completed(model));
     } catch (e) {
@@ -543,8 +595,9 @@ class _PlayerScreenBloc {
     if (millisecondsSinceEpoch == null) {
       reviewNeeded = true;
     } else {
-      var lastReviewDate =
-          DateTime.fromMillisecondsSinceEpoch(millisecondsSinceEpoch);
+      var lastReviewDate = DateTime.fromMillisecondsSinceEpoch(
+        millisecondsSinceEpoch,
+      );
       if (DateTime.now().difference(lastReviewDate).inDays > 60) {
         reviewNeeded = true;
       }

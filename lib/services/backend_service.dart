@@ -7,8 +7,11 @@ import 'package:zx_tape_player/models/term_model.dart';
 abstract class BackendService {
   Future<List<TermModel>> fetchTermsList(String query);
 
-  Future<List<HitModel>> fetchHitsList(String query, int size,
-      {int offset = 0});
+  Future<List<HitModel>> fetchHitsList(
+    String query,
+    int size, {
+    int offset = 0,
+  });
 
   Future<SoftwareModel> fetchSoftware(String id);
 

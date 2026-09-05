@@ -21,19 +21,28 @@ import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
+import 'package:zx_tape_player/services/snapshot_asset_service.dart';
+import 'package:zx_tape_player/services/snapshot_cache_service.dart';
 import 'package:zx_tape_player/services/tape_conversion_service.dart';
 import 'package:zx_tape_player/services/tape_image_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
 import 'package:zx_tape_player/services/wake_lock_service.dart';
+import 'package:zx_tape_player/snapshots/snapshot_receiver_manifest.dart';
+import 'package:zx_tape_player/snapshots/snapshot_timing.dart';
+import 'package:zx_tape_player/ui/widgets/tape_player/media_selection.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/position_data.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/progress_model.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/models/tape_player_data.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/block_browser.dart';
+import 'package:zx_tape_player/ui/widgets/tape_player/playback_policy.dart';
+import 'package:zx_tape_player/ui/widgets/tape_player/rate_control_sheet.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/seek_bar.dart';
+import 'package:zx_tape_player/ui/widgets/tape_player/snapshot_messages.dart';
+import 'package:zx_tape_player/ui/widgets/tape_player/snapshot_profile_session.dart';
+import 'package:zx_tape_player/ui/widgets/tape_player/transport_controls.dart';
 import 'package:zx_tape_player/utils/bar_helper.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
-import 'package:archive/archive.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 
 class TapePlayerController {
@@ -42,6 +51,7 @@ class TapePlayerController {
   Future<String> Function()? _prepareOriginalArchiveExport;
   bool Function()? _isWavReady;
   bool Function()? _isCurrentFileZip;
+  bool Function()? _isSnapshot;
 
   Future<String> prepareTapeImageExport() => _prepareTapeImageExport!();
   Future<String?> prepareWavExport() => _prepareWavExport!();
@@ -49,6 +59,7 @@ class TapePlayerController {
       _prepareOriginalArchiveExport!();
   bool get isWavReady => _isWavReady?.call() ?? false;
   bool get isCurrentFileZip => _isCurrentFileZip?.call() ?? false;
+  bool get isSnapshot => _isSnapshot?.call() ?? false;
 }
 
 class TapePlayer extends StatefulWidget {
@@ -104,7 +115,7 @@ class _TapePlayerState extends State<TapePlayer> {
     super.dispose();
   }
 
-  _showSliderBottomSheet({
+  void _showSliderBottomSheet({
     required BuildContext context,
     required String title,
     required int divisions,
@@ -119,173 +130,64 @@ class _TapePlayerState extends State<TapePlayer> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: HexColor('#3B4E63'),
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(16.0)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8.0),
-              Container(
-                width: 40.0,
-                height: 4.0,
-                decoration: BoxDecoration(
-                  color: HexColor('#546B7F'),
-                  borderRadius: BorderRadius.circular(2.0),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 12.0),
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
-              StreamBuilder<double>(
-                stream: stream,
-                builder: (context, snapshot) {
-                  final value = snapshot.data ?? 1.0;
-                  // Single step derived from the slider's division count so
-                  // ± nudges exactly match the slider's snap resolution.
-                  final step = (max - min) / divisions;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                            '${value.toStringAsFixed(decimals)}$valueSuffix',
-                            style: const TextStyle(
-                                wordSpacing: 0.5,
-                                fontSize: 24.0,
-                                color: Colors.white)),
-                      ),
-                      const SizedBox(height: 8.0),
-                      // 8px outer padding keeps the ± icons ~12px off the
-                      // physical screen edge (8 outer + 4 inset inside a
-                      // 32x32 button), out of the Android gesture-nav back-
-                      // swipe zone. The button is sized to the icon (24px)
-                      // plus just 4px of inset on each side so it sits as
-                      // close to the slider as the slider's own thumb-radius
-                      // inset allows.
-                      Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: SliderTheme(
-                          data: SliderThemeData(
-                              activeTickMarkColor: Colors.transparent,
-                              // Same colour on both sides of the thumb —
-                              // this isn't a progress/volume bar, so the
-                              // "filled-up-to-here" look is misleading. The
-                              // thumb alone communicates the current value.
-                              activeTrackColor: HexColor('#546B7F'),
-                              inactiveTickMarkColor: Colors.transparent,
-                              inactiveTrackColor: HexColor('#546B7F'),
-                              thumbColor: Colors.white),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                // shrinkWrap removes the built-in 40dp tap-
-                                // target floor (kMinInteractiveDimension 48
-                                // minus VisualDensity.compact's -8), which
-                                // was the reason earlier 32px constraints
-                                // didn't actually shrink the button.
-                                style: IconButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  disabledForegroundColor:
-                                      HexColor('#546B7F'),
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(32, 32),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                icon: const Icon(Icons.remove_rounded),
-                                onPressed: value > min
-                                    ? () => onChanged(
-                                        (value - step).clamp(min, max))
-                                    : null,
-                              ),
-                              Expanded(
-                                child: Slider(
-                                  divisions: divisions,
-                                  min: min,
-                                  max: max,
-                                  value: value.clamp(min, max),
-                                  onChanged: onChanged,
-                                ),
-                              ),
-                              IconButton(
-                                style: IconButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  disabledForegroundColor:
-                                      HexColor('#546B7F'),
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(32, 32),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                icon: const Icon(Icons.add_rounded),
-                                onPressed: value < max
-                                    ? () => onChanged(
-                                        (value + step).clamp(min, max))
-                                    : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (presets != null) ...[
-                        const SizedBox(height: 8.0),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0),
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8.0,
-                            runSpacing: 8.0,
-                            children: presets.map((preset) {
-                              return TextButton(
-                                style: TextButton.styleFrom(
-                                  backgroundColor: HexColor('#546B7F'),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12.0, vertical: 4.0),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(4.0),
-                                  ),
-                                ),
-                                onPressed: () => onChanged(preset),
-                                child: Text(
-                                    preset.toStringAsFixed(decimals)),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16.0),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
+      builder: (context) => PlaybackSpeedSheet(
+        title: title,
+        divisions: divisions,
+        min: min,
+        max: max,
+        valueSuffix: valueSuffix,
+        decimals: decimals,
+        presets: presets,
+        stream: stream,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  void _showSnapshotProfileBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => SnapshotTurboProfileSheet(
+        title: tr('snapshot_turbo_profile_title'),
+        explanation: tr('snapshot_turbo_profile_explanation'),
+        invertPolarityLabel: tr('snapshot_invert_polarity'),
+        activeProfile: _bloc.snapshotTurboProfile,
+        invertPolarity: _bloc.snapshotInvertPolarity,
+        sampleRateLabel: tr('snapshot_sample_rate'),
+        sampleRate: _bloc.snapshotSampleRate,
+        onSelected: (profile) {
+          Navigator.pop(sheetContext);
+          unawaited(
+            _bloc.selectSnapshotSignalSettings(
+              profile: profile,
+              invertPolarity: _bloc.snapshotInvertPolarity,
+              sampleRate: _bloc.snapshotSampleRate,
+            ),
+          );
+        },
+        onPolarityChanged: (invertPolarity) {
+          Navigator.pop(sheetContext);
+          unawaited(
+            _bloc.selectSnapshotSignalSettings(
+              profile: _bloc.snapshotTurboProfile,
+              invertPolarity: invertPolarity,
+              sampleRate: _bloc.snapshotSampleRate,
+            ),
+          );
+        },
+        onSampleRateChanged: (sampleRate) {
+          Navigator.pop(sheetContext);
+          unawaited(
+            _bloc.selectSnapshotSignalSettings(
+              profile: _bloc.snapshotTurboProfile,
+              invertPolarity: _bloc.snapshotInvertPolarity,
+              sampleRate: sampleRate,
+            ),
+          );
+        },
       ),
     );
   }
@@ -339,7 +241,9 @@ class _TapePlayerState extends State<TapePlayer> {
   static String _getFileSource(String filePath) {
     if (filePath.contains('World_of_Spectrum')) return 'archive.org';
     if (filePath.contains('mirror-ftp-nvg')) return 'nvg';
-    if (filePath.contains('spectrumcomputing.co.uk')) return 'spectrumcomputing';
+    if (filePath.contains('spectrumcomputing.co.uk')) {
+      return 'spectrumcomputing';
+    }
     if (filePath.contains('zx_spectrum_tosec')) return 'tosec';
     return '';
   }
@@ -347,219 +251,237 @@ class _TapePlayerState extends State<TapePlayer> {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            width: MediaQuery.of(context).size.width,
-            color: HexColor('#3B4E63'),
-            child: StreamBuilder<PlayerState>(
-                stream: _bloc.player.playerStateStream,
-                builder: (context, snapshot) {
-                  var playerState = snapshot.data;
-                  return StreamBuilder<TapePlayerData>(
-                      stream: _bloc.tapePlayerStream,
-                      builder: (context, snapshot) {
-                        var tapePlayerData = snapshot.data;
-                        final tapeLoading =
-                            tapePlayerData?.state == TapePlayerState.Loading;
-                        final carouselHeight =
-                            _calculateCarouselHeight(context);
-                        return Column(
-                          children: [
-                            Column(children: [
-                              GestureDetector(
-                                onLongPress: () async {
-                                  if (_downloading) return;
-                                  HapticFeedback.vibrate();
-                                  setState(() => _downloading = true);
-                                  final startedAt = DateTime.now();
-                                  bool saved = false;
-                                  Object? error;
-                                  try {
-                                    saved = await _bloc.downloadSelectedTape();
-                                  } catch (e) {
-                                    error = e;
-                                  }
-                                  final elapsed =
-                                      DateTime.now().difference(startedAt);
-                                  if (elapsed < _minDownloadIndicator) {
-                                    await Future.delayed(
-                                        _minDownloadIndicator - elapsed);
-                                  }
-                                  if (!mounted) return;
-                                  setState(() => _downloading = false);
-                                  if (error != null) {
-                                    BarHelper.showSnackBar(
-                                        message: tr('download_tape_error'),
-                                        barType: SnackBarType.error,
-                                        context: context);
-                                  } else if (saved) {
-                                    BarHelper.showSnackBar(
-                                        message: tr('download_tape_success'),
-                                        context: context);
-                                  } else if (widget.software.isRemote) {
-                                    // Remote save attempted but didn't land —
-                                    // e.g. user tapped Deny on the storage
-                                    // permission prompt on API ≤ 29, or
-                                    // MediaStore returned null. Without this
-                                    // branch the long-press would just vibrate
-                                    // into silence on those devices.
-                                    BarHelper.showSnackBar(
-                                        message: tr('download_tape_error'),
-                                        barType: SnackBarType.error,
-                                        context: context);
-                                  }
-                                },
-                                child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0),
-                                    width: double.infinity,
-                                    height: carouselHeight,
-                                    child: Container(
-                                        decoration: BoxDecoration(
-                                          color: HexColor('#172434'),
-                                          borderRadius:
-                                              BorderRadius.circular(3.5),
-                                        ),
-                                        child: Stack(
-                                          children: [
-                                            CarouselSlider(
-                                              items: _bloc.files
-                                                  .map((filePath) {
-                                                    final source = _getFileSource(filePath);
-                                                    return Container(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              12.0),
-                                                      child: Center(
-                                                          child: Column(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Text(
-                                                                basename(filePath),
-                                                                style: _carouselNameStyle,
-                                                                textAlign:
-                                                                    TextAlign.center,
-                                                                overflow:
-                                                                    TextOverflow.ellipsis,
-                                                                maxLines: 3,
-                                                              ),
-                                                              if (source.isNotEmpty)
-                                                                Padding(
-                                                                  padding: const EdgeInsets.only(top: 2.0),
-                                                                  child: Text(
-                                                                    source,
-                                                                    style: _carouselSourceStyle,
-                                                                  ),
-                                                              ),
-                                                            ],
-                                                          )),
-                                                    );
-                                                  })
-                                                  .toList(),
-                                              options: CarouselOptions(
-                                                  scrollPhysics: _bloc.player
-                                                                  .position !=
-                                                              Duration.zero ||
-                                                          _bloc.files.length == 1 ||
-                                                          tapeLoading
-                                                      ? const NeverScrollableScrollPhysics()
-                                                      : const AlwaysScrollableScrollPhysics(),
-                                                  autoPlay: false,
-                                                  enlargeCenterPage: false,
-                                                  height: carouselHeight,
-                                                  viewportFraction: 1.0,
-                                                  initialPage:
-                                                      _bloc.currentFileIndex,
-                                                  onPageChanged:
-                                                      (index, reason) async {
-                                                    _bloc.currentFileIndex = index;
-                                                  }),
-                                            ),
-                                            if (_downloading)
-                                              Positioned(
-                                                top: 6,
-                                                right: 8,
-                                                child: Icon(
-                                                  Icons.download_rounded,
-                                                  size: 16,
-                                                  color: HexColor('#4CAF50'),
-                                                ),
-                                              ),
-                                          ],
-                                        ))),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        width: MediaQuery.of(context).size.width,
+        color: HexColor('#3B4E63'),
+        child: StreamBuilder<PlayerState>(
+          stream: _bloc.player.playerStateStream,
+          builder: (context, snapshot) {
+            var playerState = snapshot.data;
+            return StreamBuilder<TapePlayerData>(
+              stream: _bloc.tapePlayerStream,
+              builder: (context, snapshot) {
+                var tapePlayerData = snapshot.data;
+                final tapeLoading =
+                    tapePlayerData?.state == TapePlayerState.loading;
+                final carouselHeight = _calculateCarouselHeight(context);
+                return Column(
+                  children: [
+                    Column(
+                      children: [
+                        GestureDetector(
+                          onLongPress: () async {
+                            if (_downloading) return;
+                            HapticFeedback.vibrate();
+                            setState(() => _downloading = true);
+                            final startedAt = DateTime.now();
+                            bool saved = false;
+                            Object? error;
+                            try {
+                              saved = await _bloc.downloadSelectedTape();
+                            } catch (e) {
+                              error = e;
+                            }
+                            final elapsed = DateTime.now().difference(
+                              startedAt,
+                            );
+                            if (elapsed < _minDownloadIndicator) {
+                              await Future.delayed(
+                                _minDownloadIndicator - elapsed,
+                              );
+                            }
+                            if (!context.mounted) return;
+                            setState(() => _downloading = false);
+                            if (error != null) {
+                              BarHelper.showSnackBar(
+                                message: tr('download_tape_error'),
+                                barType: SnackBarType.error,
+                                context: context,
+                              );
+                            } else if (saved) {
+                              BarHelper.showSnackBar(
+                                message: tr('download_tape_success'),
+                                context: context,
+                              );
+                            } else if (widget.software.isRemote) {
+                              // Remote save attempted but didn't land —
+                              // e.g. user tapped Deny on the storage
+                              // permission prompt on API ≤ 29, or
+                              // MediaStore returned null. Without this
+                              // branch the long-press would just vibrate
+                              // into silence on those devices.
+                              BarHelper.showSnackBar(
+                                message: tr('download_tape_error'),
+                                barType: SnackBarType.error,
+                                context: context,
+                              );
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                            width: double.infinity,
+                            height: carouselHeight,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: HexColor('#172434'),
+                                borderRadius: BorderRadius.circular(3.5),
                               ),
-                              Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16.0, horizontal: 16.0),
-                                  child: Wrap(
-                                      alignment: WrapAlignment.center,
-                                      spacing: 4.0,
-                                      runSpacing: 4.0,
-                                      children: _bloc.files
-                                          .asMap()
-                                          .entries
-                                          .map((entry) {
-                                        final index = entry.key;
-                                        return Container(
-                                          width: 8.0,
-                                          height: 8.0,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color:
-                                                _bloc.currentFileIndex == index
-                                                    ? HexColor('#D8DCE0')
-                                                    : HexColor('#546B7F'),
+                              child: Stack(
+                                children: [
+                                  CarouselSlider(
+                                    items: _bloc.files.map((filePath) {
+                                      final source = _getFileSource(filePath);
+                                      return Container(
+                                        padding: const EdgeInsets.all(12.0),
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                basename(filePath),
+                                                style: _carouselNameStyle,
+                                                textAlign: TextAlign.center,
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 3,
+                                              ),
+                                              if (source.isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 2.0,
+                                                      ),
+                                                  child: Text(
+                                                    source,
+                                                    style: _carouselSourceStyle,
+                                                  ),
+                                                ),
+                                            ],
                                           ),
-                                        );
-                                      }).toList())),
-                            ]),
-                            Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 24.0),
-                              child: StreamBuilder<Duration?>(
-                                stream: _bloc.player.durationStream,
-                                builder: (context, snapshot) {
-                                  final duration =
-                                      snapshot.data ?? Duration.zero;
-                                  return StreamBuilder<PositionData>(
-                                      stream: Rx.combineLatest2<Duration,
-                                              Duration, PositionData>(
-                                          _bloc.player.positionStream,
-                                          _bloc.player.bufferedPositionStream,
-                                          (position, bufferedPosition) =>
-                                              PositionData(
-                                                  position, bufferedPosition)),
-                                      builder: (context, snapshot) {
-                                        final positionData = snapshot.data ??
-                                            PositionData(
-                                                Duration.zero, Duration.zero);
-                                        var position = positionData.position;
-                                        if (position > duration) {
-                                          position = duration;
-                                        }
-                                        var bufferedPosition =
-                                            positionData.bufferedPosition;
-                                        if (bufferedPosition > duration) {
-                                          bufferedPosition = duration;
-                                        }
-                                        return SeekBar(
-                                            duration: duration,
-                                            position: position,
-                                            bufferedPosition: bufferedPosition,
-                                            onChangeEnd: (newPosition) {
-                                              _bloc.player.seek(newPosition);
-                                            });
-                                      });
-                                },
+                                        ),
+                                      );
+                                    }).toList(),
+                                    options: CarouselOptions(
+                                      scrollPhysics:
+                                          !canScrollMediaCarousel(
+                                            position: _bloc.player.position,
+                                            optionCount: _bloc.files.length,
+                                            loading: tapeLoading,
+                                            playbackCompleted:
+                                                playerState?.processingState ==
+                                                ProcessingState.completed,
+                                          )
+                                          ? const NeverScrollableScrollPhysics()
+                                          : const AlwaysScrollableScrollPhysics(),
+                                      autoPlay: false,
+                                      enlargeCenterPage: false,
+                                      height: carouselHeight,
+                                      viewportFraction: 1.0,
+                                      initialPage: _bloc.currentFileIndex,
+                                      onPageChanged: (index, reason) async {
+                                        _bloc.currentFileIndex = index;
+                                      },
+                                    ),
+                                  ),
+                                  if (_downloading)
+                                    Positioned(
+                                      top: 6,
+                                      right: 8,
+                                      child: Icon(
+                                        Icons.download_rounded,
+                                        size: 16,
+                                        color: HexColor('#4CAF50'),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                            _buildCurrentBlockRow(),
-                            _buildControlButtons(
-                                context, tapePlayerData, playerState),
-                          ],
-                        );
-                      });
-                })));
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16.0,
+                            horizontal: 16.0,
+                          ),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 4.0,
+                            runSpacing: 4.0,
+                            children: _bloc.files.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              return Container(
+                                width: 8.0,
+                                height: 8.0,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _bloc.currentFileIndex == index
+                                      ? HexColor('#D8DCE0')
+                                      : HexColor('#546B7F'),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: StreamBuilder<Duration?>(
+                        stream: _bloc.player.durationStream,
+                        builder: (context, snapshot) {
+                          final duration = snapshot.data ?? Duration.zero;
+                          return StreamBuilder<PositionData>(
+                            stream:
+                                Rx.combineLatest2<
+                                  Duration,
+                                  Duration,
+                                  PositionData
+                                >(
+                                  _bloc.player.positionStream,
+                                  _bloc.player.bufferedPositionStream,
+                                  (position, bufferedPosition) =>
+                                      PositionData(position, bufferedPosition),
+                                ),
+                            builder: (context, snapshot) {
+                              final positionData =
+                                  snapshot.data ??
+                                  PositionData(Duration.zero, Duration.zero);
+                              var position = positionData.position;
+                              if (position > duration) {
+                                position = duration;
+                              }
+                              var bufferedPosition =
+                                  positionData.bufferedPosition;
+                              if (bufferedPosition > duration) {
+                                bufferedPosition = duration;
+                              }
+                              return SeekBar(
+                                duration: duration,
+                                position: position,
+                                bufferedPosition: bufferedPosition,
+                                onChangeEnd: _bloc.policy.canSeekTimeline
+                                    ? (newPosition) {
+                                        _bloc.player.seek(newPosition);
+                                      }
+                                    : null,
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    _buildCurrentBlockRow(),
+                    _buildControlButtons(context, tapePlayerData, playerState),
+                  ],
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
   }
 
   void _showBlockBrowser(BuildContext context) {
@@ -578,10 +500,15 @@ class _TapePlayerState extends State<TapePlayer> {
             return BlockBrowser(
               blocks: _bloc.blockInfos!,
               currentPosition: position,
-              onBlockTap: (index) {
-                Navigator.pop(context);
-                _bloc.seekToBlock(index);
-              },
+              titleKey: _bloc.policy.isSnapshot
+                  ? 'snapshot_block_browser'
+                  : 'block_browser',
+              onBlockTap: _bloc.policy.canNavigateBlocks
+                  ? (index) {
+                      Navigator.pop(context);
+                      _bloc.seekToBlock(index);
+                    }
+                  : null,
             );
           },
         ),
@@ -603,8 +530,7 @@ class _TapePlayerState extends State<TapePlayer> {
         final remaining = block.timeOffset + block.duration - position;
         final clamped = remaining.isNegative ? Duration.zero : remaining;
         return Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 24.0, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
           child: Row(
             children: [
               SizedBox(
@@ -613,8 +539,7 @@ class _TapePlayerState extends State<TapePlayer> {
                   '${block.index + 1}',
                   maxLines: 2,
                   softWrap: true,
-                  style: TextStyle(
-                      color: HexColor('#B1B8C1'), fontSize: 11.0),
+                  style: TextStyle(color: HexColor('#B1B8C1'), fontSize: 11.0),
                 ),
               ),
               Icon(
@@ -627,19 +552,19 @@ class _TapePlayerState extends State<TapePlayer> {
                 child: Text(
                   BlockBrowser.blockLabel(block),
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12.0,
-                      fontWeight: block.isHeader
-                          ? FontWeight.w600
-                          : FontWeight.normal),
+                    color: Colors.white,
+                    fontSize: 12.0,
+                    fontWeight: block.isHeader
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 6.0),
               Text(
                 '-${clamped.toTimeString()}',
-                style: TextStyle(
-                    color: HexColor('#B1B8C1'), fontSize: 11.0),
+                style: TextStyle(color: HexColor('#B1B8C1'), fontSize: 11.0),
               ),
             ],
           ),
@@ -648,171 +573,170 @@ class _TapePlayerState extends State<TapePlayer> {
     );
   }
 
-  Widget _buildControlButtons(BuildContext context,
-      TapePlayerData? tapePlayerData, PlayerState? playerState) {
+  Widget _buildControlButtons(
+    BuildContext context,
+    TapePlayerData? tapePlayerData,
+    PlayerState? playerState,
+  ) {
     if (tapePlayerData != null) {
-      if (tapePlayerData.state == TapePlayerState.Error &&
+      if (tapePlayerData.state == TapePlayerState.error &&
           _bloc.filePath == tapePlayerData.filePath) {
         BarHelper.showSnackBar(
-            message: tr('error_converting_tape_file'),
-            barType: SnackBarType.error,
-            context: context);
+          message:
+              tapePlayerData.mediaKind == TapeMediaKind.snapshot &&
+                  tapePlayerData.error != null
+              ? snapshotErrorText(tapePlayerData.error!, tr)
+              : tapePlayerData.message ?? tr('error_converting_tape_file'),
+          barType: SnackBarType.error,
+          context: context,
+        );
       }
       if (tapePlayerData.warnings.isNotEmpty) {
         BarHelper.showSnackBar(
-            message: tr('tape_corrupted_warning'),
-            barType: SnackBarType.warning,
-            context: context);
+          message: tapePlayerData.mediaKind == TapeMediaKind.snapshot
+              ? tapePlayerData.warnings
+                    .map((warning) => snapshotWarningText(warning, tr))
+                    .join('\n')
+              : tr('tape_corrupted_warning'),
+          barType: SnackBarType.warning,
+          context: context,
+        );
       }
     }
 
     final processingState = playerState?.processingState;
     final playing = playerState?.playing ?? false;
-    final tapeLoading = tapePlayerData?.state == TapePlayerState.Loading;
+    final tapeLoading = tapePlayerData?.state == TapePlayerState.loading;
     final hasBlocks = _bloc.blockInfos != null && _bloc.blockInfos!.isNotEmpty;
 
-    // All transport icons share iconSize 28 so the 3-button clusters on
-    // either side of the play circle carry matching visual weight; the play
-    // button then lands at the natural centre of a plain `Row` — no Expanded
-    // or Align tricks needed. FittedBox(scaleDown) protects narrow screens
-    // from overflow without distorting the layout when it fits.
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            IconButton(
-              color: Colors.white,
-              disabledColor: HexColor('#546B7F'),
-              icon: const Icon(Icons.skip_previous_rounded),
-              iconSize: 28.0,
-              onPressed: hasBlocks ? _bloc.seekToPreviousBlock : null,
-            ),
-            IconButton(
-              color: Colors.white,
-              disabledColor: HexColor('#546B7F'),
-              icon: const Icon(Icons.restart_alt_rounded),
-              iconSize: 28.0,
-              onPressed: hasBlocks ? _bloc.seekToCurrentBlockStart : null,
-            ),
-            IconButton(
-              color: Colors.white,
-              disabledColor: HexColor('#546B7F'),
-              icon: const Icon(Icons.skip_next_rounded),
-              iconSize: 28.0,
-              onPressed: hasBlocks ? _bloc.seekToNextBlock : null,
-            ),
-            const SizedBox(width: 16.0),
-            Container(
-              width: 60.0,
-              height: 60.0,
-              decoration: BoxDecoration(
-                color: HexColor('#28384C'),
-                borderRadius: const BorderRadius.all(Radius.circular(30)),
-              ),
-              child: Builder(builder: (context) {
-                if (tapeLoading) {
-                  return const Center(
-                      child: SizedBox(
-                    height: 40.0,
-                    width: 40.0,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2.0,
-                        backgroundColor: Colors.transparent,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white)),
-                  ));
-                } else if (!playing) {
-                  return IconButton(
-                      color: Colors.white,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      iconSize: 40.0,
-                      onPressed: _bloc.play);
-                } else if (processingState != ProcessingState.completed) {
-                  return IconButton(
-                    color: Colors.white,
-                    icon: const Icon(Icons.pause_rounded),
-                    iconSize: 40.0,
-                    onPressed: _bloc.pause,
-                  );
-                } else {
-                  return IconButton(
-                      color: Colors.white,
-                      icon: const Icon(Icons.replay_rounded),
-                      iconSize: 40.0,
-                      onPressed: _bloc.replay);
-                }
-              }),
-            ),
-            const SizedBox(width: 16.0),
-            IconButton(
-              color: Colors.white,
-              disabledColor: HexColor('#546B7F'),
-              icon: const Icon(Icons.stop_rounded),
-              iconSize: 28.0,
-              onPressed: _bloc.player.position != Duration.zero
-                  ? _bloc.stop
-                  : null,
-            ),
-            IconButton(
-              color: Colors.white,
-              disabledColor: HexColor('#546B7F'),
-              icon: const Icon(Icons.list_rounded),
-              iconSize: 28.0,
-              onPressed: hasBlocks ? () => _showBlockBrowser(context) : null,
-            ),
-            StreamBuilder<double>(
-              stream: _bloc.player.speedStream,
-              builder: (context, snapshot) => IconButton(
-                color: Colors.white,
-                icon: Text("${snapshot.data?.toStringAsFixed(2)}x",
-                    style: const TextStyle(color: Colors.white)),
-                onPressed: () {
-                  _showSliderBottomSheet(
-                    context: context,
-                    title: tr("adjust_speed"),
-                    valueSuffix: "x",
-                    divisions: 375,
-                    min: 0.25,
-                    max: 4.0,
-                    decimals: 2,
-                    presets: const [
-                      0.33,
-                      0.5,
-                      0.9,
-                      1.0,
-                      1.05,
-                      1.1,
-                      1.15,
-                      2.0,
-                      3.0,
-                    ],
-                    stream: _bloc.player.speedStream,
-                    onChanged: _bloc.setSpeed,
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+    return StreamBuilder<double>(
+      stream: _bloc.player.speedStream,
+      builder: (context, speedSnapshot) {
+        final rateControl = _bloc.policy.isSnapshot
+            ? TransportRateControl(
+                label: _bloc.snapshotTurboProfile.label,
+                semanticLabel: tr(
+                  'snapshot_turbo_profile_control',
+                  args: [_bloc.snapshotTurboProfile.label],
+                ),
+                enabled: hasBlocks && !tapeLoading && !_bloc.preparing,
+                onPressed: () => _showSnapshotProfileBottomSheet(context),
+              )
+            : TransportRateControl(
+                label: '${(speedSnapshot.data ?? 1.0).toStringAsFixed(2)}x',
+                semanticLabel: tr(
+                  'playback_speed_control',
+                  args: ['${(speedSnapshot.data ?? 1.0).toStringAsFixed(2)}x'],
+                ),
+                enabled: _bloc.policy.canChangeSpeed,
+                onPressed: () => _showSliderBottomSheet(
+                  context: context,
+                  title: tr('adjust_speed'),
+                  valueSuffix: 'x',
+                  divisions: 375,
+                  min: 0.25,
+                  max: 4.0,
+                  decimals: 2,
+                  presets: const [
+                    0.33,
+                    0.5,
+                    0.9,
+                    1.0,
+                    1.05,
+                    1.1,
+                    1.15,
+                    2.0,
+                    3.0,
+                  ],
+                  stream: _bloc.player.speedStream,
+                  onChanged: _bloc.setSpeed,
+                ),
+              );
+        return TapeTransportControls(
+          policy: _bloc.policy,
+          hasBlocks: hasBlocks,
+          loading: tapeLoading,
+          playing: playing,
+          playbackCompleted: processingState == ProcessingState.completed,
+          canStop: _bloc.player.position != Duration.zero,
+          rateControl: rateControl,
+          onPreviousBlock: _bloc.seekToPreviousBlock,
+          onRestart: _bloc.policy.isSnapshot
+              ? _bloc.restartFromBeginning
+              : _bloc.seekToCurrentBlockStart,
+          onNextBlock: _bloc.seekToNextBlock,
+          onPlay: _bloc.play,
+          onPause: _bloc.pause,
+          onReplay: _bloc.replay,
+          onStop: _bloc.stop,
+          onShowBlocks: () => _showBlockBrowser(context),
+        );
+      },
     );
   }
 }
 
+class _PreparedPlayerAudio {
+  const _PreparedPlayerAudio({
+    required this.image,
+    required this.wavPath,
+    required this.response,
+    this.snapshotProfile,
+    this.snapshotIdentity,
+    this.snapshotInvertPolarity,
+    this.snapshotSampleRate,
+  });
+
+  final ResolvedTapeImage image;
+  final String wavPath;
+  final TapeConversionResponse response;
+  final SnapshotTurboProfile? snapshotProfile;
+  final SnapshotCacheIdentity? snapshotIdentity;
+  final bool? snapshotInvertPolarity;
+  final SnapshotAudioSampleRate? snapshotSampleRate;
+}
+
+class _CommittedSnapshotAudio {
+  const _CommittedSnapshotAudio({
+    required this.image,
+    required this.wavPath,
+    required this.blocks,
+    required this.warnings,
+    required this.profile,
+    required this.identity,
+    required this.invertPolarity,
+    required this.sampleRate,
+  });
+
+  final ResolvedTapeImage image;
+  final String wavPath;
+  final List<TapeBlockInfo> blocks;
+  final List<TapeConversionMessage> warnings;
+  final SnapshotTurboProfile profile;
+  final SnapshotCacheIdentity identity;
+  final bool invertPolarity;
+  final SnapshotAudioSampleRate sampleRate;
+}
+
+class _SnapshotPreparationException implements Exception {
+  const _SnapshotPreparationException(this.message);
+
+  final TapeConversionMessage message;
+}
+
 class _TapePlayerBloc {
   final SoftwareModel software;
+  final TapePlayerMediaSelection _mediaSelection;
 
-  List<String> get files => software.tapeFiles;
-  int _currentFileIndex = 0;
+  List<String> get files => _mediaSelection.files;
   final AudioPlayer _player = AudioPlayer();
   final _backendService = getIt<BackendService>();
   final _wakeUpService = getIt<WakeLockControlService>();
   final _muteControlService = getIt<SilenceControlService>();
   final _volumeControlService = getIt<VolumeControlService>();
   final _settingsService = getIt<SettingsService>();
+  final SnapshotCacheStore _snapshotCache = const SnapshotCacheStore();
+  final SnapshotAssetLoader _snapshotAssetLoader = const SnapshotAssetLoader();
   StreamSubscription<AudioFilterType>? _filterSub;
   bool _pendingFilterRefresh = false;
   // Set when a filter change interrupts ongoing playback so that
@@ -822,16 +746,33 @@ class _TapePlayerBloc {
   bool _pendingAutoResume = false;
 
   List<TapeBlockInfo>? _blockInfos;
+  TapeMediaKind? _mediaKind;
+  ResolvedTapeImage? _resolvedImage;
+  String? _currentWavPath;
+  List<TapeConversionMessage> _currentWarnings = const [];
+  SnapshotCacheIdentity? _currentSnapshotIdentity;
+  late final SnapshotTurboProfileSession _snapshotProfileSession;
+  final TapePlaybackSpeedCoordinator _speedCoordinator =
+      TapePlaybackSpeedCoordinator();
+
+  TapePlaybackPolicy get policy => TapePlaybackPolicy(_mediaKind);
 
   List<TapeBlockInfo>? get blockInfos => _blockInfos;
 
-  int get currentFileIndex => _currentFileIndex;
+  int get currentFileIndex => _mediaSelection.currentIndex;
 
-  String get filePath => files[_currentFileIndex];
+  String get filePath => _mediaSelection.currentFile;
 
   AudioPlayer get player => _player;
 
   bool _preparing = false;
+  bool get preparing => _preparing || _snapshotProfileSession.preparing;
+  SnapshotTurboProfile get snapshotTurboProfile =>
+      _snapshotProfileSession.activeProfile;
+  bool get snapshotInvertPolarity =>
+      _snapshotProfileSession.activeInvertPolarity;
+  SnapshotAudioSampleRate get snapshotSampleRate =>
+      _snapshotProfileSession.activeSampleRate;
 
   final StreamController<TapePlayerData> _tapePlayerController =
       StreamController<TapePlayerData>();
@@ -847,17 +788,34 @@ class _TapePlayerBloc {
 
   Stream<LoadingProgressData> get progressStream => _progressController.stream;
 
-  _TapePlayerBloc(this.software, {TapePlayerController? controller}) {
+  _TapePlayerBloc(this.software, {TapePlayerController? controller})
+    : _mediaSelection = TapePlayerMediaSelection(software) {
+    final snapshotSignalSettings = _settingsService.snapshotSignalSettings;
+    _snapshotProfileSession = SnapshotTurboProfileSession(
+      initialProfile: snapshotSignalSettings.profile,
+      initialInvertPolarity: snapshotSignalSettings.invertPolarity,
+      initialSampleRate: snapshotSignalSettings.sampleRate,
+      persistCommittedSettings: (profile, invertPolarity, sampleRate) =>
+          _settingsService.setSnapshotSignalSettings(
+            SnapshotSignalSettings(
+              profile: profile,
+              invertPolarity: invertPolarity,
+              sampleRate: sampleRate,
+            ),
+          ),
+    );
     controller?._prepareTapeImageExport = _prepareTapeImageExport;
     controller?._prepareWavExport = _prepareWavExport;
     controller?._prepareOriginalArchiveExport = _prepareOriginalArchiveExport;
     controller?._isWavReady = () => _blockInfos != null;
     controller?._isCurrentFileZip = () =>
-        extension(files[_currentFileIndex]).toLowerCase() == '.zip';
+        extension(filePath).toLowerCase() == '.zip';
+    controller?._isSnapshot = () => policy.isSnapshot;
 
     _player.setVolume(1.00);
     currentFileIndex = software.currentFileIndex;
     _filterSub = _settingsService.filterChanges.listen((_) async {
+      if (!policy.refreshOnFilterChange) return;
       // pause() (not stop()) keeps the audio session active and decoders
       // alive. just_audio's stop() calls _setPlatformActive(false), releasing
       // the platform; the next play() then races to re-activate the session
@@ -883,8 +841,18 @@ class _TapePlayerBloc {
     });
   }
 
-  Future<String> _getWavPath(AudioFilterType filter) async {
-    var filePath = files[_currentFileIndex];
+  Future<Directory> _getCacheDirectory({required bool snapshot}) async {
+    final supportPath = (await getApplicationSupportDirectory()).path;
+    final path = (snapshot ? Definitions.snapshotDir : Definitions.tapeDir)
+        .format([supportPath]);
+    return Directory(path).create(recursive: true);
+  }
+
+  Future<String> _getTapeWavPath(
+    AudioFilterType filter, {
+    String? sourcePath,
+  }) async {
+    final selectedFilePath = sourcePath ?? filePath;
     // Use the application support directory rather than the temporary
     // directory: on Android the temp dir is the OS cache directory, which
     // the system can reclaim at any time — even mid-playback for a
@@ -892,126 +860,359 @@ class _TapePlayerBloc {
     // seek lands outside its playback buffer (~50s), so a reclaimed file
     // crashes long backward seeks with ENOENT. The application support
     // directory is internal app storage that the OS does not reclaim.
-    var wavPath = Definitions.tapeDir
-        .format([(await getApplicationSupportDirectory()).path]);
-    var dir = await Directory(wavPath).create(recursive: true);
+    final dir = await _getCacheDirectory(snapshot: false);
     // Hash the source path so the cache filename uses only [0-9a-f]
     // characters and never collides for different tapes. The filter name is
     // appended so switching filters yields distinct cached files instead of
     // replaying stale audio. The filter is passed in (rather than read from
     // the service inside) so a single prepare iteration always uses the same
     // filter for both the cache path and the conversion call.
-    final hash = sha1.convert(utf8.encode(filePath)).toString();
+    final hash = sha1.convert(utf8.encode(selectedFilePath)).toString();
     return Definitions.wafFilePath.format([dir.path, '${hash}_${filter.name}']);
   }
 
   Future<bool> _prepareTapeForPlay({bool force = true}) async {
     if (_preparing) return false;
     _preparing = true;
-    var filePath = files[_currentFileIndex];
+    final selectedFilePath = filePath;
+    TapePlayerData? finalEvent;
+    var success = false;
     try {
-      while (true) {
-        _pendingFilterRefresh = false;
-        final iterationFilter = _settingsService.audioFilter;
-        var wavFileName = await _getWavPath(iterationFilter);
-        var file = File(wavFileName);
-        final wavExists = await file.exists();
-        if (!wavExists && !force) {
-          return false;
-        }
-        List<String> warnings = const [];
-        if (!wavExists || _blockInfos == null) {
-          _tapePlayerController.sink
-              .add(TapePlayerData(TapePlayerState.Loading, filePath));
-          final tapeBytes = software.isRemote
-              ? await _backendService.downloadTape(filePath)
-              : await File(filePath).readAsBytes();
-          final progressPort = ReceivePort();
-          final progressSubscription = progressPort.listen((message) {
-            if (message is int) {
-              _progressController.sink
-                  .add(LoadingProgressData(filePath, message));
-            }
-          });
-          late TapeConversionResponse response;
-          try {
-            response = await compute(
-                convertTapeImage,
-                TapeConversionRequest(
-                    tapeBytes: tapeBytes,
-                    fileName: basename(filePath),
-                    outputPath: file.path,
-                    progressPort: progressPort.sendPort,
-                    audioFilterIndex: iterationFilter.index));
-          } finally {
-            await progressSubscription.cancel();
-            progressPort.close();
+      final sourceBytes = software.isRemote
+          ? await _backendService.downloadTape(selectedFilePath)
+          : await File(selectedFilePath).readAsBytes();
+      final image = resolveTapeImage((
+        sourceBytes,
+        selectedFilePath,
+      ), model: _settingsService.zxModel);
+      if (image.mediaKind == TapeMediaKind.snapshot) {
+        final prepared = await _prepareSnapshotAudio(
+          image: image,
+          filePath: selectedFilePath,
+          profile: _snapshotProfileSession.activeProfile,
+          invertPolarity: _snapshotProfileSession.activeInvertPolarity,
+          sampleRate: _snapshotProfileSession.activeSampleRate,
+          force: force,
+        );
+        if (prepared != null) {
+          final response = prepared.response;
+          if (response.error != null) {
+            finalEvent = TapePlayerData(
+              TapePlayerState.error,
+              selectedFilePath,
+              error: response.error,
+              mediaKind: response.mediaKind,
+            );
+          } else {
+            await _bindPreparedSnapshot(prepared);
+            _commitPreparedSnapshot(prepared);
+            success = true;
+            finalEvent = _idleEvent(prepared);
           }
+        }
+      } else {
+        while (true) {
+          final prepared = await _prepareOrdinaryAudio(
+            image: image,
+            filePath: selectedFilePath,
+            force: force,
+          );
+          if (prepared == null) break;
+          if (prepared.response.error != null) {
+            finalEvent = TapePlayerData(
+              TapePlayerState.error,
+              selectedFilePath,
+              error: prepared.response.error,
+              mediaKind: prepared.response.mediaKind,
+            );
+            break;
+          }
+          final iterationFilter = _settingsService.audioFilter;
+          await _speedCoordinator.applyFor(
+            const TapePlaybackPolicy(TapeMediaKind.tape),
+            _applySpeed,
+          );
+          await _player.setFilePath(prepared.wavPath);
           if (_pendingFilterRefresh &&
               _settingsService.audioFilter != iterationFilter) {
-            // Filter changed during conversion. The WAV we just wrote is for
-            // the previous filter (still cached on disk for later re-use,
-            // since paths are filter-namespaced). Loop to re-prepare for
-            // the new filter before binding the player.
-            _blockInfos = null;
             continue;
           }
-          _blockInfos = response.blocks;
-          warnings = response.warnings;
-        } else if (_pendingFilterRefresh &&
-            _settingsService.audioFilter != iterationFilter) {
-          _blockInfos = null;
-          continue;
+          _resolvedImage = image;
+          _mediaKind = TapeMediaKind.tape;
+          _currentWavPath = prepared.wavPath;
+          _blockInfos = List.unmodifiable(prepared.response.blocks);
+          _currentWarnings = List.unmodifiable(prepared.response.warnings);
+          _currentSnapshotIdentity = null;
+          success = true;
+          finalEvent = _idleEvent(prepared);
+          break;
         }
-        await _player.setFilePath(wavFileName);
-        if (_pendingFilterRefresh &&
-            _settingsService.audioFilter != iterationFilter) {
-          // Last async gap: a filter change arrived while just_audio was
-          // binding the WAV. Discard this binding and re-prepare so we never
-          // emit Idle for the previous filter.
-          _blockInfos = null;
-          continue;
-        }
-        _tapePlayerController.sink.add(TapePlayerData(
-            TapePlayerState.Idle, filePath,
-            blocks: _blockInfos, warnings: warnings));
-        if (_pendingAutoResume) {
-          _pendingAutoResume = false;
-          await _takeControl();
-          await _player.play();
-        }
-        return true;
       }
     } catch (e) {
-      _tapePlayerController.sink.add(TapePlayerData(
-          TapePlayerState.Error, filePath,
-          message: e.toString()));
+      finalEvent = TapePlayerData(
+        TapePlayerState.error,
+        selectedFilePath,
+        message: e.toString(),
+        mediaKind: _mediaKind,
+      );
     } finally {
       _preparing = false;
     }
-    return false;
+    if (finalEvent != null) _tapePlayerController.sink.add(finalEvent);
+    if (success && _pendingAutoResume) {
+      _pendingAutoResume = false;
+      await _takeControl();
+      await _player.play();
+    }
+    return success;
+  }
+
+  Future<_PreparedPlayerAudio?> _prepareSnapshotAudio({
+    required ResolvedTapeImage image,
+    required String filePath,
+    required SnapshotTurboProfile profile,
+    required bool invertPolarity,
+    required SnapshotAudioSampleRate sampleRate,
+    required bool force,
+  }) async {
+    final assets = await _snapshotAssetLoader.load();
+    final identity = SnapshotCacheIdentity.create(
+      image,
+      assets,
+      turboProfile: profile,
+      invertPolarity: invertPolarity,
+      sampleRate: sampleRate,
+    );
+    final paths = _snapshotCache.paths(
+      (await _getCacheDirectory(snapshot: true)).path,
+      identity,
+    );
+    final SnapshotCacheEntry? entry;
+    if (force) {
+      entry = await _snapshotCache.getOrCreate(
+        paths,
+        identity,
+        (outputPath) => _convertResolvedImage(
+          image: image,
+          outputPath: outputPath,
+          filePath: filePath,
+          filter: _settingsService.audioFilter,
+          snapshotAssets: assets,
+          snapshotTurboProfile: profile,
+          snapshotInvertPolarity: invertPolarity,
+          snapshotSampleRate: sampleRate,
+        ),
+      );
+    } else {
+      entry = await _snapshotCache.read(paths, identity);
+    }
+    if (entry == null) return null;
+    final prepared = _PreparedPlayerAudio(
+      image: image,
+      wavPath: entry.wavPath,
+      response: entry.response,
+      snapshotProfile: profile,
+      snapshotIdentity: identity,
+      snapshotInvertPolarity: invertPolarity,
+      snapshotSampleRate: sampleRate,
+    );
+    if (prepared.response.isSuccess) _validatePreparedSnapshot(prepared);
+    return prepared;
+  }
+
+  Future<_PreparedPlayerAudio?> _prepareOrdinaryAudio({
+    required ResolvedTapeImage image,
+    required String filePath,
+    required bool force,
+  }) async {
+    _pendingFilterRefresh = false;
+    final filter = _settingsService.audioFilter;
+    final wavPath = await _getTapeWavPath(filter, sourcePath: filePath);
+    final wavExists = await File(wavPath).exists();
+    if (!wavExists && !force) return null;
+    TapeConversionResponse? response;
+    if (!wavExists ||
+        _blockInfos == null ||
+        _mediaKind != TapeMediaKind.tape ||
+        _currentWavPath != wavPath) {
+      response = await _convertResolvedImage(
+        image: image,
+        outputPath: wavPath,
+        filePath: filePath,
+        filter: filter,
+      );
+    }
+    if (_pendingFilterRefresh && _settingsService.audioFilter != filter) {
+      return _prepareOrdinaryAudio(
+        image: image,
+        filePath: filePath,
+        force: force,
+      );
+    }
+    response ??= TapeConversionResponse(
+      mediaKind: TapeMediaKind.tape,
+      blocks: _blockInfos ?? const [],
+      warnings: _currentWarnings,
+    );
+    return _PreparedPlayerAudio(
+      image: image,
+      wavPath: wavPath,
+      response: response,
+    );
+  }
+
+  void _validatePreparedSnapshot(_PreparedPlayerAudio prepared) {
+    final profile = prepared.snapshotProfile!;
+    final identity = prepared.snapshotIdentity!;
+    final invertPolarity = prepared.snapshotInvertPolarity!;
+    final sampleRate = prepared.snapshotSampleRate!;
+    final metadata = prepared.response.protocolMetadata;
+    if (metadata == null ||
+        metadata.turboProfileId != profile.id ||
+        metadata.turboCatalogRevision !=
+            SnapshotTurboProfiles.catalogRevision ||
+        metadata.turboTimingFingerprint != profile.timingFingerprint ||
+        metadata.invertedPolarity != invertPolarity ||
+        metadata.sampleRateHz != sampleRate.hz ||
+        metadata.wavProfile != identity.wavProfile ||
+        identity.turboProfileId != profile.id ||
+        identity.turboCatalogRevision !=
+            SnapshotTurboProfiles.catalogRevision ||
+        identity.turboTimingFingerprint != profile.timingFingerprint ||
+        identity.invertedPolarity != invertPolarity ||
+        identity.sampleRateHz != sampleRate.hz) {
+      throw const FormatException(
+        'Prepared snapshot profile metadata does not match its waveform',
+      );
+    }
+  }
+
+  Future<void> _bindPreparedSnapshot(_PreparedPlayerAudio prepared) async {
+    await _speedCoordinator.applyFor(
+      const TapePlaybackPolicy(TapeMediaKind.snapshot),
+      _applySpeed,
+    );
+    await _player.setFilePath(prepared.wavPath);
+    await _player.seek(Duration.zero);
+  }
+
+  void _commitPreparedSnapshot(_PreparedPlayerAudio prepared) {
+    if (prepared.snapshotProfile != _snapshotProfileSession.activeProfile) {
+      throw const FormatException(
+        'Committed snapshot profile differs from the session profile',
+      );
+    }
+    if (prepared.snapshotInvertPolarity !=
+        _snapshotProfileSession.activeInvertPolarity) {
+      throw const FormatException(
+        'Committed snapshot polarity differs from the session polarity',
+      );
+    }
+    if (prepared.snapshotSampleRate !=
+        _snapshotProfileSession.activeSampleRate) {
+      throw const FormatException(
+        'Committed snapshot sample rate differs from the session sample rate',
+      );
+    }
+    _resolvedImage = prepared.image;
+    _mediaKind = TapeMediaKind.snapshot;
+    _currentWavPath = prepared.wavPath;
+    _blockInfos = List.unmodifiable(prepared.response.blocks);
+    _currentWarnings = List.unmodifiable(prepared.response.warnings);
+    _currentSnapshotIdentity = prepared.snapshotIdentity;
+  }
+
+  TapePlayerData _idleEvent(_PreparedPlayerAudio prepared) => TapePlayerData(
+    TapePlayerState.idle,
+    filePath,
+    blocks: prepared.response.blocks,
+    warnings: prepared.response.warnings,
+    mediaKind: prepared.response.mediaKind,
+  );
+
+  Future<TapeConversionResponse> _convertResolvedImage({
+    required ResolvedTapeImage image,
+    required String outputPath,
+    required String filePath,
+    required AudioFilterType filter,
+    SnapshotAssetBundle? snapshotAssets,
+    SnapshotTurboProfile? snapshotTurboProfile,
+    bool? snapshotInvertPolarity,
+    SnapshotAudioSampleRate? snapshotSampleRate,
+  }) async {
+    _tapePlayerController.sink.add(
+      TapePlayerData(
+        TapePlayerState.loading,
+        filePath,
+        mediaKind: image.mediaKind,
+      ),
+    );
+    final progressPort = ReceivePort();
+    final progressSubscription = progressPort.listen((message) {
+      if (message is int) {
+        _progressController.sink.add(LoadingProgressData(filePath, message));
+      }
+    });
+    try {
+      return await compute(
+        convertTapeImage,
+        TapeConversionRequest(
+          image: image,
+          outputPath: outputPath,
+          progressPort: progressPort.sendPort,
+          audioFilterIndex: filter.index,
+          snapshotAssets: snapshotAssets,
+          snapshotTurboProfileId: snapshotTurboProfile?.id,
+          snapshotTurboCatalogRevision: snapshotTurboProfile == null
+              ? null
+              : SnapshotTurboProfiles.catalogRevision,
+          snapshotInvertPolarity: snapshotInvertPolarity,
+          snapshotSampleRateHz: snapshotSampleRate?.hz,
+        ),
+      );
+    } finally {
+      await progressSubscription.cancel();
+      progressPort.close();
+    }
   }
 
   void _cleanWavCache() {
-    getApplicationSupportDirectory().then((dir) {
-      var tapePath = Definitions.tapeDir.format([dir.path]);
-      return Directory(tapePath);
-    }).then((dir) async {
-      if (await dir.exists()) await dir.delete(recursive: true);
-    });
+    getApplicationSupportDirectory()
+        .then((dir) {
+          var tapePath = Definitions.tapeDir.format([dir.path]);
+          return Directory(tapePath);
+        })
+        .then((dir) async {
+          if (await dir.exists()) await dir.delete(recursive: true);
+        });
   }
 
   set currentFileIndex(int index) {
-    if (_currentFileIndex == index) return;
-    _currentFileIndex = index;
+    if (currentFileIndex == index) return;
+    _mediaSelection.select(index);
+    // Completion leaves just_audio positioned at the end of the previous WAV.
+    // Rewind immediately so a newly selected uncached option cannot replay the
+    // completed source while its own preparation is deferred until Play.
+    unawaited(_player.seek(Duration.zero));
     _blockInfos = null;
-    _prepareTapeForPlay(force: false);
+    _mediaKind = null;
+    _resolvedImage = null;
+    _currentWavPath = null;
+    _currentWarnings = const [];
+    _currentSnapshotIdentity = null;
+    _pendingFilterRefresh = false;
+    _pendingAutoResume = false;
+    unawaited(_prepareTapeForPlay(force: false));
     _tapePlayerController.sink.add(
-        TapePlayerData(TapePlayerState.IndexChanged, files[_currentFileIndex]));
+      TapePlayerData(TapePlayerState.indexChanged, filePath),
+    );
   }
 
   Future play() async {
-    if (_player.position == Duration.zero) {
+    if (shouldPrepareSelectedMedia(
+      position: _player.position,
+      hasBlocks: _blockInfos != null,
+    )) {
       if (!await _prepareTapeForPlay()) return;
       await _takeControl();
     }
@@ -1034,8 +1235,7 @@ class _TapePlayerBloc {
   }
 
   Future replay() async {
-    await _player.seek(Duration.zero,
-        index: _player.effectiveIndices.first);
+    await _player.seek(Duration.zero, index: _player.effectiveIndices.first);
   }
 
   /// Sets playback speed with tape-recorder semantics: pitch scales with
@@ -1043,17 +1243,170 @@ class _TapePlayerBloc {
   /// the patched just_audio that selects AVAudioTimePitchAlgorithmVarispeed.
   /// On Android the same effect requires an explicit setPitch(speed) call.
   Future<void> setSpeed(double speed) async {
-    await _player.setSpeed(speed);
-    if (Platform.isAndroid) {
-      try {
-        await _player.setPitch(speed);
-      } catch (_) {
-        // setPitch may be unavailable on some Android backends; ignore.
-      }
+    await _speedCoordinator.select(speed, policy, _applySpeed);
+  }
+
+  Future<bool> selectSnapshotSignalSettings({
+    required SnapshotTurboProfile profile,
+    required bool invertPolarity,
+    required SnapshotAudioSampleRate sampleRate,
+  }) async {
+    if (!policy.isSnapshot || _preparing) return false;
+    if (profile == _snapshotProfileSession.activeProfile &&
+        invertPolarity == _snapshotProfileSession.activeInvertPolarity &&
+        sampleRate == _snapshotProfileSession.activeSampleRate) {
+      return true;
     }
+
+    final previous = _committedSnapshotAudio;
+    final image = _resolvedImage;
+    if (previous == null || image == null) return false;
+
+    _preparing = true;
+    _pendingAutoResume = false;
+    final selectedFilePath = filePath;
+    _tapePlayerController.sink.add(
+      TapePlayerData(
+        TapePlayerState.loading,
+        selectedFilePath,
+        blocks: previous.blocks,
+        warnings: previous.warnings,
+        mediaKind: TapeMediaKind.snapshot,
+      ),
+    );
+
+    late TapePlayerData finalEvent;
+    late bool success;
+    try {
+      final result = await _snapshotProfileSession.select<_PreparedPlayerAudio>(
+        requestedProfile: profile,
+        requestedInvertPolarity: invertPolarity,
+        requestedSampleRate: sampleRate,
+        stopAndRewind: () async {
+          await _player.stop();
+          await _player.seek(Duration.zero);
+          await _looseControl();
+        },
+        prepare: (profile, invertPolarity, sampleRate) async {
+          final prepared = await _prepareSnapshotAudio(
+            image: image,
+            filePath: selectedFilePath,
+            profile: profile,
+            invertPolarity: invertPolarity,
+            sampleRate: sampleRate,
+            force: true,
+          );
+          if (prepared == null) {
+            throw StateError('Snapshot profile preparation returned no data');
+          }
+          final error = prepared.response.error;
+          if (error != null) throw _SnapshotPreparationException(error);
+          return prepared;
+        },
+        bind: _bindPreparedSnapshot,
+        rollback: () => _restoreCommittedSnapshot(previous),
+      );
+      final prepared = result.prepared;
+      if (result.committed && prepared != null) {
+        _commitPreparedSnapshot(prepared);
+        success = true;
+        finalEvent = _idleEvent(prepared);
+      } else {
+        success = false;
+        final error = result.error;
+        final conversionError = error is _SnapshotPreparationException
+            ? error.message
+            : TapeConversionMessage(
+                code: 'playerBinding',
+                message: error.toString(),
+              );
+        finalEvent = TapePlayerData(
+          TapePlayerState.error,
+          selectedFilePath,
+          error: conversionError,
+          blocks: previous.blocks,
+          warnings: previous.warnings,
+          mediaKind: TapeMediaKind.snapshot,
+        );
+      }
+    } catch (error) {
+      await _restoreCommittedSnapshot(previous);
+      success = false;
+      finalEvent = TapePlayerData(
+        TapePlayerState.error,
+        selectedFilePath,
+        error: TapeConversionMessage(
+          code: 'playerBinding',
+          message: error.toString(),
+        ),
+        blocks: previous.blocks,
+        warnings: previous.warnings,
+        mediaKind: TapeMediaKind.snapshot,
+      );
+    } finally {
+      _preparing = false;
+    }
+    _tapePlayerController.sink.add(finalEvent);
+    return success;
+  }
+
+  _CommittedSnapshotAudio? get _committedSnapshotAudio {
+    final image = _resolvedImage;
+    final wavPath = _currentWavPath;
+    final blocks = _blockInfos;
+    final identity = _currentSnapshotIdentity;
+    if (!policy.isSnapshot ||
+        image == null ||
+        wavPath == null ||
+        blocks == null ||
+        identity == null) {
+      return null;
+    }
+    return _CommittedSnapshotAudio(
+      image: image,
+      wavPath: wavPath,
+      blocks: List.unmodifiable(blocks),
+      warnings: List.unmodifiable(_currentWarnings),
+      profile: _snapshotProfileSession.activeProfile,
+      identity: identity,
+      invertPolarity: _snapshotProfileSession.activeInvertPolarity,
+      sampleRate: _snapshotProfileSession.activeSampleRate,
+    );
+  }
+
+  Future<void> _restoreCommittedSnapshot(
+    _CommittedSnapshotAudio previous,
+  ) async {
+    try {
+      await _speedCoordinator.applyFor(
+        const TapePlaybackPolicy(TapeMediaKind.snapshot),
+        _applySpeed,
+      );
+      await _player.setFilePath(previous.wavPath);
+      await _player.seek(Duration.zero);
+    } catch (_) {
+      // The original preparation/binding error remains the actionable one.
+      // Committed profile metadata is deliberately left untouched.
+    }
+    _resolvedImage = previous.image;
+    _mediaKind = TapeMediaKind.snapshot;
+    _currentWavPath = previous.wavPath;
+    _blockInfos = previous.blocks;
+    _currentWarnings = previous.warnings;
+    _currentSnapshotIdentity = previous.identity;
+  }
+
+  Future<void> _applySpeed(double speed) async {
+    await applyPlaybackRate(
+      speed: speed,
+      isAndroid: Platform.isAndroid,
+      setSpeed: _player.setSpeed,
+      setPitch: _player.setPitch,
+    );
   }
 
   Future seekToBlock(int blockIndex) async {
+    if (!policy.canNavigateBlocks) return;
     if (_blockInfos == null || blockIndex >= _blockInfos!.length) return;
     var block = _blockInfos![blockIndex];
     await _player.seek(block.timeOffset);
@@ -1084,6 +1437,7 @@ class _TapePlayerBloc {
   /// Jumps to the previous block, or to the start of the current block when
   /// already on the first block.
   Future seekToPreviousBlock() async {
+    if (!policy.canNavigateBlocks) return;
     final blocks = _blockInfos;
     if (blocks == null || blocks.isEmpty) return;
     final current = currentBlockIndex!;
@@ -1092,6 +1446,7 @@ class _TapePlayerBloc {
 
   /// Rewinds to the start of the block that's currently playing.
   Future seekToCurrentBlockStart() async {
+    if (!policy.canNavigateBlocks) return;
     final current = currentBlockIndex;
     if (current == null) return;
     await seekToBlock(current);
@@ -1100,6 +1455,7 @@ class _TapePlayerBloc {
   /// Jumps to the next block, or stops playback when already on the last
   /// block.
   Future seekToNextBlock() async {
+    if (!policy.canNavigateBlocks) return;
     final blocks = _blockInfos;
     if (blocks == null || blocks.isEmpty) return;
     final current = currentBlockIndex!;
@@ -1107,6 +1463,14 @@ class _TapePlayerBloc {
       await stop();
     } else {
       await seekToBlock(current + 1);
+    }
+  }
+
+  Future restartFromBeginning() async {
+    await _player.seek(Duration.zero);
+    if (!_player.playing) {
+      await _takeControl();
+      await _player.play();
     }
   }
 
@@ -1134,7 +1498,7 @@ class _TapePlayerBloc {
       }
     }
 
-    final url = files[_currentFileIndex];
+    final url = filePath;
     final bytes = await _backendService.downloadTape(url);
     final fileName = basename(url);
 
@@ -1163,85 +1527,64 @@ class _TapePlayerBloc {
     final dir = Platform.isIOS
         ? await getApplicationDocumentsDirectory()
         : (await getDownloadsDirectory() ??
-            await getApplicationDocumentsDirectory());
-    final filePath = '${dir.path}/$fileName';
-    await File(filePath)
-        .writeAsBytes(bytes, mode: FileMode.writeOnly, flush: true);
+              await getApplicationDocumentsDirectory());
+    final downloadPath = '${dir.path}/$fileName';
+    await File(
+      downloadPath,
+    ).writeAsBytes(bytes, mode: FileMode.writeOnly, flush: true);
     return true;
   }
 
-  static Future<(Uint8List, String)> _extractTapeForExport(
-      (Uint8List, String) args) {
-    var (bytes, filePath) = args;
-    String fileName = basename(filePath);
-
-    if (extension(filePath).toLowerCase() == '.zip') {
-      final archive = ZipDecoder().decodeBytes(bytes);
-      for (final file in archive) {
-        if (file.isFile) {
-          var ext = extension(file.name).replaceAll('.', '').toLowerCase();
-          if (Definitions.supportedTapeExtensions.contains(ext)) {
-            bytes = Uint8List.fromList(file.content as List<int>);
-            fileName = basename(file.name);
-            break;
-          }
-        }
-      }
-    }
-
-    return Future.value((bytes, fileName));
-  }
-
   Future<String> _prepareTapeImageExport() async {
-    final filePath = files[_currentFileIndex];
+    final selectedFilePath = filePath;
     Uint8List bytes;
 
     if (software.isRemote) {
-      bytes = await _backendService.downloadTape(filePath);
+      bytes = await _backendService.downloadTape(selectedFilePath);
     } else {
-      bytes = await File(filePath).readAsBytes();
+      bytes = await File(selectedFilePath).readAsBytes();
     }
 
-    final (extractedBytes, fileName) =
-        await compute(_extractTapeForExport, (bytes, filePath));
+    final image = resolveTapeImage((
+      bytes,
+      selectedFilePath,
+    ), model: _settingsService.zxModel);
+    _resolvedImage = image;
 
     final tmp = await getTemporaryDirectory();
-    return stageTapeImageForExport(
-        TapeImageData(extractedBytes, fileName), tmp.path);
+    return stageTapeImageForExport(image, tmp.path);
   }
 
   Future<String> _prepareOriginalArchiveExport() async {
-    final filePath = files[_currentFileIndex];
+    final selectedFilePath = filePath;
     Uint8List bytes;
 
     if (software.isRemote) {
-      bytes = await _backendService.downloadTape(filePath);
+      bytes = await _backendService.downloadTape(selectedFilePath);
     } else {
-      bytes = await File(filePath).readAsBytes();
+      bytes = await File(selectedFilePath).readAsBytes();
     }
 
-    final fileName = basename(filePath);
+    final fileName = basename(selectedFilePath);
     final tmp = await getTemporaryDirectory();
-    final tmpPath = '${tmp.path}/$fileName';
-    await File(tmpPath).writeAsBytes(bytes, flush: true);
-    return tmpPath;
+    return stageTapeImageForExport(TapeImageData(bytes, fileName), tmp.path);
   }
 
   Future<String?> _prepareWavExport() async {
-    final filter = _settingsService.audioFilter;
-    final wavPath = await _getWavPath(filter);
+    final wavPath =
+        _currentWavPath ?? await _getTapeWavPath(_settingsService.audioFilter);
     final wavFile = File(wavPath);
     if (!await wavFile.exists()) return null;
 
-    String tapeFileName = basename(files[_currentFileIndex]);
-    if (extension(tapeFileName).toLowerCase() == '.zip') {
-      tapeFileName = basenameWithoutExtension(tapeFileName);
-    }
-    final wavName = '${basenameWithoutExtension(tapeFileName)}.wav';
+    final tapeFileName =
+        _resolvedImage?.fileName ??
+        basenameWithoutExtension(basename(filePath));
     final tmp = await getTemporaryDirectory();
-    final tmpPath = '${tmp.path}/$wavName';
-    await wavFile.copy(tmpPath);
-    return tmpPath;
+    return stageWavForExport(
+      cachedWavPath: wavFile.path,
+      imageFileName: tapeFileName,
+      temporaryDirectoryPath: tmp.path,
+    );
   }
 
   Future _takeControl() async {

@@ -1,0 +1,48 @@
+group = "dev.britannio.in_app_review"
+version = "1.0-SNAPSHOT"
+
+apply plugin: "com.android.library"
+
+def upstreamAndroidDir = gradle.ext.zxTapePlayerPluginAndroidDirs[project.name]
+
+android {
+    namespace = "dev.britannio.in_app_review"
+    compileSdk = 36
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile new File(upstreamAndroidDir, "src/main/AndroidManifest.xml")
+            java.srcDirs += new File(upstreamAndroidDir, "src/main/kotlin")
+        }
+        test.java.srcDirs += new File(upstreamAndroidDir, "src/test/kotlin")
+    }
+
+    defaultConfig {
+        minSdk = 21
+    }
+
+    dependencies {
+        testImplementation("org.jetbrains.kotlin:kotlin-test")
+        testImplementation("org.mockito:mockito-core:5.0.0")
+        implementation("com.google.android.play:review:2.0.2")
+        implementation("com.google.android.play:review-ktx:2.0.2")
+        implementation("com.google.android.gms:play-services-base:18.7.2")
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}

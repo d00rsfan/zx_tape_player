@@ -6,19 +6,20 @@ class AppError extends StatelessWidget {
   final VoidCallback? action;
   final String buttonText;
 
-  const AppError(
-      {super.key,
-      required this.text,
-      required this.buttonText,
-      required this.action});
+  const AppError({
+    super.key,
+    required this.text,
+    required this.buttonText,
+    required this.action,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
           Text(
             text,
             style: const TextStyle(color: Colors.white, fontSize: 16.0),
@@ -36,6 +37,8 @@ class AppError extends StatelessWidget {
             onPressed: action,
             child: Text(buttonText, style: const TextStyle(fontSize: 14.0)),
           ),
-        ]));
+        ],
+      ),
+    );
   }
 }

@@ -18,13 +18,10 @@ class ZxVolumeControlService extends VolumeControlService {
     // Persist subsequent user-initiated changes so the next session
     // restores them. fetchInitialVolume is false so the listener does
     // not overwrite the just-applied value with the prior system level.
-    VolumeController.instance.addListener(
-      (volume) async {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setDouble(_prefsKey, volume);
-      },
-      fetchInitialVolume: false,
-    );
+    VolumeController.instance.addListener((volume) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_prefsKey, volume);
+    }, fetchInitialVolume: false);
   }
 
   @override

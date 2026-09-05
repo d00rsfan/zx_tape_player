@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart';
+import 'package:zx_tape_player/models/media_option_ordering.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
 class SoftwareModel {
@@ -34,26 +35,42 @@ class SoftwareModel {
   }
 
   SoftwareModel(
-      this.id,
-      this.isRemote,
-      this.title,
-      this.year,
-      this.genre,
-      this.votes,
-      this.score,
-      this.price,
-      this.remarks,
-      this.authors,
-      this.screenShotUrls,
-      this._currentFileName,
-      this.tapeFiles);
+    this.id,
+    this.isRemote,
+    this.title,
+    this.year,
+    this.genre,
+    this.votes,
+    this.score,
+    this.price,
+    this.remarks,
+    this.authors,
+    this.screenShotUrls,
+    this._currentFileName,
+    List<String> tapeFiles,
+  ) : tapeFiles = orderMediaOptionsForCarousel(tapeFiles);
 
   static Future<SoftwareModel> createFromFile(
-      String filePath, String? title) async {
+    String filePath,
+    String? title,
+  ) async {
     var file = File(filePath);
     if (await file.exists()) {
-      return SoftwareModel(null, false, title ?? 'Unknown', null, null, null,
-          null, null, null, <AuthorModel>[], <ScreenShotModel>[], null, [filePath]);
+      return SoftwareModel(
+        null,
+        false,
+        title ?? 'Unknown',
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        <AuthorModel>[],
+        <ScreenShotModel>[],
+        null,
+        [filePath],
+      );
     } else {
       throw const FileSystemException('File not found.');
     }

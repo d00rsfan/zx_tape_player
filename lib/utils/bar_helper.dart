@@ -6,14 +6,15 @@ enum SnackBarType { info, warning, error }
 class BarHelper {
   BarHelper._();
 
-  static Future showSnackBar(
-      {required String message,
-      required BuildContext context,
-      SnackBarType barType = SnackBarType.info,
-      Duration duration = const Duration(seconds: 3)}) async {
-    await Future.delayed(const Duration(), () {
-      ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    });
+  static Future<void> showSnackBar({
+    required String message,
+    required BuildContext context,
+    SnackBarType barType = SnackBarType.info,
+    Duration duration = const Duration(seconds: 3),
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Future<void>.delayed(const Duration());
+    messenger.removeCurrentSnackBar();
     var backgroundColor = HexColor('#172434');
     if (barType == SnackBarType.warning) backgroundColor = HexColor('#E6A817');
     if (barType == SnackBarType.error) backgroundColor = HexColor('#D9512D');
@@ -26,8 +27,7 @@ class BarHelper {
         textAlign: TextAlign.center,
       ),
     );
-    await Future.delayed(const Duration(), () {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    });
+    await Future<void>.delayed(const Duration());
+    messenger.showSnackBar(snackBar);
   }
 }

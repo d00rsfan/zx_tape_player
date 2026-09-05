@@ -1,0 +1,10 @@
+<en-US>
+What's new in 1.6.0:
+
+• Restore 48K/128K .z80 and .sna snapshots to real ZX Spectrum hardware through audio.
+• Based on Daan Scherft/Oxidaan's MIT-licensed ZQLoader design and Z80 receiver.
+• Open snapshots locally, from ZIP files, or ZXInfo.
+• Select 10x–1x turbo speed, polarity, and 48/44.1 kHz; preferences are remembered.
+• Added snapshot tips, progress, warnings, and WAV export.
+• Fixed state restoration, waveform polarity, and controls after playback.
+</en-US>

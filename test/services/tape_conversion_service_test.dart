@@ -7,10 +7,17 @@ import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' show join;
+import 'package:zx_tape_player/services/snapshot_asset_service.dart';
 import 'package:zx_tape_player/services/tape_conversion_service.dart';
+import 'package:zx_tape_player/services/tape_image_service.dart';
+import 'package:zx_tape_player/snapshots/snapshot_timing.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 
+import '../snapshots/snapshot_fixtures.dart';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('direct TAP converts through the production isolate worker', () async {
     final tempDirectory = await Directory.systemTemp.createTemp(
       'zx_tap_conversion_test_',
@@ -35,8 +42,7 @@ void main() {
     final response = await compute(
       convertTapeImage,
       TapeConversionRequest(
-        tapeBytes: _buildTap(),
-        fileName: 'direct.tap',
+        image: resolveTapeImage((_buildTap(), 'direct.tap')),
         outputPath: output.path,
         progressPort: progressPort.sendPort,
         audioFilterIndex: AudioFilterType.bassBoost.index,
@@ -45,6 +51,7 @@ void main() {
     await progressComplete.future.timeout(const Duration(seconds: 1));
 
     expect(response.blocks, isNotEmpty);
+    expect(response.mediaKind, TapeMediaKind.tape);
     expect(response.warnings, isEmpty);
     expect(progress, contains(100));
     expect(await output.length(), greaterThan(44));
@@ -140,12 +147,215 @@ void main() {
     expect(await isTapeImageSupported(bytes, 'broken.o'), isFalse);
     expect(await isTapeImageSupported(bytes, 'broken.80'), isFalse);
   });
+
+  test(
+    'direct and zipped Z80/SNA convert through the snapshot worker',
+    () async {
+      final fixtures = <(String, Uint8List)>[
+        ('state.z80', makeZ80V1()),
+        (
+          'state-v2-interface1.z80',
+          makeZ80Extended(version3: false, hardwareMode: 1),
+        ),
+        ('state.sna', makeSna128(currentBank: 3)),
+      ];
+      for (final fixture in fixtures) {
+        final (directResponse, directWav) = await _convert(
+          fixture.$2,
+          fixture.$1,
+        );
+        expect(directResponse.mediaKind, TapeMediaKind.snapshot);
+        expect(directResponse.error, isNull);
+        expect(directResponse.protocolMetadata, isNotNull);
+        expect(directResponse.protocolMetadata?.sampleRateHz, 48000);
+        expect(directResponse.blocks.first.title, 'Snapshot bootstrap');
+        expect(_wavUint32(directWav, 24), 48000);
+        expect(_wavUint16(directWav, 22), 1);
+        expect(_wavUint16(directWav, 34), 8);
+
+        final archive = Archive()
+          ..addFile(
+            ArchiveFile('nested/${fixture.$1}', fixture.$2.length, fixture.$2),
+          );
+        final zipBytes = Uint8List.fromList(ZipEncoder().encode(archive));
+        final (zipResponse, zipWav) = await _convert(
+          zipBytes,
+          '${fixture.$1}.zip',
+        );
+        expect(zipResponse.mediaKind, TapeMediaKind.snapshot);
+        expect(zipWav, directWav);
+      }
+    },
+  );
+
+  test('snapshot worker returns structured warnings and errors', () async {
+    final (warningResponse, warningWav) = await _convert(
+      makeSna128(currentBank: 3, trDosPaged: true),
+      'trdos.sna',
+    );
+    expect(warningResponse.error, isNull);
+    expect(warningResponse.warnings.single.code, 'trDosRomNotRestored');
+    expect(warningWav, isNotEmpty);
+
+    final (errorResponse, errorWav) = await _convert(
+      Uint8List.fromList([1, 2, 3]),
+      'broken.z80',
+    );
+    expect(errorResponse.error?.code, 'truncatedInput');
+    expect(errorResponse.blocks, isEmpty);
+    expect(errorWav, isEmpty);
+  });
+
+  test('snapshot worker validates explicit catalog profile identity', () async {
+    final wavLengths = <int>{};
+    for (final profile in SnapshotTurboProfiles.values) {
+      final (response, wav) = await _convert(
+        makeZ80V1(),
+        'profile-${profile.id}.z80',
+        snapshotProfile: profile,
+      );
+      expect(response.error, isNull, reason: profile.label);
+      expect(response.protocolMetadata?.turboProfileId, profile.id);
+      expect(
+        response.protocolMetadata?.turboCatalogRevision,
+        SnapshotTurboProfiles.catalogRevision,
+      );
+      expect(
+        response.protocolMetadata?.turboTimingFingerprint,
+        profile.timingFingerprint,
+      );
+      expect(response.protocolMetadata?.invertedPolarity, isFalse);
+      expect(wav, isNotEmpty);
+      wavLengths.add(wav.length);
+    }
+    expect(wavLengths, hasLength(SnapshotTurboProfiles.values.length));
+
+    final (unknown, unknownWav) = await _convert(
+      makeZ80V1(),
+      'unknown.z80',
+      snapshotProfileIdOverride: 'obsolete',
+    );
+    expect(unknown.error?.code, 'invalidTurboBlock');
+    expect(unknownWav, isEmpty);
+
+    final (missing, missingWav) = await _convert(
+      makeZ80V1(),
+      'missing.z80',
+      omitSnapshotProfile: true,
+    );
+    expect(missing.error?.code, 'invalidTurboBlock');
+    expect(missingWav, isEmpty);
+
+    final (missingPolarity, missingPolarityWav) = await _convert(
+      makeZ80V1(),
+      'missing-polarity.z80',
+      omitSnapshotPolarity: true,
+    );
+    expect(missingPolarity.error?.code, 'invalidTurboBlock');
+    expect(missingPolarityWav, isEmpty);
+
+    final (missingSampleRate, missingSampleRateWav) = await _convert(
+      makeZ80V1(),
+      'missing-sample-rate.z80',
+      omitSnapshotSampleRate: true,
+    );
+    expect(missingSampleRate.error?.code, 'invalidTurboBlock');
+    expect(missingSampleRateWav, isEmpty);
+
+    final (unsupportedSampleRate, unsupportedSampleRateWav) = await _convert(
+      makeZ80V1(),
+      'unsupported-sample-rate.z80',
+      snapshotSampleRateHzOverride: 32000,
+    );
+    expect(unsupportedSampleRate.error?.code, 'invalidTurboBlock');
+    expect(unsupportedSampleRateWav, isEmpty);
+  });
+
+  test('snapshot worker renders the selected WAV sample rate', () async {
+    final (response, wav) = await _convert(
+      makeZ80V1(),
+      '44100.z80',
+      snapshotSampleRate: SnapshotAudioSampleRate.hz44_1k,
+    );
+
+    expect(response.error, isNull);
+    expect(response.protocolMetadata?.sampleRateHz, 44100);
+    expect(response.protocolMetadata?.wavProfile, contains('44100hz'));
+    expect(_wavUint32(wav, 24), 44100);
+    expect(_wavUint32(wav, 28), 44100);
+    expect(
+      response.blocks.every((block) => block.duration > Duration.zero),
+      isTrue,
+    );
+  });
+
+  test(
+    'snapshot worker complements complete PCM for inverted polarity',
+    () async {
+      final fixture = makeZ80V1();
+      final (standardResponse, standardWav) = await _convert(
+        fixture,
+        'standard.z80',
+      );
+      final (invertedResponse, invertedWav) = await _convert(
+        fixture,
+        'inverted.z80',
+        invertPolarity: true,
+      );
+
+      expect(standardResponse.protocolMetadata?.invertedPolarity, isFalse);
+      expect(invertedResponse.protocolMetadata?.invertedPolarity, isTrue);
+      expect(
+        invertedResponse.blocks.map(
+          (block) => (
+            block.sampleOffset,
+            block.timeOffset,
+            block.duration,
+            block.dataLength,
+          ),
+        ),
+        standardResponse.blocks.map(
+          (block) => (
+            block.sampleOffset,
+            block.timeOffset,
+            block.duration,
+            block.dataLength,
+          ),
+        ),
+      );
+      expect(invertedWav.sublist(0, 44), standardWav.sublist(0, 44));
+      final dataLength = ByteData.sublistView(
+        standardWav,
+      ).getUint32(40, Endian.little);
+      expect(
+        invertedWav.sublist(44, 44 + dataLength),
+        Uint8List.fromList(
+          standardWav
+              .sublist(44, 44 + dataLength)
+              .map((sample) => 255 - sample)
+              .toList(),
+        ),
+      );
+      expect(
+        invertedWav.sublist(44 + dataLength),
+        standardWav.sublist(44 + dataLength),
+      );
+    },
+  );
 }
 
 Future<(TapeConversionResponse, Uint8List)> _convert(
   Uint8List bytes,
-  String fileName,
-) async {
+  String fileName, {
+  SnapshotTurboProfile snapshotProfile = SnapshotTurboProfiles.defaultProfile,
+  bool invertPolarity = false,
+  SnapshotAudioSampleRate snapshotSampleRate = SnapshotTiming.defaultSampleRate,
+  int? snapshotSampleRateHzOverride,
+  String? snapshotProfileIdOverride,
+  bool omitSnapshotProfile = false,
+  bool omitSnapshotPolarity = false,
+  bool omitSnapshotSampleRate = false,
+}) async {
   final tempDirectory = await Directory.systemTemp.createTemp(
     'zx_raw_conversion_test_',
   );
@@ -153,21 +363,50 @@ Future<(TapeConversionResponse, Uint8List)> _convert(
   final output = File(join(tempDirectory.path, 'converted.wav'));
   final progressPort = ReceivePort();
   final subscription = progressPort.listen((_) {});
+  final image = resolveTapeImage((bytes, fileName));
+  final snapshotAssets = image.mediaKind == TapeMediaKind.snapshot
+      ? await const SnapshotAssetLoader().load()
+      : null;
 
   final response = await compute(
     convertTapeImage,
     TapeConversionRequest(
-      tapeBytes: bytes,
-      fileName: fileName,
+      image: image,
       outputPath: output.path,
       progressPort: progressPort.sendPort,
       audioFilterIndex: AudioFilterType.none.index,
+      snapshotAssets: snapshotAssets,
+      snapshotTurboProfileId:
+          image.mediaKind == TapeMediaKind.snapshot && !omitSnapshotProfile
+          ? snapshotProfileIdOverride ?? snapshotProfile.id
+          : null,
+      snapshotTurboCatalogRevision:
+          image.mediaKind == TapeMediaKind.snapshot && !omitSnapshotProfile
+          ? SnapshotTurboProfiles.catalogRevision
+          : null,
+      snapshotInvertPolarity:
+          image.mediaKind == TapeMediaKind.snapshot && !omitSnapshotPolarity
+          ? invertPolarity
+          : null,
+      snapshotSampleRateHz:
+          image.mediaKind == TapeMediaKind.snapshot && !omitSnapshotSampleRate
+          ? snapshotSampleRateHzOverride ?? snapshotSampleRate.hz
+          : null,
     ),
   );
   await subscription.cancel();
   progressPort.close();
-  return (response, await output.readAsBytes());
+  return (
+    response,
+    await output.exists() ? await output.readAsBytes() : Uint8List(0),
+  );
 }
+
+int _wavUint16(Uint8List bytes, int offset) =>
+    ByteData.sublistView(bytes).getUint16(offset, Endian.little);
+
+int _wavUint32(Uint8List bytes, int offset) =>
+    ByteData.sublistView(bytes).getUint32(offset, Endian.little);
 
 Uint8List _buildTap() {
   // Two valid two-byte TAP blocks. Each block is prefixed by its little-endian

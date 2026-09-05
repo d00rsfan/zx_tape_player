@@ -8,6 +8,14 @@ class HitModel {
   final int? votes;
   final double? score;
 
-  HitModel(this.id, this.iconUrl, this.title, this.year, this.genre,
-      this.publisher, this.votes, this.score);
+  HitModel(
+    this.id,
+    this.iconUrl,
+    this.title,
+    this.year,
+    this.genre,
+    this.publisher,
+    this.votes,
+    this.score,
+  );
 }

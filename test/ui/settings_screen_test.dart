@@ -29,7 +29,7 @@ void main() {
 
   tearDown(() => getIt.reset());
 
-  testWidgets('changing model opens a fresh search with an empty query', (
+  testWidgets('settings controls align and changes open a fresh search', (
     tester,
   ) async {
     Object? searchArguments;
@@ -38,6 +38,33 @@ void main() {
       onSearch: (arguments) => searchArguments = arguments,
     );
 
+    await tester.ensureVisible(find.text('None'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('None'));
+    await tester.pumpAndSettle();
+    expect(settings.audioFilter, AudioFilterType.none);
+    expect(settings.filterWrites, 1);
+
+    final resetButton = find.byKey(
+      const ValueKey('settings_reset_default_button'),
+    );
+    await tester.scrollUntilVisible(resetButton, 200.0);
+    await tester.pumpAndSettle();
+
+    final lastFilterRadio = find
+        .byWidgetPredicate((widget) => widget is Radio<AudioFilterType>)
+        .last;
+    final resetIcon = find.descendant(
+      of: resetButton,
+      matching: find.byIcon(Icons.restart_alt_rounded),
+    );
+    expect(
+      tester.getCenter(resetIcon).dx,
+      closeTo(tester.getCenter(lastFilterRadio).dx, 0.01),
+    );
+
+    await tester.drag(find.byType(ListView), const Offset(0, 500));
+    await tester.pumpAndSettle();
     expect(find.text('ZX80'), findsOneWidget);
     await tester.tap(find.text('ZX Spectrum'));
     await tester.pumpAndSettle();
@@ -84,6 +111,7 @@ class _LocalizedTestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: buildAppTheme(),
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
@@ -127,7 +155,12 @@ class _FakeSettingsService implements SettingsService {
   @override
   ZxModel zxModel = SettingsService.defaultZxModel;
 
+  @override
+  SnapshotSignalSettings snapshotSignalSettings =
+      SettingsService.defaultSnapshotSignalSettings;
+
   int modelWrites = 0;
+  int filterWrites = 0;
 
   @override
   Stream<AudioFilterType> get filterChanges =>
@@ -148,6 +181,7 @@ class _FakeSettingsService implements SettingsService {
 
   @override
   Future<void> setAudioFilter(AudioFilterType filter) async {
+    filterWrites++;
     audioFilter = filter;
   }
 
@@ -155,6 +189,13 @@ class _FakeSettingsService implements SettingsService {
   Future<void> setZxModel(ZxModel model) async {
     modelWrites++;
     zxModel = model;
+  }
+
+  @override
+  Future<void> setSnapshotSignalSettings(
+    SnapshotSignalSettings settings,
+  ) async {
+    snapshotSignalSettings = settings;
   }
 }
 

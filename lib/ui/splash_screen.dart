@@ -24,11 +24,15 @@ class _SplashScreenState extends State<SplashScreen> {
     SystemChannels.textInput.invokeMethod('TextInput.hide');
     super.initState();
     _timer = Timer(
-        const Duration(seconds: 3),
-        () async => await Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (BuildContext context) {
-              return const HomeScreen();
-            })));
+      const Duration(seconds: 3),
+      () async => await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (BuildContext context) {
+            return const HomeScreen();
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -40,11 +44,12 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: SafeArea(
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height,
-            child: Column(children: <Widget>[
+      body: SafeArea(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          child: Column(
+            children: <Widget>[
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -52,40 +57,58 @@ class _SplashScreenState extends State<SplashScreen> {
                   children: <Widget>[
                     const Cassette(),
                     Container(
-                        width: MediaQuery.of(context).size.width,
-                        padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                        child: Text(tr('zx_tape_player'),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 22,
-                                color: HexColor('#E7ECED')))),
+                      width: MediaQuery.of(context).size.width,
+                      padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                      child: Text(
+                        tr('zx_tape_player'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          color: HexColor('#E7ECED'),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
               Container(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 50),
-                  child: Column(children: <Widget>[
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 50),
+                child: Column(
+                  children: <Widget>[
                     FutureBuilder<PackageInfo>(
-                      builder: (BuildContext context,
-                          AsyncSnapshot<PackageInfo> snapshot) {
-                        var copyrightText =
-                            tr('copyright').format([DateTime.now().year]);
-                        if (snapshot.hasData) {
-                          copyrightText += tr('version').format([
-                            snapshot.data!.version,
-                            snapshot.data!.buildNumber
-                          ]);
-                        }
-                        return Text(copyrightText,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
+                      builder:
+                          (
+                            BuildContext context,
+                            AsyncSnapshot<PackageInfo> snapshot,
+                          ) {
+                            var copyrightText = tr(
+                              'copyright',
+                            ).format([DateTime.now().year]);
+                            if (snapshot.hasData) {
+                              copyrightText += tr('version').format([
+                                snapshot.data!.version,
+                                snapshot.data!.buildNumber,
+                              ]);
+                            }
+                            return Text(
+                              copyrightText,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
                                 fontSize: 12,
                                 height: 1.8,
-                                color: HexColor('#AFB6BB')));
-                      },
+                                color: HexColor('#AFB6BB'),
+                              ),
+                            );
+                          },
                       future: PackageInfo.fromPlatform(),
                     ),
-                  ]))
-            ]))));
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

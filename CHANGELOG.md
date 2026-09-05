@@ -4,11 +4,30 @@ All notable changes to this project are documented in this file.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## v1.5.1 - I Can't See Your Face in My Mind
+## v1.6.0 - When the Music's Over
+
+### New Features
+- **ZX Spectrum snapshot restore** — `.z80` and `.sna` snapshots can now be selected locally, opened from ZIP archives, or chosen from ZXInfo results. Supported 48K and 128K machine state is converted into a dedicated 48 kHz, 8-bit mono ZQLoader stream for playback into real hardware.
+- The snapshot-to-audio approach and adapted Z80 receiver code are based on the MIT-licensed [ZQLoader](https://github.com/oxidaan/zqloader) by Daan Scherft/Oxidaan.
+- Snapshot playback retains conversion progress and logical restore-stage names, supports cached WAV export, reports malformed or unsupported states with detailed messages, and warns before continuing with 128K SNA snapshots saved while TR-DOS was paged.
+- The built-in Tips guide now explains how snapshot restoration differs from ordinary tape playback, how to select signal speed and polarity, and which saved hardware state cannot be restored.
+
+### Improvements
+- Snapshot audio always plays at the protocol-required media-player speed 1×. Its speed control selects generated-signal presets from 10x down to 1x, offers polarity inversion, and can generate the complete stream at 48 kHz or 44.1 kHz; the timing-sensitive 7.5x preset is replaced by a 7x preset with wider 3/6-frame data classes, and every turbo first-sync pulse is separated from its leader at an approximately 1:2 width ratio. The 5x/standard/48 kHz preset is the first-use fallback, and the last successfully applied speed/polarity/sample-rate triple is remembered across app sessions. Block navigation remains disabled because restore blocks depend on earlier blocks; tape-filter choices remain available as preferences but are intentionally ignored for snapshots.
+- Z80 v2 hardware mode 1 (`48K + Interface 1`) snapshots now use the ordinary 48K restore path when the Interface 1 ROM was not paged. Paged Interface 1 ROM state remains explicitly unsupported instead of being restored incorrectly.
+- Mixed ZXInfo media carousels now keep TAP/TZX choices first and place explicit `.z80`, `.sna`, `.z80.zip`, and `.sna.zip` choices at the end without changing the relative order within either group.
+- Android edge-to-edge mode is enabled during application startup so every Flutter-rendered screen uses it from the first frame. The Tape Block Browser keeps its controls above the bottom system inset while its background continues edge-to-edge.
 
 ### Bug Fixes
-- Android edge-to-edge mode is now enabled during application startup instead of waiting for the Home screen, so every Flutter-rendered screen uses it from the first frame.
-- The Tape Block Browser now keeps its content above the bottom navigation or gesture inset while its background continues to extend edge-to-edge.
+- The snapshot polarity checkbox now uses the application's high-contrast toggle theme instead of blending into the dark speed sheet, and the Reset-to-default icon aligns with the radio controls above it on the Settings screen.
+- Hardened the snapshot receiver and restore planner after instruction-level review: wire headers are validated before their addresses and commands are used, refresh register `R` is compensated for final instruction fetches, unsafe post-relocation error returns are replaced by stable border errors, and receiver scratch space is kept away from the resume instruction, stack word, and IM2 vector table.
+- Ambiguous or unrepresentable machine states are rejected instead of being restored incorrectly, including unequal Z80 IFF1/IFF2 values, Z80 v1 SamRom state, unsupported expansion-ROM modes, nonzero `0x1ffd`, and conflicting duplicate banks in 128K SNA files.
+- Snapshot WAV output now materializes the receiver's final polarity transition before returning to neutral PCM, matching the reference ZQLoader generator instead of losing its last edge.
+- Finishing snapshot playback now releases the player state immediately, so the media carousel works without requiring an extra press of Stop.
+
+### Maintenance
+- Refreshed dependencies within their compatible version ranges.
+- Replaced the legacy Android build declarations bundled by `in_app_review` and `media_store_plus` with Built-in-Kotlin-ready descriptors, removing their KGP warning and `media_store_plus`'s obsolete AGP 7.1 SDK-XML warning.
 
 ## v1.5.0 - My Eyes Have Seen You
 

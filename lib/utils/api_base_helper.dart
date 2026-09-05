@@ -14,8 +14,10 @@ class ApiBaseHelper {
     dynamic responseJson;
     try {
       var uri = _baseUrl + url;
-      final response =
-          await UserAgentClient(_userAgent, http.Client()).get(Uri.parse(uri));
+      final response = await UserAgentClient(
+        _userAgent,
+        http.Client(),
+      ).get(Uri.parse(uri));
       responseJson = _returnResponse(response);
     } on SocketException {
       throw FetchDataException('No Internet connection');
@@ -36,7 +38,8 @@ class ApiBaseHelper {
       case 500:
       default:
         throw FetchDataException(
-            'Error occured while Communication with Server with StatusCode : ${response.statusCode}');
+          'Error occured while Communication with Server with StatusCode : ${response.statusCode}',
+        );
     }
   }
 }

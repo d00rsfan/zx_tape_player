@@ -1,0 +1,122 @@
+diff --git a/z80/zqloader.z80asm b/z80/zqloader.z80asm
+index 1244ff3..3e49e42 100644
+--- a/z80/zqloader.z80asm
++++ b/z80/zqloader.z80asm
+@@ -168,6 +168,7 @@ next_block:
+     // exx                    // not needed
+     ld HL, HEADER         // location of header
+     ld BC, HEADER_LEN     // length of header 
++    ld E, 1               // checksum seed for the complete header
+     exx
+ 
+     // Intialize edge plus border color -> C
+@@ -276,21 +277,39 @@ go_go_go:
+     // jr go_go_go                // @DEBUG
+     jp HL                       // go-go-go! note: this also means HL is PC once there
+ 
++ IFDEF BANKSWITCH128
++BANKSWITCH:
++     ld      A, (m_bank_to_switch)
++     ld      BC,0x7ffd
++     out     (C),A
++     jr      next_block
++ ENDIF
++
+ 
+ 
+-// Show error messages, then end to basic
++// Show error messages, then end to BASIC while the original stack is valid.
++// COPY_ME replaces SP, and a snapshot subsequently overwrites BASIC/system RAM,
++// so printing or returning after relocation is unsafe. In that state use a
++// stable border colour and stop instead of jumping through the relocated bytes.
+ CHECKSUM_ERROR:
+-    // LD A,2                  // @DEBUG
+-    // OUT 0xfE, A             // RED border @DEBUG
+-    // jr CHECKSUM_ERROR       // @DEBUG
++    ld A, (m_relocated)
++    or A
++    jr nz, FATAL_CHECKSUM_ERROR
+     ld DE, TEXT_CHECKSUM_ERROR
+     call PRINT
+ 
+ ERROR:
++    ld A, (m_relocated)
++    or A
++    jr nz, FATAL_TIMEOUT_ERROR
+     ld DE, TEXT_ERROR
+     call PRINT
+ 
+ END_TO_BASIC:
++    ld A, (m_relocated)
++    or A
++    jr nz, FATAL_RETURN_ERROR
++END_TO_BASIC_UNRELOCATED:
+     // not needed exx
+         pop BC                  // #PP5
+         pop HL                  // #PP2
+@@ -302,14 +321,18 @@ END_TO_BASIC:
+     ei                          // #di1
+     ret    
+ 
+- IFDEF BANKSWITCH128
+-BANKSWITCH:
+-     ld      A, (m_bank_to_switch)
+-     ld      BC,0x7ffd
+-     out     (C),A
+-     jr      next_block
+- ENDIF    
+-
++FATAL_CHECKSUM_ERROR:
++    ld A, 2                     // red: payload checksum failure
++    jr FATAL_ERROR
++FATAL_TIMEOUT_ERROR:
++    ld A, 3                     // magenta: timeout/header failure
++    jr FATAL_ERROR
++FATAL_RETURN_ERROR:
++    ld A, 6                     // yellow: invalid return after relocation
++FATAL_ERROR:
++    out ($FE), A
++.halt:
++    jr .halt
+ 
+ //============================================================================
+ // RLE decompress. Both 1st most occuring as 2nd most occoring bytes are coded.
+@@ -455,6 +478,8 @@ PRINT_DEBUG:
+ // Called when TurboBlocks::CopyLoader seen in header block as received from C++ code.
+ // At upper to avoid problems when overwriting itself
+ COPY_ME:             
++                        inc A                               // action comparison leaves A at zero
++                        ld (m_relocated), A                  // original BASIC stack is no longer usable
+ COPY_ME_SP+*:           ld SP, SCREEN_23RD + STACK_SIZE         // New SP c++ must patch this
+ //COPY_ME_SP+*:           ld BC, 0                  // @DEBUG 
+ COPY_ME_DEST+*:         ld DE, SCREEN_23RD + STACK_SIZE         // Destination c++ can patch this
+@@ -557,6 +582,14 @@ wait_for_first_edge:
+     //  ld DE', HEADER_LEN        // already done
+     call LOAD_BYTES             // load header
+     ret z                       // loading error (timeout)
++    exx
++        ld A, E                 // complete header must have checksum residue zero
++    exx
++    or A
++    jr z, .header_checksum_ok
++    xor A                       // return with Z set: reject before using header fields
++    ret
++.header_checksum_ok:
+     // jp PRINT_DEBUG            //  @DEBUG
+   
+     // -- We now have read a header --
+@@ -731,11 +764,14 @@ m_code_for_pairs     DB 0
+ m_value_for_pairs    DB 0
+  ENDIF
+ m_value_for_most     DB 0
++m_header_checksum    DB 0       // makes the checksum of the complete header zero
+ 
+ 
+ HEADER_END
+ HEADER_LEN equ HEADER_END - HEADER
+ 
++m_relocated          DB 0       // set by COPY_ME; not part of the wire header
++
+ 
+ // ===========================================================================
+ // ===========================================================================

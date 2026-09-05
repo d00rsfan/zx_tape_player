@@ -1,7 +1,7 @@
 enum ZxModel {
   zxSpectrum(
     apiMachineType: 'ZXSPECTRUM',
-    remoteTapeExtensions: <String>['tap', 'tzx'],
+    remoteTapeExtensions: <String>['tap', 'tzx', 'z80', 'sna'],
   ),
   zx81(
     apiMachineType: 'ZX81',
@@ -19,4 +19,6 @@ enum ZxModel {
 
   final String apiMachineType;
   final List<String> remoteTapeExtensions;
+
+  List<String> get localTapeExtensions => remoteTapeExtensions;
 }

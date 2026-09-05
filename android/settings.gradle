@@ -23,3 +23,21 @@ plugins {
 }
 
 include ":app"
+
+// These two plugins are already at their latest hosted releases, but their
+// Android build files still apply the legacy Kotlin Gradle Plugin. Point only
+// their Android subprojects at local build descriptors until upstream ships
+// built-in Kotlin support; Dart and native source stay in the pub cache.
+gradle.ext.zxTapePlayerPluginAndroidDirs = [:]
+[
+    "in_app_review",
+    "media_store_plus",
+].each { pluginName ->
+    def pluginProject = findProject(":${pluginName}")
+    if (pluginProject == null) {
+        throw new GradleException("Flutter plugin project not found: ${pluginName}")
+    }
+
+    gradle.ext.zxTapePlayerPluginAndroidDirs[pluginName] = pluginProject.projectDir
+    pluginProject.projectDir = file("plugin-builds/${pluginName}")
+}

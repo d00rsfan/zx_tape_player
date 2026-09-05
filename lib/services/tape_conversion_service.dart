@@ -4,7 +4,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show ReadBuffer;
 import 'package:path/path.dart' show basenameWithoutExtension, extension;
+import 'package:zx_tape_player/models/zx_model.dart';
 import 'package:zx_tape_player/services/tape_image_service.dart';
+import 'package:zx_tape_player/snapshots/snapshot_converter.dart';
+import 'package:zx_tape_player/snapshots/snapshot_decoder.dart';
+import 'package:zx_tape_player/snapshots/snapshot_error.dart';
+import 'package:zx_tape_player/snapshots/snapshot_receiver_manifest.dart';
+import 'package:zx_tape_player/snapshots/snapshot_renderer.dart';
+import 'package:zx_tape_player/snapshots/snapshot_timing.dart';
 import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 // The converter package does not yet expose a public builder for raw
@@ -20,25 +27,80 @@ import 'package:zx_tape_to_wav_x/src/lib/wav_builder.dart';
 /// files, and stream controllers.
 class TapeConversionRequest {
   const TapeConversionRequest({
-    required this.tapeBytes,
-    required this.fileName,
+    required this.image,
     required this.outputPath,
     required this.progressPort,
     required this.audioFilterIndex,
+    this.snapshotAssets,
+    this.snapshotTurboProfileId,
+    this.snapshotTurboCatalogRevision,
+    this.snapshotInvertPolarity,
+    this.snapshotSampleRateHz,
   });
 
-  final Uint8List tapeBytes;
-  final String fileName;
+  final ResolvedTapeImage image;
   final String outputPath;
   final SendPort progressPort;
   final int audioFilterIndex;
+  final SnapshotAssetBundle? snapshotAssets;
+  final String? snapshotTurboProfileId;
+  final String? snapshotTurboCatalogRevision;
+  final bool? snapshotInvertPolarity;
+  final int? snapshotSampleRateHz;
+}
+
+class TapeConversionMessage {
+  const TapeConversionMessage({
+    required this.code,
+    required this.message,
+    this.offset,
+  });
+
+  final String code;
+  final String message;
+  final int? offset;
+}
+
+class SnapshotProtocolMetadata {
+  const SnapshotProtocolMetadata({
+    required this.protocolVersion,
+    required this.receiverSha256,
+    required this.registerSha256,
+    required this.wavProfile,
+    required this.turboProfileId,
+    required this.turboCatalogRevision,
+    required this.turboTimingFingerprint,
+    required this.invertedPolarity,
+    required this.sampleRateHz,
+  });
+
+  final String protocolVersion;
+  final String receiverSha256;
+  final String registerSha256;
+  final String wavProfile;
+  final String turboProfileId;
+  final String turboCatalogRevision;
+  final String turboTimingFingerprint;
+  final bool invertedPolarity;
+  final int sampleRateHz;
 }
 
 class TapeConversionResponse {
-  const TapeConversionResponse(this.blocks, this.warnings);
+  const TapeConversionResponse({
+    required this.mediaKind,
+    required this.blocks,
+    required this.warnings,
+    this.error,
+    this.protocolMetadata,
+  });
 
+  final TapeMediaKind mediaKind;
   final List<TapeBlockInfo> blocks;
-  final List<String> warnings;
+  final List<TapeConversionMessage> warnings;
+  final TapeConversionMessage? error;
+  final SnapshotProtocolMetadata? protocolMetadata;
+
+  bool get isSuccess => error == null;
 }
 
 class _RawSinclairTape {
@@ -64,9 +126,25 @@ const _maximumP81NameLength = 127;
 /// Checks all formats accepted by the production conversion worker, including
 /// ZIP-wrapped images. Unlike extension-only checks this rejects truncated
 /// ZX80/ZX81 memory images whose E_LINE pointer cannot fit in the file.
-Future<bool> isTapeImageSupported(Uint8List bytes, String fileName) async {
+Future<bool> isTapeImageSupported(
+  Uint8List bytes,
+  String fileName, {
+  ZxModel? model,
+}) async {
   try {
-    final image = resolveTapeImage((bytes, fileName));
+    final image = resolveTapeImage((bytes, fileName), model: model);
+    return await isResolvedTapeImageSupported(image);
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<bool> isResolvedTapeImageSupported(ResolvedTapeImage image) async {
+  try {
+    if (image.mediaKind == TapeMediaKind.snapshot) {
+      const SnapshotDecoder().decode(image.bytes, image.fileName);
+      return true;
+    }
     if (_tryParseRawSinclairTape(image) != null) return true;
     final tape = await ZxTape.create(image.bytes, fileName: image.fileName);
     return tape.tapeType != TapeType.unknown;
@@ -78,7 +156,10 @@ Future<bool> isTapeImageSupported(Uint8List bytes, String fileName) async {
 Future<TapeConversionResponse> convertTapeImage(
   TapeConversionRequest request,
 ) async {
-  final image = resolveTapeImage((request.tapeBytes, request.fileName));
+  final image = request.image;
+  if (image.mediaKind == TapeMediaKind.snapshot) {
+    return _convertSnapshotImage(request);
+  }
   final filter = AudioFilterType.values[request.audioFilterIndex];
   final rawTape = _tryParseRawSinclairTape(image);
 
@@ -107,7 +188,117 @@ Future<TapeConversionResponse> convertTapeImage(
   }
 
   await File(request.outputPath).writeAsBytes(wavBytes, flush: true);
-  return TapeConversionResponse(blocks, warnings);
+  return TapeConversionResponse(
+    mediaKind: TapeMediaKind.tape,
+    blocks: blocks,
+    warnings: [
+      for (final warning in warnings)
+        TapeConversionMessage(code: 'tape_warning', message: warning),
+    ],
+  );
+}
+
+Future<TapeConversionResponse> _convertSnapshotImage(
+  TapeConversionRequest request,
+) async {
+  try {
+    final assets = request.snapshotAssets;
+    if (assets == null) {
+      throw const SnapshotException(
+        SnapshotErrorCode.invalidAsset,
+        'Snapshot receiver assets were not supplied to the worker',
+      );
+    }
+    final profileId = request.snapshotTurboProfileId;
+    final catalogRevision = request.snapshotTurboCatalogRevision;
+    final invertPolarity = request.snapshotInvertPolarity;
+    final sampleRateHz = request.snapshotSampleRateHz;
+    if (profileId == null ||
+        catalogRevision == null ||
+        invertPolarity == null ||
+        sampleRateHz == null) {
+      throw const SnapshotException(
+        SnapshotErrorCode.invalidTurboBlock,
+        'Snapshot signal settings were not supplied to the worker',
+      );
+    }
+    final turboProfile = SnapshotTurboProfiles.resolve(
+      id: profileId,
+      catalogRevision: catalogRevision,
+    );
+    final sampleRate = SnapshotAudioSampleRate.tryFromHz(sampleRateHz);
+    if (sampleRate == null) {
+      throw SnapshotException(
+        SnapshotErrorCode.invalidTurboBlock,
+        'Unsupported snapshot sample rate $sampleRateHz Hz',
+      );
+    }
+    final result = const SnapshotConverter().convert(
+      snapshotBytes: request.image.bytes,
+      fileName: request.image.fileName,
+      assets: assets,
+      turboProfile: turboProfile,
+      invertPolarity: invertPolarity,
+      sampleRate: sampleRate,
+      onProgress: request.progressPort.send,
+    );
+    final blocks = <TapeBlockInfo>[];
+    for (var index = 0; index < result.wav.blocks.length; index++) {
+      final rendered = result.wav.blocks[index];
+      final turboIndex = index - 2;
+      blocks.add(
+        TapeBlockInfo(
+          index: index,
+          typeName: 'Snapshot',
+          title: rendered.name,
+          dataLength: turboIndex >= 0
+              ? result.turboBlocks[turboIndex].originalLength
+              : null,
+          isHeader: index < 2,
+          sampleOffset: rendered.startFrame,
+          timeOffset: rendered.start,
+          duration: rendered.duration,
+        ),
+      );
+    }
+    await File(
+      request.outputPath,
+    ).writeAsBytes(result.wav.wavBytes, flush: true);
+    final layout = SnapshotReceiverManifest.layoutFor(result.snapshot.machine);
+    return TapeConversionResponse(
+      mediaKind: TapeMediaKind.snapshot,
+      blocks: blocks,
+      warnings: [
+        for (final warning in result.warnings)
+          TapeConversionMessage(
+            code: warning.code.name,
+            message: warning.message,
+          ),
+      ],
+      protocolMetadata: SnapshotProtocolMetadata(
+        protocolVersion: SnapshotReceiverManifest.protocolVersion,
+        receiverSha256: layout.sha256,
+        registerSha256: SnapshotReceiverManifest.registerSha256,
+        wavProfile: SnapshotWavRenderer.profileIdFor(sampleRate),
+        turboProfileId: result.turboProfile.id,
+        turboCatalogRevision: SnapshotTurboProfiles.catalogRevision,
+        turboTimingFingerprint: result.turboProfile.timingFingerprint,
+        invertedPolarity: result.invertPolarity,
+        sampleRateHz: result.sampleRate.hz,
+      ),
+    );
+  } on SnapshotException catch (error) {
+    return TapeConversionResponse(
+      mediaKind: TapeMediaKind.snapshot,
+      blocks: const [],
+      warnings: const [],
+      error: TapeConversionMessage(
+        code: error.code.name,
+        message: error.message,
+        offset: error.offset,
+      ),
+    );
+  }
 }
 
 TapeConversionResult _convertRawSinclairTape(

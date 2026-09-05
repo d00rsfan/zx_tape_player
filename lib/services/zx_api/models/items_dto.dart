@@ -46,7 +46,13 @@ class Hits {
   dynamic get id => _id;
   Source? get source => _source;
 
-  Hits({dynamic id, Source? source, Total? total, dynamic maxScore, List<Hits>? hits}) {
+  Hits({
+    dynamic id,
+    Source? source,
+    Total? total,
+    dynamic maxScore,
+    List<Hits>? hits,
+  }) {
     _total = total;
     _maxScore = maxScore;
     _hits = hits;
@@ -178,20 +184,30 @@ class Source {
     map["originalDayOfRelease"] = _originalDayOfRelease;
     map["availability"] = _availability;
     map["title"] = _title;
-    if (_releases != null) map["releases"] = _releases!.map((v) => v.toJson()).toList();
+    if (_releases != null) {
+      map["releases"] = _releases!.map((v) => v.toJson()).toList();
+    }
     map["originalMonthOfRelease"] = _originalMonthOfRelease;
     if (_score != null) map["score"] = _score!.toJson();
     map["genreType"] = _genreType;
     if (_additionalDownloads != null) {
-      map["additionalDownloads"] = _additionalDownloads!.map((v) => v.toJson()).toList();
+      map["additionalDownloads"] = _additionalDownloads!
+          .map((v) => v.toJson())
+          .toList();
     }
-    if (_screens != null) map["screens"] = _screens!.map((v) => v.toJson()).toList();
+    if (_screens != null) {
+      map["screens"] = _screens!.map((v) => v.toJson()).toList();
+    }
     map["originalYearOfRelease"] = _originalYearOfRelease;
     map["genre"] = _genre;
-    if (_publishers != null) map["publishers"] = _publishers!.map((v) => v.toJson()).toList();
+    if (_publishers != null) {
+      map["publishers"] = _publishers!.map((v) => v.toJson()).toList();
+    }
     map["genreSubType"] = _genreSubType;
     map["machineType"] = _machineType;
-    if (_authors != null) map["authors"] = _authors!.map((v) => v.toJson()).toList();
+    if (_authors != null) {
+      map["authors"] = _authors!.map((v) => v.toJson()).toList();
+    }
     if (_originalPrice != null) map["originalPrice"] = _originalPrice!.toJson();
     map["remarks"] = _remarks;
     if (_tosec != null) map["tosec"] = _tosec!.map((v) => v.toJson()).toList();
@@ -267,13 +283,17 @@ class Authors {
     _groupType = json["groupType"];
     if (json["notes"] != null) {
       _notes = [];
-      json["notes"].forEach((v) { _notes!.add(v); });
+      json["notes"].forEach((v) {
+        _notes!.add(v);
+      });
     }
     _groupCountry = json["groupCountry"];
     _authorSeq = json["authorSeq"];
     if (json["roles"] != null) {
       _roles = [];
-      json["roles"].forEach((v) { _roles!.add(v); });
+      json["roles"].forEach((v) {
+        _roles!.add(v);
+      });
     }
     _name = json["name"];
     _labelType = json["labelType"];
@@ -313,7 +333,9 @@ class Publishers {
     _country = json["country"];
     if (json["notes"] != null) {
       _notes = [];
-      json["notes"].forEach((v) { _notes!.add(v); });
+      json["notes"].forEach((v) {
+        _notes!.add(v);
+      });
     }
     _name = json["name"];
     _labelType = json["labelType"];
@@ -495,7 +517,7 @@ class Shards {
       "total": _total,
       "successful": _successful,
       "skipped": _skipped,
-      "failed": _failed
+      "failed": _failed,
     };
   }
 }

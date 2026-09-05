@@ -19,15 +19,16 @@ class ItemDto {
   bool? get found => _found;
   Source? get source => _source;
 
-  ItemDto(
-      {String? index,
-      String? type,
-      dynamic id,
-      int? version,
-      int? seqNo,
-      int? primaryTerm,
-      bool? found,
-      Source? source}) {
+  ItemDto({
+    String? index,
+    String? type,
+    dynamic id,
+    int? version,
+    int? seqNo,
+    int? primaryTerm,
+    bool? found,
+    Source? source,
+  }) {
     _index = index;
     _type = type;
     _id = id;

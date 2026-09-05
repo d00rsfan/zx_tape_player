@@ -8,6 +8,11 @@ import 'package:zx_tape_player/ui/search_screen.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 
+const double _settingsTilePadding = 14.0;
+const double _settingsTileBorderWidth = 1.0;
+const double _settingsLeadingWidth = 48.0;
+const double _settingsLeadingGap = 8.0;
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
   static const routeName = '/settings';
@@ -185,22 +190,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24.0),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
+                key: const ValueKey('settings_reset_default_button'),
                 onPressed: _onReset,
-                icon: const Icon(
-                  Icons.restart_alt_rounded,
-                  color: Colors.white,
-                ),
-                label: Text(
-                  tr('settings_reset_default'),
-                  style: const TextStyle(color: Colors.white),
-                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: HexColor('#3B4E63'),
-                  padding: const EdgeInsets.symmetric(vertical: 14.0),
+                  foregroundColor: Colors.white,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _settingsTilePadding + _settingsTileBorderWidth,
+                    vertical: 14.0,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: _settingsLeadingWidth,
+                      child: Center(child: Icon(Icons.restart_alt_rounded)),
+                    ),
+                    const SizedBox(width: _settingsLeadingGap),
+                    Expanded(child: Text(tr('settings_reset_default'))),
+                  ],
                 ),
               ),
             ),
@@ -243,23 +256,23 @@ class _SettingsOptionTile<T> extends StatelessWidget {
         onTap: () => onChanged(option.value),
         borderRadius: BorderRadius.circular(8.0),
         child: Container(
-          padding: const EdgeInsets.all(14.0),
+          padding: const EdgeInsets.all(_settingsTilePadding),
           decoration: BoxDecoration(
             color: HexColor('#3B4E63'),
             borderRadius: BorderRadius.circular(8.0),
             border: Border.all(
               color: selected ? Colors.white : Colors.transparent,
-              width: 1.0,
+              width: _settingsTileBorderWidth,
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Radio<T>(
-                value: option.value,
-                fillColor: WidgetStateProperty.all(Colors.white),
+              SizedBox(
+                width: _settingsLeadingWidth,
+                child: Radio<T>(value: option.value),
               ),
-              const SizedBox(width: 8.0),
+              const SizedBox(width: _settingsLeadingGap),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

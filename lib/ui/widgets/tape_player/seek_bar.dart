@@ -34,101 +34,121 @@ class _SeekBarState extends State<SeekBar> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    _sliderThemeData = SliderTheme.of(context).copyWith(
-      trackHeight: 2.0,
-    );
+    _sliderThemeData = SliderTheme.of(context).copyWith(trackHeight: 2.0);
   }
 
   @override
   Widget build(BuildContext context) {
+    final enabled = widget.onChanged != null || widget.onChangeEnd != null;
     return Stack(
       children: [
         SliderTheme(
           data: _sliderThemeData.copyWith(
-              thumbShape: HiddenThumbComponentShape(),
-              activeTrackColor: Colors.white30,
-              inactiveTrackColor: HexColor('#546B7F'),
-              trackShape: CustomTrackShape(),
-              disabledInactiveTrackColor: HexColor('#546B7F')),
+            thumbShape: HiddenThumbComponentShape(),
+            activeTrackColor: Colors.white30,
+            inactiveTrackColor: HexColor('#546B7F'),
+            trackShape: CustomTrackShape(),
+            disabledInactiveTrackColor: HexColor('#546B7F'),
+          ),
           child: ExcludeSemantics(
             child: Slider(
               min: 0.0,
               max: widget.duration.inMilliseconds.toDouble(),
               value: widget.bufferedPosition.inMilliseconds.toDouble(),
-              onChanged: (value) {
-                setState(() {
-                  _dragValue = value;
-                });
-                if (widget.onChanged != null) {
-                  widget.onChanged!(Duration(milliseconds: value.round()));
-                }
-              },
-              onChangeEnd: (value) {
-                if (widget.onChangeEnd != null) {
-                  widget.onChangeEnd!(Duration(milliseconds: value.round()));
-                }
-                _dragValue = null;
-              },
+              onChanged: enabled
+                  ? (value) {
+                      setState(() {
+                        _dragValue = value;
+                      });
+                      if (widget.onChanged != null) {
+                        widget.onChanged!(
+                          Duration(milliseconds: value.round()),
+                        );
+                      }
+                    }
+                  : null,
+              onChangeEnd: enabled
+                  ? (value) {
+                      if (widget.onChangeEnd != null) {
+                        widget.onChangeEnd!(
+                          Duration(milliseconds: value.round()),
+                        );
+                      }
+                      _dragValue = null;
+                    }
+                  : null,
             ),
           ),
         ),
         SliderTheme(
           data: _sliderThemeData.copyWith(
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.transparent,
-              thumbColor: Colors.white,
-              trackShape: CustomTrackShape(),
-              disabledThumbColor: Colors.white,
-              disabledInactiveTrackColor: Colors.transparent),
+            activeTrackColor: Colors.white,
+            inactiveTrackColor: Colors.transparent,
+            thumbColor: Colors.white,
+            trackShape: CustomTrackShape(),
+            disabledThumbColor: Colors.white,
+            disabledInactiveTrackColor: Colors.transparent,
+          ),
           child: Slider(
             min: 0.0,
             max: widget.duration.inMilliseconds.toDouble(),
-            value: min(_dragValue ?? widget.position.inMilliseconds.toDouble(),
-                widget.duration.inMilliseconds.toDouble()),
-            onChanged: (value) {
-              setState(() {
-                _dragValue = value;
-              });
-              if (widget.onChanged != null) {
-                widget.onChanged!(Duration(milliseconds: value.round()));
-              }
-            },
-            onChangeEnd: (value) {
-              if (widget.onChangeEnd != null) {
-                widget.onChangeEnd!(Duration(milliseconds: value.round()));
-              }
-              _dragValue = null;
-            },
+            value: min(
+              _dragValue ?? widget.position.inMilliseconds.toDouble(),
+              widget.duration.inMilliseconds.toDouble(),
+            ),
+            onChanged: enabled
+                ? (value) {
+                    setState(() {
+                      _dragValue = value;
+                    });
+                    if (widget.onChanged != null) {
+                      widget.onChanged!(Duration(milliseconds: value.round()));
+                    }
+                  }
+                : null,
+            onChangeEnd: enabled
+                ? (value) {
+                    if (widget.onChangeEnd != null) {
+                      widget.onChangeEnd!(
+                        Duration(milliseconds: value.round()),
+                      );
+                    }
+                    _dragValue = null;
+                  }
+                : null,
           ),
         ),
         Positioned(
           left: 0.0,
           top: 0.0,
-          child: Builder(builder: (context) {
-            return Text(_getTimeString(_position),
-                style: TextStyle(fontSize: 12.0, color: HexColor('#B1B8C1')));
-          }),
+          child: Builder(
+            builder: (context) {
+              return Text(
+                _getTimeString(_position),
+                style: TextStyle(fontSize: 12.0, color: HexColor('#B1B8C1')),
+              );
+            },
+          ),
         ),
         Positioned(
-            right: 0.0,
-            top: 0.0,
-            child: Text(
-                "%s/%s".format([
-                  _getTimeString(_remaining),
-                  _getTimeString(widget.duration)
-                ]),
-                style: TextStyle(
-                  fontSize: 12.0,
-                  color: HexColor('#B1B8C1'),
-                ))),
+          right: 0.0,
+          top: 0.0,
+          child: Text(
+            "%s/%s".format([
+              _getTimeString(_remaining),
+              _getTimeString(widget.duration),
+            ]),
+            style: TextStyle(fontSize: 12.0, color: HexColor('#B1B8C1')),
+          ),
+        ),
       ],
     );
   }
 
   String _getTimeString(Duration time) {
-    return RegExp(r'((^0*[1-9]\d*:)?\d{2}:\d{2})\.\d+$')
-            .firstMatch("$time")
-            ?.group(1) ??
+    return RegExp(
+          r'((^0*[1-9]\d*:)?\d{2}:\d{2})\.\d+$',
+        ).firstMatch("$time")?.group(1) ??
         "$time";
   }
 

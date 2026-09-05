@@ -54,7 +54,8 @@ void main() {
     expect(
       helper.urls.single,
       '/search/titles/jetpac?mode=tiny&sort=rel_desc&contenttype=SOFTWARE'
-      '&machinetype=ZXSPECTRUM&size=30&offset=2&tosectype=tap&tosectype=tzx',
+      '&machinetype=ZXSPECTRUM&size=30&offset=2&tosectype=tap&tosectype=tzx'
+      '&tosectype=z80&tosectype=sna',
     );
   });
 
@@ -232,8 +233,7 @@ void main() {
   });
 
   test('accepts explicit TZX releases for ZX81 and ZX80', () async {
-    const path =
-        '/zxdb/sinclair/entries/0031849/Trader(Trimp).tzx.zip';
+    const path = '/zxdb/sinclair/entries/0031849/Trader(Trimp).tzx.zip';
     const expectedUrl =
         'https://zxinfo.dk/media/zxdb/sinclair/entries/0031849/'
         'Trader(Trimp).tzx.zip';
@@ -252,6 +252,81 @@ void main() {
 
       expect(software.tapeFiles, <String>[expectedUrl], reason: model.name);
     }
+  });
+
+  test('accepts snapshot paths only for Spectrum full entries', () async {
+    const paths = <String>[
+      '/zxdb/sinclair/entries/0000001/state.z80',
+      '/zxdb/sinclair/entries/0000001/state.sna.zip',
+    ];
+    for (final model in ZxModel.values) {
+      settings.zxModel = model;
+      final client = MockClient(
+        (_) async => http.Response(
+          _softwareResponseForPaths(
+            id: '0000001',
+            title: 'Snapshot state',
+            paths: paths,
+          ),
+          200,
+        ),
+      );
+      final remoteService = ZxApiService(settings, client: client);
+
+      final software = await remoteService.fetchSoftware('0000001');
+
+      if (model == ZxModel.zxSpectrum) {
+        expect(software.tapeFiles, <String>[
+          'https://zxinfo.dk/media/zxdb/sinclair/entries/0000001/state.z80',
+          'https://zxinfo.dk/media/zxdb/sinclair/entries/0000001/state.sna.zip',
+        ]);
+      } else {
+        expect(software.tapeFiles, isEmpty, reason: model.name);
+      }
+    }
+  });
+
+  test('orders interleaved TOSEC and release tapes before snapshots', () async {
+    final client = MockClient(
+      (_) async => http.Response(
+        json.encode(<String, dynamic>{
+          '_id': '0000002',
+          '_source': <String, dynamic>{
+            'title': 'Mixed media',
+            'tosec': <dynamic>[
+              <String, dynamic>{'path': '/Spectrum/Snapshot-A.z80'},
+              <String, dynamic>{'path': '/Spectrum/Tape-A.tap'},
+            ],
+            'releases': <dynamic>[
+              <String, dynamic>{
+                'files': <dynamic>[
+                  <String, dynamic>{
+                    'path': '/zxdb/sinclair/entries/0000002/Snapshot-B.sna.zip',
+                  },
+                  <String, dynamic>{
+                    'path': '/zxdb/sinclair/entries/0000002/Tape-B.tzx',
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+        200,
+      ),
+    );
+    final remoteService = ZxApiService(settings, client: client);
+
+    final software = await remoteService.fetchSoftware('0000002');
+
+    expect(software.tapeFiles, <String>[
+      'https://archive.org/download/zx_spectrum_tosec_set_september_2023/'
+          'Spectrum.zip/Spectrum/Tape-A.tap',
+      'https://zxinfo.dk/media/zxdb/sinclair/entries/0000002/Tape-B.tzx',
+      'https://archive.org/download/zx_spectrum_tosec_set_september_2023/'
+          'Spectrum.zip/Spectrum/Snapshot-A.z80',
+      'https://zxinfo.dk/media/zxdb/sinclair/entries/0000002/'
+          'Snapshot-B.sna.zip',
+    ]);
   });
 
   test('accepts generic ZIP names in ZX81 and ZX80 directories', () async {
@@ -360,6 +435,10 @@ class _FakeSettingsService implements SettingsService {
   ZxModel zxModel = SettingsService.defaultZxModel;
 
   @override
+  SnapshotSignalSettings snapshotSignalSettings =
+      SettingsService.defaultSnapshotSignalSettings;
+
+  @override
   Stream<AudioFilterType> get filterChanges =>
       const Stream<AudioFilterType>.empty();
 
@@ -384,5 +463,12 @@ class _FakeSettingsService implements SettingsService {
   @override
   Future<void> setZxModel(ZxModel model) async {
     zxModel = model;
+  }
+
+  @override
+  Future<void> setSnapshotSignalSettings(
+    SnapshotSignalSettings settings,
+  ) async {
+    snapshotSignalSettings = settings;
   }
 }

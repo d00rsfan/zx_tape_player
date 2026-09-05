@@ -52,31 +52,38 @@ class _CassetteState extends State<Cassette>
       width: 260,
       height: 189,
       decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/splash/logo.png'),
-            fit: BoxFit.fill,
-          ),
-          shape: BoxShape.rectangle),
-      child: Stack(children: [
-        Positioned(
-          top: 55,
-          left: 60,
-          child: RotationTransition(
-            turns: Tween(begin: 0.0, end: _rotationRatio * _durationSec)
-                .animate(_rotationController),
-            child: Image.asset('assets/images/splash/spool.png'),
-          ),
+        image: DecorationImage(
+          image: AssetImage('assets/images/splash/logo.png'),
+          fit: BoxFit.fill,
         ),
-        Positioned(
-          top: 55,
-          right: 60,
-          child: RotationTransition(
-            turns: Tween(begin: 0.0, end: _rotationRatio * _durationSec)
-                .animate(_rotationController),
-            child: Image.asset('assets/images/splash/spool.png'),
+        shape: BoxShape.rectangle,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 55,
+            left: 60,
+            child: RotationTransition(
+              turns: Tween(
+                begin: 0.0,
+                end: _rotationRatio * _durationSec,
+              ).animate(_rotationController),
+              child: Image.asset('assets/images/splash/spool.png'),
+            ),
           ),
-        ),
-      ]),
+          Positioned(
+            top: 55,
+            right: 60,
+            child: RotationTransition(
+              turns: Tween(
+                begin: 0.0,
+                end: _rotationRatio * _durationSec,
+              ).animate(_rotationController),
+              child: Image.asset('assets/images/splash/spool.png'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

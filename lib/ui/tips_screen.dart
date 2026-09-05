@@ -44,6 +44,11 @@ class TipsScreen extends StatelessWidget {
         titleKey: 'tip_speed_title',
         bodyKey: 'tip_speed_body',
       ),
+      _Tip(
+        icon: Icons.memory_rounded,
+        titleKey: 'tip_snapshot_title',
+        bodyKey: 'tip_snapshot_body',
+      ),
     ];
 
     return Scaffold(
@@ -70,7 +75,7 @@ class TipsScreen extends StatelessWidget {
         child: ListView.separated(
           padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 24.0),
           itemCount: tips.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12.0),
+          separatorBuilder: (_, _) => const SizedBox(height: 12.0),
           itemBuilder: (context, index) => _TipCard(tip: tips[index]),
         ),
       ),

@@ -33,11 +33,14 @@ class ZxApiService implements BackendService {
       "https://archive.org/download/mirror-ftp-nvg/Mirror_ftp_nvg.zip/";
   static const _termsUrl = '/suggest/%s?machinetype=%s&contenttype=SOFTWARE';
   static const _publisherTermsUrl = '/suggest/publisher/%s';
-  static const _itemsUrl = '/search/titles/%s?mode=tiny'
+  static const _itemsUrl =
+      '/search/titles/%s?mode=tiny'
       '&sort=rel_desc&contenttype=SOFTWARE&machinetype=%s&size=%s&offset=%s';
-  static const _publisherItemsUrl = '/entries/bypublisher/%s?mode=tiny'
+  static const _publisherItemsUrl =
+      '/entries/bypublisher/%s?mode=tiny'
       '&sort=title_asc&contenttype=SOFTWARE&machinetype=%s&size=%s&offset=%s';
-  static const _letterUrl = '/entries/byletter/%s?mode=tiny'
+  static const _letterUrl =
+      '/entries/byletter/%s?mode=tiny'
       '&contenttype=SOFTWARE&machinetype=%s&size=%s&offset=%s';
   static const _itemUrl = '/entries/%s?mode=full';
   static const _fileCheckUrl = '/filecheck/%s';
@@ -51,8 +54,8 @@ class ZxApiService implements BackendService {
   final http.Client _client;
 
   ZxApiService(this._settings, {ApiBaseHelper? helper, http.Client? client})
-      : _helper = helper ?? ApiBaseHelper(_baseUrl, _userAgent),
-        _client = client ?? http.Client();
+    : _helper = helper ?? ApiBaseHelper(_baseUrl, _userAgent),
+      _client = client ?? http.Client();
 
   @override
   Future<List<TermModel>> fetchTermsList(String query) async {
@@ -60,8 +63,9 @@ class ZxApiService implements BackendService {
     if (query.startsWith(Definitions.publisherQueryPrefix)) {
       var term = query.trim();
       if (term.isEmpty) return result;
-      var jsonResponse =
-          await _helper.get(_publisherTermsUrl.format([term.safeEncode()]));
+      var jsonResponse = await _helper.get(
+        _publisherTermsUrl.format([term.safeEncode()]),
+      );
       result = (jsonResponse as List)
           .map((e) => TermDto.fromJson(e))
           .where((element) => !element.text.isNullOrEmpty())
@@ -91,8 +95,11 @@ class ZxApiService implements BackendService {
   }
 
   @override
-  Future<List<HitModel>> fetchHitsList(String query, int size,
-      {int offset = 0}) async {
+  Future<List<HitModel>> fetchHitsList(
+    String query,
+    int size, {
+    int offset = 0,
+  }) async {
     var result = <HitModel>[];
     var url = '';
     String? fallbackUrl;
@@ -118,8 +125,12 @@ class ZxApiService implements BackendService {
     }
 
     String formatUrl(String template) {
-      var formatted = template
-          .format([query.safeEncode(), model.apiMachineType, size, offset]);
+      var formatted = template.format([
+        query.safeEncode(),
+        model.apiMachineType,
+        size,
+        offset,
+      ]);
       return formatted +
           model.remoteTapeExtensions
               .map((e) => "&tosectype=%s".format([e]))
@@ -139,11 +150,14 @@ class ZxApiService implements BackendService {
     var data = ItemsDto.fromJson(jsonResponse).hits?.hits;
     if (data != null && data.isNotEmpty) {
       result = data
-          .where((element) =>
-              element.source != null &&
-              element.source!.title != null &&
-              element.source!.title!.isNotEmpty)
-          .map((e) => HitModel(
+          .where(
+            (element) =>
+                element.source != null &&
+                element.source!.title != null &&
+                element.source!.title!.isNotEmpty,
+          )
+          .map(
+            (e) => HitModel(
               e.id?.toString() ?? '',
               (e.source!.screens != null && e.source!.screens!.isNotEmpty)
                   ? _fixScreenShotUrl(e.source!.screens![0].url ?? '')
@@ -153,64 +167,74 @@ class ZxApiService implements BackendService {
               e.source!.genreType,
               _firstPublisherName(e.source!.publishers),
               e.source!.score?.votes,
-              e.source!.score?.score))
+              e.source!.score?.score,
+            ),
+          )
           .toList();
     }
     return result;
   }
 
   @override
-  Future<SoftwareModel> fetchSoftware(String id,
-      {String? recognizedTapeFileName}) async {
+  Future<SoftwareModel> fetchSoftware(
+    String id, {
+    String? recognizedTapeFileName,
+  }) async {
     final model = _settings.zxModel;
     var url = _baseUrl + _itemUrl.format([id]);
-    var response =
-        await UserAgentClient(_userAgent, _client).get(Uri.parse(url));
+    var response = await UserAgentClient(
+      _userAgent,
+      _client,
+    ).get(Uri.parse(url));
     if (response.statusCode == 200) {
       var item = ItemDto.fromJson(json.decode(response.body));
       var e = item;
       return SoftwareModel(
-          e.id?.toString() ?? id,
-          true,
-          e.source?.title ?? 'Unknown',
-          e.source?.originalYearOfRelease?.toString(),
-          e.source?.genre,
-          e.source?.score?.votes,
-          e.source?.score?.score,
-          e.source?.originalPrice != null
-              ? (e.source!.originalPrice!.amount != null
+        e.id?.toString() ?? id,
+        true,
+        e.source?.title ?? 'Unknown',
+        e.source?.originalYearOfRelease?.toString(),
+        e.source?.genre,
+        e.source?.score?.votes,
+        e.source?.score?.score,
+        e.source?.originalPrice != null
+            ? (e.source!.originalPrice!.amount != null
                       ? '${e.source!.originalPrice!.amount}${e.source!.originalPrice!.currency}'
                       : '')
                   .replaceAll('/', '')
                   .replaceAll('NA', '')
-              : '',
-          e.source?.remarks,
-          (e.source?.authors ?? [])
-              .where((a) =>
-                  !(a.name.isNullOrEmpty() || a.type.isNullOrEmpty()))
-              .map((a) => AuthorModel(a.name!, a.type!))
-              .toList(),
-          (e.source?.screens ?? [])
-              .map(
-                  (s) => ScreenShotModel(s.type ?? '', _fixScreenShotUrl(s.url ?? '')))
-              .toList(),
-          recognizedTapeFileName,
-          [
-            ...(e.source?.tosec ?? [])
-                .where((t) => _isSupportedTapeFile(t.path ?? '', model))
-                .map((t) => _fixToSecUrl(t.path ?? '')),
-            ...(e.source?.releases ?? [])
-                .expand((r) => r.files ?? <Tosec>[])
-                .where((f) => _isSupportedTapeFile(f.path ?? '', model))
-                .map((f) => _fixReleaseFileUrl(f.path ?? '')),
-          ]);
+            : '',
+        e.source?.remarks,
+        (e.source?.authors ?? [])
+            .where((a) => !(a.name.isNullOrEmpty() || a.type.isNullOrEmpty()))
+            .map((a) => AuthorModel(a.name!, a.type!))
+            .toList(),
+        (e.source?.screens ?? [])
+            .map(
+              (s) =>
+                  ScreenShotModel(s.type ?? '', _fixScreenShotUrl(s.url ?? '')),
+            )
+            .toList(),
+        recognizedTapeFileName,
+        [
+          ...(e.source?.tosec ?? [])
+              .where((t) => _isSupportedTapeFile(t.path ?? '', model))
+              .map((t) => _fixToSecUrl(t.path ?? '')),
+          ...(e.source?.releases ?? [])
+              .expand((r) => r.files ?? <Tosec>[])
+              .where((f) => _isSupportedTapeFile(f.path ?? '', model))
+              .map((f) => _fixReleaseFileUrl(f.path ?? '')),
+        ],
+      );
     }
     throw Exception('Failed to load software: ${response.statusCode}');
   }
 
   @override
-  Future<SoftwareModel> recognizeTape(String filePath,
-      {String? localTitle}) async {
+  Future<SoftwareModel> recognizeTape(
+    String filePath, {
+    String? localTitle,
+  }) async {
     var md5 = await _calculateHash(filePath);
     var fileCheckUrl = _baseUrl + _fileCheckUrl.format([md5]);
 
@@ -218,27 +242,32 @@ class ZxApiService implements BackendService {
 
     if (!await InternetConnectionChecker.instance.hasConnection) return result;
 
-    var response = await UserAgentClient(_userAgent, _client)
-        .get(Uri.parse(fileCheckUrl));
+    var response = await UserAgentClient(
+      _userAgent,
+      _client,
+    ).get(Uri.parse(fileCheckUrl));
     if (response.statusCode == 200) {
       var fileCheck = FileCheckDto.fromJson(json.decode(response.body));
       if (fileCheck.entryId != null) {
-        var remote = await fetchSoftware(fileCheck.entryId!,
-            recognizedTapeFileName: fileCheck.file?.filename);
+        var remote = await fetchSoftware(
+          fileCheck.entryId!,
+          recognizedTapeFileName: fileCheck.file?.filename,
+        );
         result = SoftwareModel(
-            remote.id,
-            false,
-            remote.title,
-            remote.year,
-            remote.genre,
-            remote.votes,
-            remote.score,
-            remote.price,
-            remote.remarks,
-            remote.authors,
-            remote.screenShotUrls,
-            null,
-            [filePath]);
+          remote.id,
+          false,
+          remote.title,
+          remote.year,
+          remote.genre,
+          remote.votes,
+          remote.score,
+          remote.price,
+          remote.remarks,
+          remote.authors,
+          remote.screenShotUrls,
+          null,
+          [filePath],
+        );
       }
     }
 
@@ -255,8 +284,10 @@ class ZxApiService implements BackendService {
         .split('/')
         .map((s) => Uri.encodeComponent(Uri.decodeComponent(s)))
         .join('/');
-    var response = await UserAgentClient(_userAgent, _client)
-        .get(Uri.parse(base + encodedPath));
+    var response = await UserAgentClient(
+      _userAgent,
+      _client,
+    ).get(Uri.parse(base + encodedPath));
     if (response.statusCode == 200) return response.bodyBytes;
     throw Exception('Failed to download tape: ${response.statusCode}');
   }
@@ -285,8 +316,9 @@ class ZxApiService implements BackendService {
     var ext = extension(path).replaceAll('.', '').toLowerCase();
     if (model.remoteTapeExtensions.contains(ext)) return true;
     if (ext == 'zip') {
-      var innerExt =
-          extension(withoutExtension(path)).replaceAll('.', '').toLowerCase();
+      var innerExt = extension(
+        withoutExtension(path),
+      ).replaceAll('.', '').toLowerCase();
       if (model.remoteTapeExtensions.contains(innerExt)) return true;
 
       // Some World of Spectrum ZX80/ZX81 archives have generic names such as

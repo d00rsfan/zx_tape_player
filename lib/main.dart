@@ -46,24 +46,31 @@ void main() async {
     MediaStore.appFolder = Definitions.appTitle;
   }
 
-  await SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   getIt.registerLazySingleton<SilenceControlService>(
-      () => ZxSilenceControlService());
+    () => ZxSilenceControlService(),
+  );
   getIt.registerLazySingleton<WakeLockControlService>(
-      () => ZxWakeLockControlService());
+    () => ZxWakeLockControlService(),
+  );
   getIt.registerLazySingleton<VolumeControlService>(
-      () => ZxVolumeControlService());
+    () => ZxVolumeControlService(),
+  );
   final settingsService = ZxSettingsService();
   await settingsService.load();
   getIt.registerSingleton<SettingsService>(settingsService);
   getIt.registerLazySingleton<BackendService>(
-      () => ZxApiService(settingsService));
+    () => ZxApiService(settingsService),
+  );
 
   await EasyLocalization.ensureInitialized();
 
-  runApp(EasyLocalization(
+  runApp(
+    EasyLocalization(
       supportedLocales: const [
         Locale('en', 'US'),
         Locale('cs', 'CZ'),
@@ -76,7 +83,7 @@ void main() async {
         Locale('sk', 'SK'),
         Locale('uk', 'UA'),
         Locale('pl', 'PL'),
-        Locale('sv', 'SE')
+        Locale('sv', 'SE'),
       ],
       path: 'assets/translations',
       fallbackLocale: const Locale('en', 'US'),
@@ -84,7 +91,9 @@ void main() async {
       // rather than rendering the raw key string. Keeps newly added UI
       // text readable even when translations for some locales lag behind.
       useFallbackTranslations: true,
-      child: const ZxTapePlayer()));
+      child: const ZxTapePlayer(),
+    ),
+  );
 }
 
 class ZxTapePlayer extends StatelessWidget {
@@ -93,24 +102,39 @@ class ZxTapePlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: context.localizationDelegates,
-        supportedLocales: context.supportedLocales,
-        locale: context.locale,
-        title: Definitions.appTitle,
-        theme: ThemeData(
-          primaryColor: Colors.white,
-          scaffoldBackgroundColor: HexColor('#546B7F'),
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-          fontFamily: 'ZxSpectrum',
-        ),
-        home: const SplashScreen(),
-        routes: {
-          HomeScreen.routeName: (context) => const HomeScreen(),
-          SearchScreen.routeName: (context) => const SearchScreen(),
-          PlayerScreen.routeName: (context) => const PlayerScreen(),
-          TipsScreen.routeName: (context) => const TipsScreen(),
-          SettingsScreen.routeName: (context) => const SettingsScreen(),
-        });
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
+      title: Definitions.appTitle,
+      theme: buildAppTheme(),
+      home: const SplashScreen(),
+      routes: {
+        HomeScreen.routeName: (context) => const HomeScreen(),
+        SearchScreen.routeName: (context) => const SearchScreen(),
+        PlayerScreen.routeName: (context) => const PlayerScreen(),
+        TipsScreen.routeName: (context) => const TipsScreen(),
+        SettingsScreen.routeName: (context) => const SettingsScreen(),
+      },
+    );
   }
 }
+
+ThemeData buildAppTheme() => ThemeData(
+  primaryColor: Colors.white,
+  scaffoldBackgroundColor: HexColor('#546B7F'),
+  visualDensity: VisualDensity.adaptivePlatformDensity,
+  fontFamily: 'ZxSpectrum',
+  radioTheme: const RadioThemeData(
+    fillColor: WidgetStatePropertyAll(Colors.white),
+  ),
+  checkboxTheme: CheckboxThemeData(
+    fillColor: WidgetStateProperty.resolveWith(
+      (states) => states.contains(WidgetState.selected)
+          ? Colors.white
+          : Colors.transparent,
+    ),
+    checkColor: const WidgetStatePropertyAll(Color(0xff28384c)),
+    side: const BorderSide(color: Colors.white, width: 2.0),
+  ),
+);

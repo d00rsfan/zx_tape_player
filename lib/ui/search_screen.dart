@@ -30,8 +30,9 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _textController = TextEditingController();
   final SuggestionsController<TermModel> _suggestionsController =
       SuggestionsController<TermModel>();
-  final RefreshController _refreshController =
-      RefreshController(initialRefresh: false);
+  final RefreshController _refreshController = RefreshController(
+    initialRefresh: false,
+  );
 
   _SearchScreenBloc? _bloc;
 
@@ -47,7 +48,8 @@ class _SearchScreenState extends State<SearchScreen> {
       _textController.text =
           ModalRoute.of(context)!.settings.arguments as String;
       _textController.selection = TextSelection.fromPosition(
-          TextPosition(offset: _textController.text.length));
+        TextPosition(offset: _textController.text.length),
+      );
       _bloc = _SearchScreenBloc();
     }
   }
@@ -63,53 +65,61 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: SafeArea(
-          child: Column(
+      body: SafeArea(
+        child: Column(
           children: [
             Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 40.0, 16.0, 4.0),
-                child: _buildSearchField(context)),
+              padding: const EdgeInsets.fromLTRB(16.0, 40.0, 16.0, 4.0),
+              child: _buildSearchField(context),
+            ),
             Expanded(
-                child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: StreamBuilder<ApiResponse<List<HitModel>>>(
-                        stream: _bloc!.hitsListStream,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            switch (snapshot.data!.status) {
-                              case Status.LOADING:
-                                return LoadingProgress(
-                                    loadingText: tr("loading"));
-                              case Status.COMPLETED:
-                                return _buildSearchList(
-                                    context, snapshot.data!);
-                              case Status.ERROR:
-                                return AppError(
-                                  text: tr('data_retrieving_error'),
-                                  buttonText: tr('retry'),
-                                  action: () =>
-                                      _bloc!.fetchHitsList(_textController.text),
-                                );
-                            }
-                          }
-                          // No search has been submitted yet — explain the
-                          // publisher-search trick instead of a blank area.
-                          return Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                  32.0, 24.0, 32.0, 0.0),
-                              child: Align(
-                                  alignment: Alignment.topCenter,
-                                  child: Text(tr('search_publisher_hint'),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          fontSize: 13.0,
-                                          height: 1.4,
-                                          color: HexColor('#546B7F'),
-                                          letterSpacing: -0.5))));
-                        })))
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: StreamBuilder<ApiResponse<List<HitModel>>>(
+                  stream: _bloc!.hitsListStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      switch (snapshot.data!.status) {
+                        case Status.loading:
+                          return LoadingProgress(loadingText: tr("loading"));
+                        case Status.completed:
+                          return _buildSearchList(context, snapshot.data!);
+                        case Status.error:
+                          return AppError(
+                            text: tr('data_retrieving_error'),
+                            buttonText: tr('retry'),
+                            action: () =>
+                                _bloc!.fetchHitsList(_textController.text),
+                          );
+                      }
+                    }
+                    // No search has been submitted yet — explain the
+                    // publisher-search trick instead of a blank area.
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(32.0, 24.0, 32.0, 0.0),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: Text(
+                          tr('search_publisher_hint'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13.0,
+                            height: 1.4,
+                            color: HexColor('#546B7F'),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
           ],
-        )),
-        resizeToAvoidBottomInset: false);
+        ),
+      ),
+      resizeToAvoidBottomInset: false,
+    );
   }
 
   Future<void> _runSearch(String query) async {
@@ -119,303 +129,337 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildSearchField(BuildContext context) {
     return TypeAheadField<TermModel>(
-        suggestionsController: _suggestionsController,
-        controller: _textController,
-        builder: (context, controller, focusNode) {
-          // flutter_typeahead binds Enter → ActivateIntent and swallows the
-          // event whenever the suggestions box is open, even when nothing is
-          // highlighted — which was preventing a hardware-keyboard Enter
-          // from triggering a search. This deeper Actions override handles
-          // ActivateIntent only when no suggestion is highlighted (firing
-          // the search itself); otherwise it reports as disabled so the
-          // intent bubbles up to flutter_typeahead's own action and the
-          // arrow-key suggestion-selection flow keeps working.
-          return Actions(
-            actions: <Type, Action<Intent>>{
-              ActivateIntent: _ActivateSearchAction(
-                controller: _suggestionsController,
-                onActivate: () => _runSearch(_textController.text),
-              ),
+      suggestionsController: _suggestionsController,
+      controller: _textController,
+      builder: (context, controller, focusNode) {
+        // flutter_typeahead binds Enter → ActivateIntent and swallows the
+        // event whenever the suggestions box is open, even when nothing is
+        // highlighted — which was preventing a hardware-keyboard Enter
+        // from triggering a search. This deeper Actions override handles
+        // ActivateIntent only when no suggestion is highlighted (firing
+        // the search itself); otherwise it reports as disabled so the
+        // intent bubbles up to flutter_typeahead's own action and the
+        // arrow-key suggestion-selection flow keeps working.
+        return Actions(
+          actions: <Type, Action<Intent>>{
+            ActivateIntent: _ActivateSearchAction(
+              controller: _suggestionsController,
+              onActivate: () => _runSearch(_textController.text),
+            ),
+          },
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (text) async {
+              _textController.text = text;
+              await _runSearch(text);
             },
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (text) async {
-                _textController.text = text;
-                await _runSearch(text);
-              },
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18.0,
-                  letterSpacing: -0.5),
-              autofocus: true,
-              cursorColor: Colors.white,
-              onChanged: (text) async {
-                if (text.isEmpty) Navigator.pop(context);
-              },
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                prefixIcon: _textController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon:
-                            Icon(Icons.close, color: HexColor("#546B7F")),
-                        onPressed: () {
-                          setState(() {
-                            _textController.clear();
-                          });
-                          Navigator.pop(context);
-                        }),
-                suffixIcon: IconButton(
-                    icon: Icon(Icons.search, color: HexColor("#68AD56")),
-                    onPressed: () => _runSearch(_textController.text)),
-                hintText: tr('search_hint'),
-                filled: true,
-                fillColor: HexColor('#28384C'),
-                isDense: true,
-                hintStyle: TextStyle(
-                  fontSize: 12.0,
-                  color: HexColor('546B7F'),
-                  letterSpacing: -0.5,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18.0,
+              letterSpacing: -0.5,
+            ),
+            autofocus: true,
+            cursorColor: Colors.white,
+            onChanged: (text) async {
+              if (text.isEmpty) Navigator.pop(context);
+            },
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              prefixIcon: _textController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: Icon(Icons.close, color: HexColor("#546B7F")),
+                      onPressed: () {
+                        setState(() {
+                          _textController.clear();
+                        });
+                        Navigator.pop(context);
+                      },
+                    ),
+              suffixIcon: IconButton(
+                icon: Icon(Icons.search, color: HexColor("#68AD56")),
+                onPressed: () => _runSearch(_textController.text),
+              ),
+              hintText: tr('search_hint'),
+              filled: true,
+              fillColor: HexColor('#28384C'),
+              isDense: true,
+              hintStyle: TextStyle(
+                fontSize: 12.0,
+                color: HexColor('546B7F'),
+                letterSpacing: -0.5,
+              ),
+              errorStyle: TextStyle(
+                color: HexColor('EAD849'),
+                fontSize: 14.0,
+                letterSpacing: -0.5,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: const BorderSide(
+                  color: Colors.transparent,
+                  width: 0.0,
                 ),
-                errorStyle: TextStyle(
-                  color: HexColor('EAD849'),
-                  fontSize: 14.0,
-                  letterSpacing: -0.5,
+                borderRadius: BorderRadius.circular(3.5),
+              ),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: const BorderSide(
+                  color: Colors.transparent,
+                  width: 0.0,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: const BorderSide(
-                      color: Colors.transparent, width: 0.0),
-                  borderRadius: BorderRadius.circular(3.5),
-                ),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: const BorderSide(
-                      color: Colors.transparent, width: 0.0),
-                  borderRadius: BorderRadius.circular(3.5),
-                ),
+                borderRadius: BorderRadius.circular(3.5),
               ),
             ),
-          );
-        },
-        suggestionsCallback: (query) async =>
-            await _bloc!.fetchTermsList(query),
-        decorationBuilder: (context, child) {
-          return Material(
-            elevation: 0,
-            color: HexColor('#546B7F'),
-            child: child,
-          );
-        },
-        emptyBuilder: (context) {
-          return Center(
-            child: Text(
-              tr('no_suggestions_found'),
-              style: TextStyle(
-                  fontSize: 14,
-                  color: HexColor('#AFB6BB'),
-                  letterSpacing: -0.5),
-              textAlign: TextAlign.center,
+          ),
+        );
+      },
+      suggestionsCallback: (query) async => await _bloc!.fetchTermsList(query),
+      decorationBuilder: (context, child) {
+        return Material(elevation: 0, color: HexColor('#546B7F'), child: child);
+      },
+      emptyBuilder: (context) {
+        return Center(
+          child: Text(
+            tr('no_suggestions_found'),
+            style: TextStyle(
+              fontSize: 14,
+              color: HexColor('#AFB6BB'),
+              letterSpacing: -0.5,
             ),
-          );
-        },
-        loadingBuilder: (context) =>
-            LoadingProgress(loadingText: tr("loading")),
-        itemBuilder: (context, suggestion) {
-          var text = suggestion.text;
-          if (suggestion.type == Definitions.letterType) {
-            text = tr('all_tapes_by_letter').format([text]);
-          } else if (suggestion.type == Definitions.publisherType) {
-            text = tr('all_tapes_by_publisher').format([text]);
-          }
-          return ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 0.00, vertical: 0.00),
-              trailing:
-                  Text('>', style: TextStyle(color: HexColor('#AFB6BB'))),
-              title: Text(text,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14.0,
-                    height: 1.8,
-                    letterSpacing: -0.5,
-                  )));
-        },
-        onSelected: (suggestion) async {
-          var text = suggestion.text;
-          // Keep the leading space so the query stays in publisher mode.
-          if (suggestion.type == Definitions.publisherType) {
-            text = Definitions.publisherQueryPrefix + text;
-          }
-          _textController.text = text;
-          await _bloc!.fetchHitsList(_textController.text);
-        });
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
+      loadingBuilder: (context) => LoadingProgress(loadingText: tr("loading")),
+      itemBuilder: (context, suggestion) {
+        var text = suggestion.text;
+        if (suggestion.type == Definitions.letterType) {
+          text = tr('all_tapes_by_letter').format([text]);
+        } else if (suggestion.type == Definitions.publisherType) {
+          text = tr('all_tapes_by_publisher').format([text]);
+        }
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 0.00,
+            vertical: 0.00,
+          ),
+          trailing: Text('>', style: TextStyle(color: HexColor('#AFB6BB'))),
+          title: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14.0,
+              height: 1.8,
+              letterSpacing: -0.5,
+            ),
+          ),
+        );
+      },
+      onSelected: (suggestion) async {
+        var text = suggestion.text;
+        // Keep the leading space so the query stays in publisher mode.
+        if (suggestion.type == Definitions.publisherType) {
+          text = Definitions.publisherQueryPrefix + text;
+        }
+        _textController.text = text;
+        await _bloc!.fetchHitsList(_textController.text);
+      },
+    );
   }
 
   Widget _buildSearchList(
-      BuildContext context, ApiResponse<List<HitModel>> response) {
+    BuildContext context,
+    ApiResponse<List<HitModel>> response,
+  ) {
     return SmartRefresher(
-        enablePullDown: false,
-        enablePullUp: true,
-        controller: _refreshController,
-        onLoading: () async =>
-            await _bloc!.fetchHitsList(_textController.text, isNew: false),
-        footer: StreamBuilder<LoadStatus>(
-            stream: _bloc!.hitsLoadStatusStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                switch (snapshot.data!) {
-                  case LoadStatus.idle:
-                    _refreshController.loadComplete();
-                    break;
-                  case LoadStatus.noMore:
-                    _refreshController.loadNoData();
-                    break;
-                  case LoadStatus.failed:
-                    _refreshController.loadFailed();
-                    break;
-                  default:
-                    break;
-                }
-              }
+      enablePullDown: false,
+      enablePullUp: true,
+      controller: _refreshController,
+      onLoading: () async =>
+          await _bloc!.fetchHitsList(_textController.text, isNew: false),
+      footer: StreamBuilder<LoadStatus>(
+        stream: _bloc!.hitsLoadStatusStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            switch (snapshot.data!) {
+              case LoadStatus.idle:
+                _refreshController.loadComplete();
+                break;
+              case LoadStatus.noMore:
+                _refreshController.loadNoData();
+                break;
+              case LoadStatus.failed:
+                _refreshController.loadFailed();
+                break;
+              default:
+                break;
+            }
+          }
 
-              return CustomFooter(
-                builder: (BuildContext context, LoadStatus? mode) {
-                  switch (mode) {
-                    case LoadStatus.loading:
-                      return SizedBox(
-                          height: 55.0,
-                          child: Center(
-                            child: SpinKitThreeBounce(
-                                size: 16.0, color: HexColor('#AFB6BB')),
-                          ));
-                    case LoadStatus.failed:
-                      return SizedBox(
-                        height: 55.0,
-                        child: Center(
-                            child: Text(tr('load_failed_retry'),
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: HexColor('#B1B8C1')))),
-                      );
-                    default:
-                      return const SizedBox(height: 0.0);
-                  }
-                },
-              );
-            }),
-        child: ListView.builder(
-            itemCount: response.data!.length,
-            itemBuilder: (BuildContext context, int index) {
-              if (index >= response.data!.length) return null;
-              var item = response.data![index];
-              var textAvatar = _LetterAvatar(title: item.title);
-              return Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 6.0),
-                  child: Container(
+          return CustomFooter(
+            builder: (BuildContext context, LoadStatus? mode) {
+              switch (mode) {
+                case LoadStatus.loading:
+                  return SizedBox(
+                    height: 55.0,
+                    child: Center(
+                      child: SpinKitThreeBounce(
+                        size: 16.0,
+                        color: HexColor('#AFB6BB'),
+                      ),
+                    ),
+                  );
+                case LoadStatus.failed:
+                  return SizedBox(
+                    height: 55.0,
+                    child: Center(
+                      child: Text(
+                        tr('load_failed_retry'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: HexColor('#B1B8C1'),
+                        ),
+                      ),
+                    ),
+                  );
+                default:
+                  return const SizedBox(height: 0.0);
+              }
+            },
+          );
+        },
+      ),
+      child: ListView.builder(
+        itemCount: response.data!.length,
+        itemBuilder: (BuildContext context, int index) {
+          if (index >= response.data!.length) return null;
+          var item = response.data![index];
+          var textAvatar = _LetterAvatar(title: item.title);
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 6.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: HexColor('#3B4E63'),
+                borderRadius: const BorderRadius.all(Radius.circular(4.0)),
+              ),
+              child: ListTile(
+                onTap: () async => Navigator.pushNamed(
+                  context,
+                  PlayerScreen.routeName,
+                  arguments: PlayerArgs(item.id, isRemote: true),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 0.0,
+                ),
+                leading: SizedBox(
+                  width: 60.0,
+                  height: 75.0,
+                  child: CachedNetworkImage(
+                    useOldImageOnUrlChange: true,
+                    imageUrl: item.iconUrl,
+                    imageBuilder: (context, provider) => Container(
                       decoration: BoxDecoration(
-                          color: HexColor('#3B4E63'),
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(4.0))),
-                      child: ListTile(
-                          onTap: () async => Navigator.pushNamed(
-                              context, PlayerScreen.routeName,
-                              arguments: PlayerArgs(item.id, isRemote: true)),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 0.0),
-                          leading: SizedBox(
-                              width: 60.0,
-                              height: 75.0,
-                              child: CachedNetworkImage(
-                                  useOldImageOnUrlChange: true,
-                                  imageUrl: item.iconUrl,
-                                  imageBuilder: (context, provider) =>
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(4.0)),
-                                          image: DecorationImage(
-                                            image: provider,
-                                            fit: BoxFit.fill,
-                                          ),
-                                        ),
-                                      ),
-                                  placeholder: (context, url) => textAvatar,
-                                  errorWidget: (context, url, error) {
-                                    return textAvatar;
-                                  })),
-                          title: Text(
-                            item.title,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                letterSpacing: 0.3,
-                                fontSize: 14.0,
-                                fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: false,
-                            maxLines: 1,
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(4.0),
+                        ),
+                        image: DecorationImage(
+                          image: provider,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    ),
+                    placeholder: (context, url) => textAvatar,
+                    errorWidget: (context, url, error) {
+                      return textAvatar;
+                    },
+                  ),
+                ),
+                title: Text(
+                  item.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    letterSpacing: 0.3,
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  maxLines: 1,
+                ),
+                isThreeLine: true,
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Builder(
+                      builder: (context) {
+                        var result = item.year ?? '';
+                        if (item.genre != null) {
+                          if (result.isNotEmpty) result += ' \u2022 ';
+                          result += item.genre!;
+                        }
+                        if (item.publisher != null) {
+                          if (result.isNotEmpty) result += ' \u2022 ';
+                          result += item.publisher!;
+                        }
+                        return Text(
+                          result,
+                          style: TextStyle(
+                            color: HexColor('#B1B8C1'),
+                            letterSpacing: -0.5,
+                            fontSize: 12.0,
                           ),
-                          isThreeLine: true,
-                          subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Builder(builder: (context) {
-                                  var result = item.year ?? '';
-                                  if (item.genre != null) {
-                                    if (result.isNotEmpty) result += ' \u2022 ';
-                                    result += item.genre!;
-                                  }
-                                  if (item.publisher != null) {
-                                    if (result.isNotEmpty) result += ' \u2022 ';
-                                    result += item.publisher!;
-                                  }
-                                  return Text(
-                                    result,
-                                    style: TextStyle(
-                                        color: HexColor('#B1B8C1'),
-                                        letterSpacing: -0.5,
-                                        fontSize: 12.0),
-                                    overflow: TextOverflow.ellipsis,
-                                  );
-                                }),
-                                const SizedBox(height: 5.0),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.thumb_up_rounded,
-                                      color: HexColor('#B1B8C1'),
-                                      size: 12.0,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      item.votes?.toString() ?? tr('na'),
-                                      style: TextStyle(
-                                          color: HexColor('#B1B8C1'),
-                                          letterSpacing: -0.5,
-                                          fontSize: 12.0),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    Icon(
-                                      Icons.star_rounded,
-                                      color: HexColor('#B1B8C1'),
-                                      size: 14.0,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      item.score != null && item.score! > 0
-                                          ? item.score.toString()
-                                          : tr('na'),
-                                      style: TextStyle(
-                                          color: HexColor('#B1B8C1'),
-                                          letterSpacing: -0.5,
-                                          fontSize: 12.0),
-                                    ),
-                                  ],
-                                )
-                              ]))));
-            }));
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 5.0),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.thumb_up_rounded,
+                          color: HexColor('#B1B8C1'),
+                          size: 12.0,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          item.votes?.toString() ?? tr('na'),
+                          style: TextStyle(
+                            color: HexColor('#B1B8C1'),
+                            letterSpacing: -0.5,
+                            fontSize: 12.0,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Icon(
+                          Icons.star_rounded,
+                          color: HexColor('#B1B8C1'),
+                          size: 14.0,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          item.score != null && item.score! > 0
+                              ? item.score.toString()
+                              : tr('na'),
+                          style: TextStyle(
+                            color: HexColor('#B1B8C1'),
+                            letterSpacing: -0.5,
+                            fontSize: 12.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -452,7 +496,9 @@ class _LetterAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final letter = title.isNotEmpty ? title[0].toUpperCase() : '?';
-    final colorIndex = title.isNotEmpty ? title.codeUnitAt(0) % _colors.length : 0;
+    final colorIndex = title.isNotEmpty
+        ? title.codeUnitAt(0) % _colors.length
+        : 0;
     return Container(
       decoration: BoxDecoration(
         color: _colors[colorIndex],
@@ -472,10 +518,18 @@ class _LetterAvatar extends StatelessWidget {
   }
 
   static const _colors = [
-    Color(0xFF1abc9c), Color(0xFF2ecc71), Color(0xFF3498db),
-    Color(0xFF9b59b6), Color(0xFFe67e22), Color(0xFFe74c3c),
-    Color(0xFF16a085), Color(0xFF27ae60), Color(0xFF2980b9),
-    Color(0xFF8e44ad), Color(0xFFd35400), Color(0xFFc0392b),
+    Color(0xFF1abc9c),
+    Color(0xFF2ecc71),
+    Color(0xFF3498db),
+    Color(0xFF9b59b6),
+    Color(0xFFe67e22),
+    Color(0xFFe74c3c),
+    Color(0xFF16a085),
+    Color(0xFF27ae60),
+    Color(0xFF2980b9),
+    Color(0xFF8e44ad),
+    Color(0xFFd35400),
+    Color(0xFFc0392b),
   ];
 }
 
@@ -511,8 +565,10 @@ class _SearchScreenBloc {
     }
     try {
       var items = await _backendService.fetchHitsList(
-          query, Definitions.pageSize,
-          offset: _pageNum);
+        query,
+        Definitions.pageSize,
+        offset: _pageNum,
+      );
       if (items.isNotEmpty) {
         _pageNum++;
         _hits.addAll(items);

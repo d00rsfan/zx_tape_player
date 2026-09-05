@@ -2,9 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zx_tape_player/models/zx_model.dart';
 
 void main() {
-  test('ZX Spectrum uses Spectrum API filters', () {
+  test('ZX Spectrum uses tape and snapshot API filters', () {
     expect(ZxModel.zxSpectrum.apiMachineType, 'ZXSPECTRUM');
-    expect(ZxModel.zxSpectrum.remoteTapeExtensions, <String>['tap', 'tzx']);
+    expect(ZxModel.zxSpectrum.remoteTapeExtensions, <String>[
+      'tap',
+      'tzx',
+      'z80',
+      'sna',
+    ]);
   });
 
   test('ZX81 uses P-file and TZX API filters', () {

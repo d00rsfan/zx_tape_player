@@ -10,16 +10,18 @@ class LoadingProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
           SpinKitThreeBounce(size: 16.0, color: HexColor('#AFB6BB')),
           const SizedBox(height: 16.0),
           Text(
             loadingText,
             style: TextStyle(color: HexColor('#AFB6BB'), fontSize: 14.0),
           ),
-        ]));
+        ],
+      ),
+    );
   }
 }

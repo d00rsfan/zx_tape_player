@@ -1,18 +1,30 @@
 # ZX Tape Player [![License GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green.svg)](https://github.com/d00rsfan/zx_tape_player/blob/master/LICENSE.md)
 
-ZX Tape Player turns your device into a virtual cassette player for the Sinclair ZX Spectrum, ZX81, and ZX80 home computers. It converts tape images to audio for loading software onto the real machines through your device's jack/headphone output.
+ZX Tape Player turns your device into a virtual cassette player for the Sinclair ZX Spectrum, ZX81, and ZX80 home computers. It converts tape images to audio and can turn supported ZX Spectrum snapshots into a restoration stream for real hardware through your device's jack/headphone output.
 
 ## Supported Models and Formats
 
-| Model | Tape image formats |
+| Model | Input formats |
 | --- | --- |
-| ZX Spectrum | `.tap`, `.tzx` |
+| ZX Spectrum | tapes: `.tap`, `.tzx`; snapshots: `.z80`, `.sna` |
 | ZX81 | `.p`, `.81`, `.p81`, `.tzx` |
 | ZX80 | `.o`, `.80`, `.tzx` |
 
 Files can be selected directly or from a `.zip` archive. The app tries to identify local tapes and show metadata such as publisher and screenshots from the open [ZXInfo](https://zxinfo.dk) catalogue. You can also search that catalogue and download compatible tapes; choose the target model in Settings on the home screen. ZX Spectrum is selected by default.
 
-**PLEASE NOTE:** This is NOT an emulator and cannot run the programs in tape-image files. To run a program, you need a real ZX Spectrum, ZX81, or ZX80 connected to your device with an appropriate audio lead.
+**PLEASE NOTE:** This is NOT an emulator. Tape images are played as loading audio; snapshots are restored as saved machine state and are not reconstructed into their original tape. To run a program, you need a real ZX Spectrum, ZX81, or ZX80 connected to your device with an appropriate audio lead.
+
+### ZX Spectrum snapshot restoration
+
+The snapshot converter supports Z80 v1 48K files; Z80 v2 base 48K, unpaged 48K + Interface 1 (hardware mode 1), and base 128K files; base-model Z80 v3 48K and 128K files; and structurally valid 48K/128K SNA files. Compressed and raw supported Z80 memory forms are accepted, including the valid 128K SNA layouts where the current bank is 2 or 5. Z80 v2 mode 1 uses the ordinary 48K restore path when its separate Interface 1 ROM-paged byte is zero; a snapshot saved with that ROM paged remains unsupported.
+
+Snapshot audio is a deterministic unsigned 8-bit mono restoration protocol for the bundled ZQLoader receiver. Choose a compatible generated-signal speed from `10x`, `7x`, `5x`, `4x`, `3x`, `2.5x`, `2x`, or `1x`, select 48 kHz or 44.1 kHz WAV generation, and invert polarity when an audio path requires it; first use defaults to 5x/standard/48 kHz, then the last successfully applied settings triple is remembered across app sessions. The resulting audio itself must always be played at media-player speed 1x. Tape filters remain selectable as your preference for ordinary tapes but are ignored for snapshots. Restore stages are shown for progress only: skipping or seeking into an internal stage is disabled because later stages depend on receiver state established by earlier ones. Restart begins again at the ROM bootstrap.
+
+Supported restoration includes Spectrum RAM, Z80 CPU registers, interrupt state, border, PC/SP, and 128K `0x7ffd` paging. It does not restore AY registers, elapsed frame timing, Interface/MGT/Multiface peripheral state, nonzero `0x1ffd` state, or paged TR-DOS ROM state. A snapshot that saved paged TR-DOS state is still converted with a visible warning. Other extended and modified hardware modes are rejected rather than partially restored.
+
+The in-RAM receiver needs a small documented scratch footprint until it jumps to the restored PC. The converter places it in an all-zero fixed-RAM run while protecting the saved PC instruction, stack word, and IM2 vector page; otherwise it uses a screen fallback. If even that fallback intersects critical execution state, conversion is rejected instead of producing a known-unsafe load. Z80 files with unequal IFF1/IFF2 or v1 SamRom state, and 128K SNA files with conflicting duplicate bank 2/5 data, are likewise rejected because those states cannot be restored unambiguously.
+
+The snapshot host implementation has semantic and waveform test coverage, but real-hardware acceptance is recorded separately for repeated Android-to-48K and Android-to-128K loads before the feature is considered hardware-validated.
 
 ## In Memory of Andriy S'omak
 
@@ -152,5 +164,6 @@ For questions, bug reports, or feature requests, reach out through [GitHub Issue
 - [Thomas Kolbeck Kjaer Heckmann](mailto:zxinfo_dev@kolbeck.dk) for providing his [API v5](https://api.zxinfo.dk/v5) to the [ZXInfo](https://zxinfo.dk) database and involvement in the project;
 - [Pavlo Hladkov](https://www.behance.net/hladkovpavlo) for the UI/UX of the application;
 - [Sergey Kireev](https://github.com/psk7) for help in stabilizing the sound converter with custom loaders;
+- [Daan Scherft (Oxidaan)](https://github.com/oxidaan) for the MIT-licensed ZQLoader receiver assets used for snapshot restoration; see [`assets/snapshots/LICENSE.txt`](assets/snapshots/LICENSE.txt);
 - [Mikie](https://www.alessandrogrussu.it/tapir/index.html) for his Tapir audio post-processing implementation;
 - To everyone who contributes to keeping this project alive.

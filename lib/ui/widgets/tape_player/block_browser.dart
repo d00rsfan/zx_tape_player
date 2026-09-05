@@ -7,13 +7,15 @@ import '../../../utils/extensions.dart';
 class BlockBrowser extends StatelessWidget {
   final List<TapeBlockInfo> blocks;
   final Duration currentPosition;
-  final ValueChanged<int> onBlockTap;
+  final ValueChanged<int>? onBlockTap;
+  final String titleKey;
 
   const BlockBrowser({
     super.key,
     required this.blocks,
     required this.currentPosition,
     required this.onBlockTap,
+    this.titleKey = 'block_browser',
   });
 
   @override
@@ -38,14 +40,17 @@ class BlockBrowser extends StatelessWidget {
               ),
             ),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               child: Text(
-                tr('block_browser'),
+                tr(titleKey),
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.w600),
+                  color: Colors.white,
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             Expanded(
@@ -75,7 +80,7 @@ class BlockBrowser extends StatelessWidget {
 
   Widget _buildBlockRow(TapeBlockInfo block, bool isCurrent) {
     return InkWell(
-      onTap: () => onBlockTap(block.index),
+      onTap: onBlockTap == null ? null : () => onBlockTap!(block.index),
       child: Container(
         color: isCurrent ? HexColor('#4A5D72') : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
@@ -85,9 +90,7 @@ class BlockBrowser extends StatelessWidget {
               width: 32.0,
               child: Text(
                 '${block.index + 1}',
-                style: TextStyle(
-                    color: HexColor('#B1B8C1'),
-                    fontSize: 12.0),
+                style: TextStyle(color: HexColor('#B1B8C1'), fontSize: 12.0),
               ),
             ),
             Icon(
@@ -103,17 +106,21 @@ class BlockBrowser extends StatelessWidget {
                   Text(
                     _blockLabel(block),
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13.0,
-                        fontWeight:
-                            block.isHeader ? FontWeight.w600 : FontWeight.normal),
+                      color: Colors.white,
+                      fontSize: 13.0,
+                      fontWeight: block.isHeader
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (block.dataLength != null)
                     Text(
                       '${block.dataLength} ${tr('block_bytes')}',
                       style: TextStyle(
-                          color: HexColor('#B1B8C1'), fontSize: 11.0),
+                        color: HexColor('#B1B8C1'),
+                        fontSize: 11.0,
+                      ),
                     ),
                 ],
               ),
@@ -121,9 +128,10 @@ class BlockBrowser extends StatelessWidget {
             Text(
               _formatDuration(block.timeOffset),
               style: TextStyle(
-                  color: HexColor('#B1B8C1'),
-                  fontSize: 12.0,
-                  fontFamily: 'monospace'),
+                color: HexColor('#B1B8C1'),
+                fontSize: 12.0,
+                fontFamily: 'monospace',
+              ),
             ),
           ],
         ),

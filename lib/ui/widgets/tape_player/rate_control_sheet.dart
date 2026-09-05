@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zx_tape_player/snapshots/snapshot_timing.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
@@ -230,25 +230,15 @@ class SnapshotTurboProfileSheet extends StatelessWidget {
     required this.title,
     required this.explanation,
     required this.activeProfile,
-    required this.invertPolarity,
-    required this.invertPolarityLabel,
-    required this.sampleRate,
-    required this.sampleRateLabel,
+    this.sampleRate = SnapshotTiming.defaultSampleRate,
     required this.onSelected,
-    required this.onPolarityChanged,
-    required this.onSampleRateChanged,
   });
 
   final String title;
   final String explanation;
   final SnapshotTurboProfile activeProfile;
-  final bool invertPolarity;
-  final String invertPolarityLabel;
   final SnapshotAudioSampleRate sampleRate;
-  final String sampleRateLabel;
   final ValueChanged<SnapshotTurboProfile> onSelected;
-  final ValueChanged<bool> onPolarityChanged;
-  final ValueChanged<SnapshotAudioSampleRate> onSampleRateChanged;
 
   @override
   Widget build(BuildContext context) => RateControlSheetShell(
@@ -267,70 +257,16 @@ class SnapshotTurboProfileSheet extends StatelessWidget {
               for (final profile in SnapshotTurboProfiles.values)
                 Semantics(
                   key: ValueKey('snapshot_turbo_profile_${profile.id}'),
-                  label: profile.label,
+                  label: profile.labelAt(sampleRate),
                   button: true,
                   selected: profile == activeProfile,
                   child: RatePresetButton(
-                    label: profile.label,
+                    label: profile.labelAt(sampleRate),
                     selected: profile == activeProfile,
                     onPressed: () => onSelected(profile),
                   ),
                 ),
             ],
-          ),
-        ),
-        const SizedBox(height: 16.0),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              sampleRateLabel,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8.0),
-        SegmentedButton<SnapshotAudioSampleRate>(
-          key: const ValueKey('snapshot_sample_rate'),
-          segments: [
-            for (final rate in SnapshotAudioSampleRate.values)
-              ButtonSegment(value: rate, label: Text(rate.label)),
-          ],
-          selected: {sampleRate},
-          showSelectedIcon: false,
-          style: ButtonStyle(
-            foregroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? HexColor('#28384C')
-                  : Colors.white,
-            ),
-            backgroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? Colors.white
-                  : Colors.transparent,
-            ),
-            side: const WidgetStatePropertyAll(BorderSide(color: Colors.white)),
-          ),
-          onSelectionChanged: (selection) {
-            final selected = selection.single;
-            if (selected != sampleRate) onSampleRateChanged(selected);
-          },
-        ),
-        Material(
-          color: Colors.transparent,
-          child: CheckboxListTile(
-            key: const ValueKey('snapshot_invert_polarity'),
-            value: invertPolarity,
-            onChanged: (value) {
-              if (value != null) onPolarityChanged(value);
-            },
-            title: Text(
-              invertPolarityLabel,
-              style: const TextStyle(color: Colors.white),
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
           ),
         ),
         const SizedBox(height: 4.0),

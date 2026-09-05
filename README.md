@@ -1,6 +1,15 @@
 # ZX Tape Player [![License GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green.svg)](https://github.com/d00rsfan/zx_tape_player/blob/master/LICENSE.md)
 
-ZX Tape Player turns your device into a virtual cassette player for the Sinclair ZX Spectrum, ZX81, and ZX80 home computers. It converts tape images to audio and can turn supported ZX Spectrum snapshots into a restoration stream for real hardware through your device's jack/headphone output.
+ZX Tape Player turns your phone, tablet, or computer into a cassette player for a real Sinclair ZX Spectrum, ZX81, or ZX80.
+
+> [!CAUTION]
+> **Disconnect headphones and earbuds before playback.** ZX Tape Player generates loud, high-pitched data signals for the Sinclair’s tape input. Keep the device’s speaker away from your ears to protect your hearing.
+>
+> The app restores your saved media volume. If no volume has been saved, it sets the volume to **100%**. Resetting the app’s settings also sets the volume to **100%**.
+
+Connect your device’s audio output to the Sinclair’s tape input, choose a game or program, and press Play.
+
+Browse tape blocks, adjust tape playback speed, or export the loading audio as a WAV file. On a 48K or 128K Spectrum, you can also restore a saved session from a supported snapshot. The player runs on Android, iOS, Windows, macOS, and Linux.
 
 ## Supported Models and Formats
 
@@ -18,7 +27,20 @@ Files can be selected directly or from a `.zip` archive. The app tries to identi
 
 The snapshot converter supports Z80 v1 48K files; Z80 v2 base 48K, unpaged 48K + Interface 1 (hardware mode 1), and base 128K files; base-model Z80 v3 48K and 128K files; and structurally valid 48K/128K SNA files. Compressed and raw supported Z80 memory forms are accepted, including the valid 128K SNA layouts where the current bank is 2 or 5. Z80 v2 mode 1 uses the ordinary 48K restore path when its separate Interface 1 ROM-paged byte is zero; a snapshot saved with that ROM paged remains unsupported.
 
-Snapshot audio is a deterministic unsigned 8-bit mono restoration protocol for the bundled ZQLoader receiver. Choose a compatible generated-signal speed from `10x`, `7x`, `5x`, `4x`, `3x`, `2.5x`, `2x`, or `1x`, select 48 kHz or 44.1 kHz WAV generation, and invert polarity when an audio path requires it; first use defaults to 5x/standard/48 kHz, then the last successfully applied settings triple is remembered across app sessions. The resulting audio itself must always be played at media-player speed 1x. Tape filters remain selectable as your preference for ordinary tapes but are ignored for snapshots. Restore stages are shown for progress only: skipping or seeking into an internal stage is disabled because later stages depend on receiver state established by earlier ones. Restart begins again at the ROM bootstrap.
+Snapshot audio is a deterministic unsigned 8-bit mono restoration protocol for the bundled ZQLoader receiver. Speed labels show the data rate relative to standard ROM loading for an equal mix of zero and one bits. They update when you change the sample rate in Settings.
+
+| 48 kHz (default) | 44.1 kHz |
+| ---: | ---: |
+| 11.3x | 12.6x |
+| 6.9x | 6.5x |
+| 5.7x | 5.3x |
+| 4.6x | 4.6x |
+| 3.3x | 3.2x |
+| 2.8x | 2.7x |
+| 2.3x | 2.2x |
+| 1.1x | 1.1x |
+
+The default snapshot profile displays 5.7x at 48 kHz. Polarity inversion defaults to off. These choices are remembered across app sessions. Sample rate applies to all conversions; polarity inversion currently applies only to snapshots. The resulting audio itself must always be played at media-player speed 1x. Tape filters remain selectable as your preference for ordinary tapes but are ignored for snapshots. Restore stages are shown for progress only: skipping or seeking into an internal stage is disabled because later stages depend on receiver state established by earlier ones. Restart begins again at the ROM bootstrap.
 
 Supported restoration includes Spectrum RAM, Z80 CPU registers, interrupt state, border, PC/SP, and 128K `0x7ffd` paging. It does not restore AY registers, elapsed frame timing, Interface/MGT/Multiface peripheral state, nonzero `0x1ffd` state, or paged TR-DOS ROM state. A snapshot that saved paged TR-DOS state is still converted with a visible warning. Other extended and modified hardware modes are rejected rather than partially restored.
 
@@ -38,14 +60,17 @@ Rest in peace, Andriy. Your code lives on.
 
 ## Availability
 
-The app is no longer available on app stores. I plan to publish it on Google Play once the project is in good shape. In the meantime, you can build it yourself from source or download a pre-built APK from [Releases](https://github.com/d00rsfan/zx_tape_player/releases).
+ZX Tape Player for Android is available on [Google Play](https://play.google.com/store/apps/details?id=io.github.d00rsfan.zx_tape_player). Prebuilt desktop versions for Linux, macOS, and Windows are available on the [Releases](https://github.com/d00rsfan/zx_tape_player/releases) page.
+
+<a href="https://play.google.com/store/apps/details?id=io.github.d00rsfan.zx_tape_player"><img src="assets/images/google-play-qr.png" alt="Scan to open ZX Tape Player on Google Play" width="160"></a>
 
 ## Building from Source
 
 ### Prerequisites
 
-- [Flutter SDK](https://docs.flutter.dev/install) (tested with Flutter 3.44.8 stable, which includes Dart 3.12.2; the project requires Dart `>=3.11.0 <4.0.0`)
-- Java 21+
+- [Flutter SDK](https://docs.flutter.dev/install) (tested with Flutter 3.50.1 stable, which includes Dart 3.14.0; the project requires Dart `>=3.13.0 <4.0.0`)
+- JDK 25 for the Android build (Java and Kotlin target JVM 21)
+- Android 7.0 or later (minimum API 24, target API 37) or iOS 15 or later on mobile devices
 
 ### Generate a Signing Key
 
@@ -120,7 +145,7 @@ Accept the Android SDK and Flutter licenses, then install the required Android S
 ```bash
 yes | sdkmanager --licenses
 flutter doctor --android-licenses
-sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+sdkmanager "platform-tools" "platforms;android-36" "platforms;android-37.0" "build-tools;36.0.0"
 ```
 
 Fetch project dependencies and install iOS pods:

@@ -221,19 +221,19 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final settings = ZxSettingsService();
     await settings.load();
-    const remembered = SnapshotSignalSettings(
+    const remembered = AudioSignalSettings(
       profile: SnapshotTurboProfiles.speed4x,
       invertPolarity: true,
       sampleRate: SnapshotAudioSampleRate.hz44_1k,
     );
-    await settings.setSnapshotSignalSettings(remembered);
+    await settings.setAudioSignalSettings(remembered);
     final session = SnapshotTurboProfileSession(
-      initialProfile: settings.snapshotSignalSettings.profile,
-      initialInvertPolarity: settings.snapshotSignalSettings.invertPolarity,
-      initialSampleRate: settings.snapshotSignalSettings.sampleRate,
+      initialProfile: settings.audioSignalSettings.profile,
+      initialInvertPolarity: settings.audioSignalSettings.invertPolarity,
+      initialSampleRate: settings.audioSignalSettings.sampleRate,
       persistCommittedSettings: (profile, invertPolarity, sampleRate) =>
-          settings.setSnapshotSignalSettings(
-            SnapshotSignalSettings(
+          settings.setAudioSignalSettings(
+            AudioSignalSettings(
               profile: profile,
               invertPolarity: invertPolarity,
               sampleRate: sampleRate,
@@ -254,7 +254,7 @@ void main() {
     expect(failed.outcome, SnapshotProfileSwitchOutcome.failed);
     final afterFailure = ZxSettingsService();
     await afterFailure.load();
-    expect(afterFailure.snapshotSignalSettings, remembered);
+    expect(afterFailure.audioSignalSettings, remembered);
 
     final committed = await session.select<String>(
       requestedProfile: SnapshotTurboProfiles.speed2x,
@@ -270,8 +270,8 @@ void main() {
     final nextAppSession = ZxSettingsService();
     await nextAppSession.load();
     expect(
-      nextAppSession.snapshotSignalSettings,
-      const SnapshotSignalSettings(
+      nextAppSession.audioSignalSettings,
+      const AudioSignalSettings(
         profile: SnapshotTurboProfiles.speed2x,
         invertPolarity: false,
         sampleRate: SnapshotAudioSampleRate.hz48k,

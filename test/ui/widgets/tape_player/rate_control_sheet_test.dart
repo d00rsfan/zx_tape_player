@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zx_tape_player/main.dart';
 import 'package:zx_tape_player/snapshots/snapshot_timing.dart';
@@ -45,8 +45,6 @@ void main() {
     tester,
   ) async {
     SnapshotTurboProfile? selected;
-    bool? selectedPolarity;
-    SnapshotAudioSampleRate? selectedSampleRate;
     final semantics = tester.ensureSemantics();
     await tester.pumpWidget(
       _app(
@@ -54,13 +52,7 @@ void main() {
           title: 'Snapshot turbo rate',
           explanation: 'Transfer speed; playback remains at 1x.',
           activeProfile: SnapshotTurboProfiles.speed5x,
-          invertPolarity: false,
-          invertPolarityLabel: 'Invert polarity',
-          sampleRate: SnapshotAudioSampleRate.hz48k,
-          sampleRateLabel: 'Sample rate',
           onSelected: (profile) => selected = profile,
-          onPolarityChanged: (value) => selectedPolarity = value,
-          onSampleRateChanged: (value) => selectedSampleRate = value,
         ),
       ),
     );
@@ -69,68 +61,35 @@ void main() {
         .widgetList<RatePresetButton>(find.byType(RatePresetButton))
         .toList();
     expect(buttons.map((button) => button.label), [
-      '10x',
-      '7x',
-      '5x',
-      '4x',
-      '3x',
-      '2.5x',
-      '2x',
-      '1x',
+      '11.3x',
+      '6.9x',
+      '5.7x',
+      '4.6x',
+      '3.3x',
+      '2.8x',
+      '2.3x',
+      '1.1x',
     ]);
-    expect(buttons.where((button) => button.selected).single.label, '5x');
+    expect(buttons.where((button) => button.selected).single.label, '5.7x');
     expect(find.byType(Slider), findsNothing);
     expect(find.byIcon(Icons.add_rounded), findsNothing);
     expect(find.byIcon(Icons.remove_rounded), findsNothing);
     expect(find.text('6x'), findsNothing);
-    expect(find.text('Invert polarity'), findsOneWidget);
-    expect(find.text('Sample rate'), findsOneWidget);
-    expect(find.text('48 kHz'), findsOneWidget);
-    expect(find.text('44.1 kHz'), findsOneWidget);
-    expect(
-      tester
-          .widget<SegmentedButton<SnapshotAudioSampleRate>>(
-            find.byKey(const ValueKey('snapshot_sample_rate')),
-          )
-          .selected,
-      {SnapshotAudioSampleRate.hz48k},
-    );
-    final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
-    expect(checkbox.value, isFalse);
-    expect(checkbox.fillColor, isNull);
-    expect(checkbox.checkColor, isNull);
-    final theme = Theme.of(tester.element(find.byType(Checkbox)));
-    expect(theme.checkboxTheme.side?.color, Colors.white);
-    expect(
-      theme.checkboxTheme.fillColor?.resolve(const <WidgetState>{}),
-      Colors.transparent,
-    );
-    expect(
-      theme.checkboxTheme.fillColor?.resolve(const {WidgetState.selected}),
-      Colors.white,
-    );
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.text('48 kHz'), findsNothing);
+    expect(find.text('44.1 kHz'), findsNothing);
 
     final selectedSemantics = tester.getSemantics(
       find.byKey(const ValueKey('snapshot_turbo_profile_5x')),
     );
     expect(selectedSemantics.flagsCollection.isSelected, ui.Tristate.isTrue);
-    expect(selectedSemantics.label, contains('5x'));
-    final checkboxSemantics = tester.semantics.find(
-      find.bySemanticsLabel('Invert polarity'),
-    );
-    final checkboxData = checkboxSemantics.getSemanticsData();
-    expect(checkboxData.flagsCollection.isChecked, ui.CheckedState.isFalse);
-
-    await tester.tap(find.text('1x'));
+    expect(selectedSemantics.label, contains('5.7x'));
+    await tester.tap(find.text('1.1x'));
     expect(selected, SnapshotTurboProfiles.speed1x);
-    await tester.tap(find.byType(Checkbox));
-    expect(selectedPolarity, isTrue);
-    await tester.tap(find.text('44.1 kHz'));
-    expect(selectedSampleRate, SnapshotAudioSampleRate.hz44_1k);
     semantics.dispose();
   });
 
-  testWidgets('snapshot modal keeps the complete polarity row on screen', (
+  testWidgets('snapshot modal keeps its speed choices on a small screen', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(360, 480);
@@ -157,13 +116,8 @@ void main() {
                       'стандартной загрузки с ленты. Воспроизведение '
                       'остаётся 1x.',
                   activeProfile: SnapshotTurboProfiles.speed5x,
-                  invertPolarity: false,
-                  invertPolarityLabel: 'Инвертировать полярность',
-                  sampleRate: SnapshotAudioSampleRate.hz48k,
-                  sampleRateLabel: 'Частота дискретизации',
+                  sampleRate: SnapshotAudioSampleRate.hz44_1k,
                   onSelected: (_) {},
-                  onPolarityChanged: (_) {},
-                  onSampleRateChanged: (_) {},
                 ),
               ),
               child: const Text('Open'),
@@ -177,13 +131,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+    expect(find.text('12.6x'), findsOneWidget);
+    expect(find.text('5.3x'), findsOneWidget);
     final modal = tester.getRect(find.byType(BottomSheet));
-    final polarity = tester.getRect(
-      find.byKey(const ValueKey('snapshot_invert_polarity')),
+    final lastChoice = tester.getRect(
+      find.byKey(const ValueKey('snapshot_turbo_profile_1x')),
     );
-    expect(polarity.height, greaterThanOrEqualTo(kMinInteractiveDimension));
-    expect(polarity.top, greaterThanOrEqualTo(modal.top));
-    expect(polarity.bottom, lessThanOrEqualTo(modal.bottom));
+    expect(lastChoice.top, greaterThanOrEqualTo(modal.top));
+    expect(lastChoice.bottom, lessThanOrEqualTo(modal.bottom));
   });
 }
 

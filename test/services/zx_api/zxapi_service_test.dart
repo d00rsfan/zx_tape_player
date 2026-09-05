@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:zx_tape_player/models/zx_model.dart';
+import 'package:zx_tape_player/services/backend_service.dart';
 import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/zx_api/zxapi_service.dart';
 import 'package:zx_tape_player/utils/api_base_helper.dart';
@@ -195,6 +196,26 @@ void main() {
     expect(requests, hasLength(2));
     expect(requests.last.url.host, 'zxinfo.dk');
     expect(requests.last.headers['user-agent'], 'ZX Tape Player/1.0');
+  });
+
+  test('only a 404 identifies a missing tape version', () async {
+    const url = 'https://example.org/tape.tap';
+    for (final status in [404, 503]) {
+      final client = MockClient((_) async => http.Response('', status));
+      final service = ZxApiService(settings, client: client);
+      await expectLater(
+        service.downloadTape(url),
+        throwsA(
+          status == 404
+              ? isA<TapeNotFoundException>()
+              : isA<Exception>().having(
+                  (error) => error.toString(),
+                  'message',
+                  contains('503'),
+                ),
+        ),
+      );
+    }
   });
 
   test('ZX80 download preserves punctuation and archive bytes', () async {
@@ -435,8 +456,12 @@ class _FakeSettingsService implements SettingsService {
   ZxModel zxModel = SettingsService.defaultZxModel;
 
   @override
-  SnapshotSignalSettings snapshotSignalSettings =
-      SettingsService.defaultSnapshotSignalSettings;
+  AudioSignalSettings audioSignalSettings =
+      SettingsService.defaultAudioSignalSettings;
+
+  @override
+  Stream<AudioSignalSettings> get signalChanges =>
+      const Stream<AudioSignalSettings>.empty();
 
   @override
   Stream<AudioFilterType> get filterChanges =>
@@ -466,9 +491,7 @@ class _FakeSettingsService implements SettingsService {
   }
 
   @override
-  Future<void> setSnapshotSignalSettings(
-    SnapshotSignalSettings settings,
-  ) async {
-    snapshotSignalSettings = settings;
+  Future<void> setAudioSignalSettings(AudioSignalSettings settings) async {
+    audioSignalSettings = settings;
   }
 }

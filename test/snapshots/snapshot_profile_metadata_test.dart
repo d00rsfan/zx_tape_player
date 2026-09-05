@@ -50,7 +50,7 @@ void main() {
           logical.add(block.payload);
         }
         records.add(
-          '${fixture.$1}|${profile.label}|${result.wav.totalFrames}|'
+          '${fixture.$1}|${profile.id}|${result.wav.totalFrames}|'
           '${result.wav.totalFrames - bootstrapFrames}|'
           '${result.turboBlocks.length}|${profile.bitOneThreshold}|'
           '${sha256.convert(logical.toBytes())}|'
@@ -81,18 +81,18 @@ void main() {
     }
 
     expect(records, [
-      '48K Z80 v1|10x|386830|119428|4|252|'
+      '48K Z80 v1|10x|386925|119523|4|251|'
           'aa66c5f22a1c0b342eaa04d66aba290983d9aa49ebfad12f9bfb7335b8a38fef|'
-          'f45816934b037da348f0d7861c63b544536daded1d8be9d544587df83b9bbabc',
-      '48K Z80 v1|5x|450532|183210|4|246|'
+          '7887e95120816ff397d31b575731bce29cdc79d69c13e8a2c6d16e97e7f83fb9',
+      '48K Z80 v1|5x|450627|183305|4|246|'
           'aa66c5f22a1c0b342eaa04d66aba290983d9aa49ebfad12f9bfb7335b8a38fef|'
-          '75d5ac4d2e7949ed39a22bbde12e7166d2c6991c75b3853a1bf77fa25130ce54',
-      '128K SNA|10x|559871|289949|9|252|'
+          'b882e4e23cb2073391a196c306a9d551ca9bb6c70636d74da734532b11827086',
+      '128K SNA|10x|559926|290044|9|251|'
           '92a68c9a8752c318f7f875d1c166c98ee635b83b55b513b084bcb113ba210894|'
-          '564e49fd0e56a611be6458ffae3ff1b42eb1abea0ea7a6a0e271e94d669361c7',
-      '128K SNA|5x|708206|438404|9|246|'
+          '07f36a4552b9903f7dbf4fc37af18f0fdb9286b05d81721676792599b64183a4',
+      '128K SNA|5x|708301|438499|9|246|'
           '92a68c9a8752c318f7f875d1c166c98ee635b83b55b513b084bcb113ba210894|'
-          'e3f817297825cb818a2396fa8bbb17307b04e0dfec48cf33953bef2e8ddda10b',
+          '0d34d3785d44a5b7eaaeb93f8d698e1d81f7df98a5b6dda8b2c5302f3f3a7840',
     ]);
     expect(
       SnapshotTurboProfiles.speed5x.balancedByteFrames /

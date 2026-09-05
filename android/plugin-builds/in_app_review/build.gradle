@@ -7,7 +7,7 @@ def upstreamAndroidDir = gradle.ext.zxTapePlayerPluginAndroidDirs[project.name]
 
 android {
     namespace = "dev.britannio.in_app_review"
-    compileSdk = 36
+    compileSdk = 37
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -23,15 +23,15 @@ android {
     }
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
     }
 
     dependencies {
         testImplementation("org.jetbrains.kotlin:kotlin-test")
-        testImplementation("org.mockito:mockito-core:5.0.0")
+        testImplementation("org.mockito:mockito-core:5.25.0")
         implementation("com.google.android.play:review:2.0.2")
         implementation("com.google.android.play:review-ktx:2.0.2")
-        implementation("com.google.android.gms:play-services-base:18.7.2")
+        implementation("com.google.android.gms:play-services-base:18.11.1")
     }
 
     testOptions {

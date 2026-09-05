@@ -7,7 +7,7 @@ def upstreamAndroidDir = gradle.ext.zxTapePlayerPluginAndroidDirs[project.name]
 
 android {
     namespace = "com.snnafi.media_store_plus"
-    compileSdk = 36
+    compileSdk = 37
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 16
+        minSdk = 21
     }
 }
 
@@ -33,6 +33,6 @@ kotlin {
 }
 
 dependencies {
-    implementation("androidx.documentfile:documentfile:1.0.1")
-    implementation("com.google.code.gson:gson:2.9.0")
+    implementation("androidx.documentfile:documentfile:1.1.0")
+    implementation("com.google.code.gson:gson:2.15.0")
 }

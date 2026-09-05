@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:marquee_widget/marquee_widget.dart';
 import 'package:share_plus/share_plus.dart';
@@ -21,6 +21,7 @@ import 'package:zx_tape_player/ui/tips_screen.dart';
 import 'package:zx_tape_player/ui/widgets/app_error.dart';
 import 'package:zx_tape_player/ui/widgets/cassette.dart';
 import 'package:zx_tape_player/ui/widgets/loading_progress.dart';
+import 'package:zx_tape_player/ui/widgets/whats_new_dialog.dart';
 import 'package:zx_tape_player/ui/widgets/tape_player/tape_player.dart';
 import 'package:path/path.dart' show basename;
 import 'package:zx_tape_player/utils/bar_helper.dart';
@@ -112,6 +113,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         title: tr('tips_menu_item'),
         icon: Icons.lightbulb_outline_rounded,
       ),
+      Choice(title: tr('whats_new_title'), icon: Icons.new_releases_outlined),
     ];
 
     return Scaffold(
@@ -143,6 +145,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 Navigator.of(context).pushNamed(SettingsScreen.routeName);
               } else if (value.title == tr('tips_menu_item')) {
                 Navigator.of(context).pushNamed(TipsScreen.routeName);
+              } else if (value.title == tr('whats_new_title')) {
+                await showWhatsNewDialog(context);
               }
             },
             itemBuilder: (BuildContext context) {
@@ -223,6 +227,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _showExportSheet(BuildContext parentContext) {
     final wavReady = _tapePlayerController.isWavReady;
     final isZip = _tapePlayerController.isCurrentFileZip;
+    Future<void> export(
+      BuildContext sheetContext,
+      Future<String?> Function() prepare,
+    ) async {
+      Navigator.pop(sheetContext);
+      try {
+        final path = await prepare();
+        if (path != null) await _exportFile(path);
+      } catch (error) {
+        if (!parentContext.mounted) return;
+        BarHelper.showSnackBar(
+          message: tr(
+            error is TapeNotFoundException
+                ? 'tape_not_found_on_server'
+                : 'export_error',
+          ),
+          barType: SnackBarType.error,
+          context: parentContext,
+        );
+      }
+    }
+
     showModalBottomSheet(
       context: parentContext,
       backgroundColor: Colors.transparent,
@@ -272,22 +298,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     letterSpacing: -0.5,
                   ),
                 ),
-                onTap: () async {
-                  Navigator.pop(sheetContext);
-                  try {
-                    final path = await _tapePlayerController
-                        .prepareTapeImageExport();
-                    await _exportFile(path);
-                  } catch (_) {
-                    if (parentContext.mounted) {
-                      BarHelper.showSnackBar(
-                        message: tr('export_error'),
-                        barType: SnackBarType.error,
-                        context: parentContext,
-                      );
-                    }
-                  }
-                },
+                onTap: () => export(
+                  sheetContext,
+                  _tapePlayerController.prepareTapeImageExport,
+                ),
               ),
               if (isZip)
                 ListTile(
@@ -303,22 +317,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    try {
-                      final path = await _tapePlayerController
-                          .prepareOriginalArchiveExport();
-                      await _exportFile(path);
-                    } catch (_) {
-                      if (parentContext.mounted) {
-                        BarHelper.showSnackBar(
-                          message: tr('export_error'),
-                          barType: SnackBarType.error,
-                          context: parentContext,
-                        );
-                      }
-                    }
-                  },
+                  onTap: () => export(
+                    sheetContext,
+                    _tapePlayerController.prepareOriginalArchiveExport,
+                  ),
                 ),
               ListTile(
                 leading: Icon(
@@ -335,24 +337,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
                 enabled: wavReady,
                 onTap: wavReady
-                    ? () async {
-                        Navigator.pop(sheetContext);
-                        try {
-                          final path = await _tapePlayerController
-                              .prepareWavExport();
-                          if (path != null) {
-                            await _exportFile(path);
-                          }
-                        } catch (_) {
-                          if (parentContext.mounted) {
-                            BarHelper.showSnackBar(
-                              message: tr('export_error'),
-                              barType: SnackBarType.error,
-                              context: parentContext,
-                            );
-                          }
-                        }
-                      }
+                    ? () => export(
+                        sheetContext,
+                        _tapePlayerController.prepareWavExport,
+                      )
                     : null,
               ),
               const SizedBox(height: 16.0),

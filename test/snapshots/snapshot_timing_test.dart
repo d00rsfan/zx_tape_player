@@ -23,8 +23,8 @@ void main() {
           )
           .toList(),
       [
-        ('10x', 10.0, 91, 231, 2, 4, 3, 252, 25),
-        ('7x', 7.0, 211, 411, 3, 6, 6, 249, 37),
+        ('10x', 10.0, 91, 231, 2, 4, 4, 251, 25),
+        ('7x', 7.0, 250, 411, 4, 6, 7, 248, 41),
         ('5x', 5.0, 291, 571, 4, 8, 9, 246, 49),
         ('4x', 4.0, 331, 691, 5, 10, 12, 243, 61),
         ('3x', 3.0, 491, 1011, 7, 14, 18, 237, 85),
@@ -33,10 +33,7 @@ void main() {
         ('1x', 1.0, 1531, 2971, 21, 41, 59, 196, 249),
       ],
     );
-    expect(
-      SnapshotTurboProfiles.catalogRevision,
-      'snapshot-turbo-speeds-v0',
-    );
+    expect(SnapshotTurboProfiles.catalogRevision, 'snapshot-turbo-speeds-v0');
     expect(SnapshotTiming.turboLeaderPulseCount, 1400);
     expect(SnapshotTiming.receiverLeaderMinimumEdges, 200);
     expect(SnapshotTiming.receiverMiniSyncMax, 0xff);
@@ -53,14 +50,14 @@ void main() {
         (profile) => profile.effectiveSpeedMultiplier,
       ),
       [
-        closeTo(10, 0.0001),
-        closeTo(250 / 37, 0.0001),
-        closeTo(250 / 49, 0.0001),
-        closeTo(250 / 61, 0.0001),
-        closeTo(250 / 85, 0.0001),
-        closeTo(250 / 101, 0.0001),
-        closeTo(2, 0.0001),
-        closeTo(250 / 249, 0.0001),
+        closeTo(11.26, 0.005),
+        closeTo(6.86, 0.005),
+        closeTo(5.74, 0.005),
+        closeTo(4.61, 0.005),
+        closeTo(3.31, 0.005),
+        closeTo(2.79, 0.005),
+        closeTo(2.25, 0.005),
+        closeTo(1.13, 0.005),
       ],
     );
 
@@ -199,8 +196,14 @@ void main() {
               )!,
             );
           }
-          expect(zeroCounts.every((value) => value <= profile.zeroMax), isTrue);
-          expect(oneCounts.every((value) => value > profile.zeroMax), isTrue);
+          expect(
+            zeroCounts.every((value) => value <= profile.zeroMaxAt(sampleRate)),
+            isTrue,
+          );
+          expect(
+            oneCounts.every((value) => value > profile.zeroMaxAt(sampleRate)),
+            isTrue,
+          );
           expect(
             oneCounts.every((value) => value < SnapshotTiming.bitLoopMax),
             isTrue,
@@ -242,6 +245,10 @@ void main() {
   test('44.1 kHz uses its own independently rounded frame catalog', () {
     const rate = SnapshotAudioSampleRate.hz44_1k;
     expect(
+      SnapshotTurboProfiles.values.map((profile) => profile.labelAt(rate)),
+      ['12.6x', '6.5x', '5.3x', '4.6x', '3.2x', '2.7x', '2.2x', '1.1x'],
+    );
+    expect(
       SnapshotTurboProfiles.values
           .map(
             (profile) => (
@@ -254,11 +261,11 @@ void main() {
           )
           .toList(),
       const [
-        (7, 4, 2, 3, 21),
-        (10, 5, 3, 6, 37),
+        (7, 4, 2, 3, 20.5),
+        (10, 5, 4, 6, 40),
         (13, 7, 4, 8, 49),
-        (16, 8, 5, 9, 57),
-        (22, 11, 7, 13, 81),
+        (16, 8, 5, 9, 56.5),
+        (22, 11, 7, 13, 80.5),
         (26, 13, 8, 16, 97),
         (33, 17, 9, 20, 117),
         (65, 33, 20, 38, 233),

@@ -1,9 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zx_tape_player/main.dart';
+import 'package:zx_tape_player/models/pcm_sample_rate.dart';
 import 'package:zx_tape_player/models/zx_model.dart';
 import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
+import 'package:zx_tape_player/services/whats_new_service.dart';
+import 'package:zx_tape_player/ui/widgets/whats_new_dialog.dart';
 import 'package:zx_tape_player/ui/search_screen.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
@@ -24,6 +27,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _settings = getIt<SettingsService>();
   final _volume = getIt<VolumeControlService>();
+  bool _savingSignalSettings = false;
 
   static const _modelOptions = <_SettingsOption<ZxModel>>[
     _SettingsOption(
@@ -89,25 +93,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _onReset() async {
+    if (_savingSignalSettings) return;
+    setState(() => _savingSignalSettings = true);
     final modelChanged = _settings.zxModel != SettingsService.defaultZxModel;
-    await _settings.resetZxModelToDefault();
-    await _settings.resetAudioFilterToDefault();
-    await _volume.resetToDefault();
+    try {
+      await _settings.resetZxModelToDefault();
+      await _settings.resetAudioFilterToDefault();
+      await _settings.setAudioSignalSettings(
+        SettingsService.defaultAudioSignalSettings.copyWith(
+          profile: _settings.audioSignalSettings.profile,
+        ),
+      );
+      await _volume.resetToDefault();
+      await getIt<WhatsNewService>().resetNotices();
+      if (!mounted) return;
+      await showWhatsNewDialog(context, automatic: true);
+    } finally {
+      if (mounted) setState(() => _savingSignalSettings = false);
+    }
     if (!mounted) return;
     if (modelChanged) {
       _navigateToEmptySearch();
       return;
     }
-    setState(() {});
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(tr('settings_reset_done'))));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(tr('settings_reset_done'))));
+  }
+
+  Future<void> _onSignalChanged(AudioSignalSettings value) async {
+    if (_savingSignalSettings || value == _settings.audioSignalSettings) return;
+    setState(() => _savingSignalSettings = true);
+    try {
+      await _settings.setAudioSignalSettings(value);
+    } finally {
+      if (mounted) setState(() => _savingSignalSettings = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final currentModel = _settings.zxModel;
     final currentFilter = _settings.audioFilter;
+    final signal = _settings.audioSignalSettings;
     return Scaffold(
       backgroundColor: HexColor('#172434'),
       appBar: AppBar(
@@ -187,12 +214,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     .toList(),
               ),
             ),
+            const SizedBox(height: 12.0),
+            Material(
+              key: const ValueKey('settings_audio_signal'),
+              color: HexColor('#3B4E63'),
+              borderRadius: BorderRadius.circular(8.0),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      tr('settings_sample_rate'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SegmentedButton<PcmSampleRate>(
+                      key: const ValueKey('settings_sample_rate'),
+                      segments: [
+                        for (final rate in PcmSampleRate.values)
+                          ButtonSegment(value: rate, label: Text(rate.label)),
+                      ],
+                      selected: {signal.sampleRate},
+                      showSelectedIcon: false,
+                      style: ButtonStyle(
+                        foregroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected)
+                              ? HexColor('#28384C')
+                              : Colors.white,
+                        ),
+                        backgroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected)
+                              ? Colors.white
+                              : Colors.transparent,
+                        ),
+                        side: const WidgetStatePropertyAll(
+                          BorderSide(color: Colors.white),
+                        ),
+                      ),
+                      onSelectionChanged: _savingSignalSettings
+                          ? null
+                          : (selection) => _onSignalChanged(
+                              _settings.audioSignalSettings.copyWith(
+                                sampleRate: selection.single,
+                              ),
+                            ),
+                    ),
+                  ),
+                  CheckboxListTile(
+                    key: const ValueKey('settings_invert_polarity'),
+                    value: signal.invertPolarity,
+                    onChanged: _savingSignalSettings
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              _onSignalChanged(
+                                _settings.audioSignalSettings.copyWith(
+                                  invertPolarity: value,
+                                ),
+                              );
+                            }
+                          },
+                    title: Text(
+                      tr('settings_invert_polarity'),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24.0),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 key: const ValueKey('settings_reset_default_button'),
-                onPressed: _onReset,
+                onPressed: _savingSignalSettings ? null : _onReset,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: HexColor('#3B4E63'),
                   foregroundColor: Colors.white,

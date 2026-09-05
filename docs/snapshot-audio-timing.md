@@ -47,16 +47,17 @@ T-state duration.
 The PCM levels are `0` and `255`. Every pulse ends by toggling the level. A
 pause holds the current level, and phase is continuous across pilots, sync,
 header, payload, and block boundaries. Standard polarity starts at level `0`.
-The snapshot signal-settings sheet also offers **Invert polarity**. When it is
+Settings offers **Invert polarity** below the audio filters (snapshots only). When it is
 checked, rendering starts at `255` and complements every PCM sample of the
 complete stream—including the ROM bootstrap, receiver, pauses, and turbo
 blocks—without moving an edge or changing a block offset. Polarity and sample
 rate are part of the deterministic cache identity, so WAV files produced with
 different signal settings cannot be confused.
 
-After the final requested pulse duration, the renderer writes one PCM frame at
-the post-edge level so the receiver can observe the last data transition. It
-then writes one neutral unsigned-PCM frame (`128` in standard polarity, `127`
+After the final data edge, the renderer holds its new level for 2 ms, rounded
+up to a whole PCM frame (96 frames at 48 kHz or 89 at 44.1 kHz). This gives
+the EAR input time to register the transition. The renderer then writes one
+neutral unsigned-PCM frame (`128` in standard polarity, `127`
 in the exactly complemented stream). If the resulting `data` chunk is odd,
 the RIFF container receives a zero pad byte which is not counted as audio or as
 part of the last logical block.
@@ -92,9 +93,9 @@ different requested pilot constant.
 
 The original 91/231-T data timing is retained as the maximum **10x preset**.
 The complete custom turbo stream—leader, syncs, header, and payload—uses one of
-eight reviewed signal-speed presets. The displayed `x` values describe the
-nearest supported balanced-payload speed relative to standard tape loading;
-independent frame rounding means they are preset names, not exact rates.
+eight reviewed signal-speed presets. The tables use stable profile IDs. The player displays the balanced-payload
+speed relative to standard ROM loading, calculated from the PCM frame widths
+at the selected sample rate and rounded to one decimal place.
 
 Turbo header and payload bits are MSB-first and use **one edge per bit**, not
 the two edges per bit used by ROM/TAP data.
@@ -140,8 +141,8 @@ ceiling quantization makes the physical width `ceil(leader frames / 2)`, so an
 odd-width leader uses the longer of the two nearest integer choices. The 10x
 entry therefore restores the upstream 250-T/four-frame sync. The earlier
 five-frame 10x experiment did not isolate sync recognition from the same
-profile's two/four-frame data pulses, which the tested hardware could not load,
-so it is not evidence that a four-frame sync is independently unsuitable.
+profile's two/four-frame data pulses. River Raid subsequently loaded with the
+four-frame sync and the revised 48 kHz data threshold.
 
 For the 10x preset, before PCM quantization, a balanced data stream has an
 average of 169 T-states
@@ -152,39 +153,47 @@ effective balanced rate is therefore about 15.36 kbit/s.
 
 ### Selectable signal-speed catalog
 
-The fixed 64-T receiver work interval adds one frame before every byte after
+At 48 kHz the fixed 64-T receiver work interval adds one frame before every byte after
 the first. Thus a balanced later byte occupies
 `4 × (zero frames + one frames) + 1` frames.
 
-| Label / stable ID | Requested zero/one | Actual zero/one at 48 kHz | Balanced byte | Effective speed | Balanced bitrate | `ZERO_MAX` / threshold |
+| 48 kHz label / stable ID | Requested zero/one | Actual zero/one at 48 kHz | Balanced byte | Effective speed | Balanced bitrate | `ZERO_MAX` / threshold |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 10x / `10x` | 91/231 T | 2/4 frames (41.667/83.333 us) | 25 frames | 10.00x | 15.360 kbit/s | 3 / 252 |
-| 7x / `7x` | 211/411 T | 3/6 frames (62.500/125.000 us) | 37 frames | 6.76x | 10.378 kbit/s | 6 / 249 |
-| 5x / `5x` | 291/571 T | 4/8 frames (83.333/166.667 us) | 49 frames | 5.10x | 7.837 kbit/s | 9 / 246 |
-| 4x / `4x` | 331/691 T | 5/10 frames (104.167/208.333 us) | 61 frames | 4.10x | 6.295 kbit/s | 12 / 243 |
-| 3x / `3x` | 491/1011 T | 7/14 frames (145.833/291.667 us) | 85 frames | 2.94x | 4.518 kbit/s | 18 / 237 |
-| 2.5x / `2.5x` | 571/1211 T | 8/17 frames (166.667/354.167 us) | 101 frames | 2.48x | 3.802 kbit/s | 21 / 234 |
-| 2x / `2x` | 691/1531 T | 10/21 frames (208.333/437.500 us) | 125 frames | 2.00x | 3.072 kbit/s | 28 / 227 |
-| 1x / `1x` | 1531/2971 T | 21/41 frames (437.500/854.167 us) | 249 frames | 1.00x | 1.542 kbit/s | 59 / 196 |
+| 11.3x / `10x` | 91/231 T | 2/4 frames (41.667/83.333 us) | 25 frames | 11.26x | 15.360 kbit/s | 4 / 251 |
+| 6.9x / `7x` | 250/411 T | 4/6 frames (83.333/125.000 us) | 41 frames | 6.86x | 9.366 kbit/s | 7 / 248 |
+| 5.7x / `5x` | 291/571 T | 4/8 frames (83.333/166.667 us) | 49 frames | 5.74x | 7.837 kbit/s | 9 / 246 |
+| 4.6x / `4x` | 331/691 T | 5/10 frames (104.167/208.333 us) | 61 frames | 4.61x | 6.295 kbit/s | 12 / 243 |
+| 3.3x / `3x` | 491/1011 T | 7/14 frames (145.833/291.667 us) | 85 frames | 3.31x | 4.518 kbit/s | 18 / 237 |
+| 2.8x / `2.5x` | 571/1211 T | 8/17 frames (166.667/354.167 us) | 101 frames | 2.79x | 3.802 kbit/s | 21 / 234 |
+| 2.3x / `2x` | 691/1531 T | 10/21 frames (208.333/437.500 us) | 125 frames | 2.25x | 3.072 kbit/s | 28 / 227 |
+| 1.1x / `1x` | 1531/2971 T | 21/41 frames (437.500/854.167 us) | 249 frames | 1.13x | 1.542 kbit/s | 59 / 196 |
+
+Effective speed uses the standard ROM balanced byte of 20,520 T-states at
+3.5 MHz. River Raid loaded on a Spectrum Next with the 48 kHz four-frame zero.
+With the same receiver threshold, a three-frame zero failed at the initial
+volume and loaded successfully after the user increased the volume slightly.
 
 The 7x, 5x, 4x, 3x, 2.5x, 2x, and 1x balanced-data spans are respectively
-1.48, 1.96, 2.44, 3.40, 4.04, 5.00, and 9.96 times the 10x span. Total snapshot
+1.64, 1.96, 2.44, 3.40, 4.04, 5.00, and 9.96 times the 10x span. Total snapshot
 duration does not scale by that ratio because ROM bootstrap, processing pauses,
 bit distribution, and RLE are unchanged, while acquisition segments follow
 their own whole-frame table above.
 
 ### 44.1 kHz quantization
 
-The requested T-state durations and receiver code remain the same, but the
-integer PCM representation differs. These are the executable 44.1 kHz values:
+The requested T-state durations use both PCM grids. At 10x the receiver uses
+`ZERO_MAX = 4` at 48 kHz and `3` at 44.1 kHz. A one at 44.1 kHz can arrive on
+the fourth poll. On a Spectrum Next at 48 kHz, River Raid failed its second
+payload checksum with the three-poll limit and loaded with the four-poll limit. The balanced byte counts below average over
+both possible first bits because the 64-T delay is applied before rounding.
 
 | Preset | Leader / sync 1 frames | Zero / one frames | Balanced byte frames | Balanced bitrate |
 | --- | ---: | ---: | ---: | ---: |
-| **10x** | 7 / 4 | 2 / 3 | 21 | 16.800 kbit/s |
-| **7x** | 10 / 5 | 3 / 6 | 37 | 9.535 kbit/s |
+| **10x** | 7 / 4 | 2 / 3 | 20.5 | 17.210 kbit/s |
+| **7x** | 10 / 5 | 4 / 6 | 40 | 8.820 kbit/s |
 | **5x** | 13 / 7 | 4 / 8 | 49 | 7.200 kbit/s |
-| **4x** | 16 / 8 | 5 / 9 | 57 | 6.189 kbit/s |
-| **3x** | 22 / 11 | 7 / 13 | 81 | 4.356 kbit/s |
+| **4x** | 16 / 8 | 5 / 9 | 56.5 | 6.244 kbit/s |
+| **3x** | 22 / 11 | 7 / 13 | 80.5 | 4.383 kbit/s |
 | **2.5x** | 26 / 13 | 8 / 16 | 97 | 3.637 kbit/s |
 | **2x** | 33 / 17 | 9 / 20 | 117 | 3.015 kbit/s |
 | **1x** | 65 / 33 | 20 / 38 | 233 | 1.514 kbit/s |
@@ -203,8 +212,8 @@ revision cannot be reused.
 ### Historical percentage-preset reference
 
 The experimental UI previously labelled rates as percentages of the 91/231-T
-maximum. The 90% button remains removed; the former 70% timing returned as the
-final `7x` preset and the 40% timing returned as `4x`. The former 7.5x timing is
+maximum. The 90% button remains removed; the former 70% timing was used for the
+original `7x` preset and the 40% timing returned as `4x`. The former 7.5x timing is
 also retained here so results from the hardware experiments remain
 interpretable.
 
@@ -212,7 +221,7 @@ interpretable.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Removed | 90% / `90` | 131/331 T | 2/5 frames (41.667/104.167 us) | 12,000/4,800 Hz | 29 frames | 86.21% | 13.241 kbit/s | 4 | 96 / 251 |
 | Removed | 7.5x / `7.5x` | 211/331 T | 3/5 frames (62.500/104.167 us) | 8,000/4,800 Hz | 33 frames | 75.76% | 11.636 kbit/s | 5 | 95 / 250 |
-| Returned as `7x` | 70% / `70` | 211/411 T | 3/6 frames (62.500/125.000 us) | 8,000/4,000 Hz | 37 frames | 67.57% | 10.378 kbit/s | 6 | 94 / 249 |
+| Original `7x` | 70% / `70` | 211/411 T | 3/6 frames (62.500/125.000 us) | 8,000/4,000 Hz | 37 frames | 67.57% | 10.378 kbit/s | 6 | 94 / 249 |
 | Returned as `4x` | 40% / `40` | 331/691 T | 5/10 frames (104.167/208.333 us) | 4,800/2,400 Hz | 61 frames | 40.98% | 6.295 kbit/s | 12 | 88 / 243 |
 
 The frequency columns describe the audible square-wave frequency for a stream
@@ -301,9 +310,9 @@ well above the code-only boundary. Raising the timeout from 100 to 255 changes
 runtime receiver patches and cache identity but does not require recompiling
 the Z80 asset.
 
-## Theoretical 10x preset speed tolerance
+## Historical 10x speed tolerance with a three-poll zero limit
 
-For the independently quantized 10x waveform, the conservative code-only
+For the previous 48 kHz receiver threshold of 252, the conservative code-only
 playback-speed range is approximately:
 
 ```text
@@ -501,7 +510,7 @@ intervals: turbo data emits one edge per bit.
 | Profile | Requested zero / one | 48 kHz frames / effective T | 44.1 kHz frames / effective T |
 | --- | ---: | ---: | ---: |
 | **10x** | 91 / 231 T | 2 / 145.8 T; 4 / 291.7 T | 2 / 158.7 T; 3 / 238.1 T |
-| **7x** | 211 / 411 T | 3 / 218.8 T; 6 / 437.5 T | 3 / 238.1 T; 6 / 476.2 T |
+| **7x** | 250 / 411 T | 4 / 291.7 T; 6 / 437.5 T | 4 / 317.5 T; 6 / 476.2 T |
 | **5x** | 291 / 571 T | 4 / 291.7 T; 8 / 583.3 T | 4 / 317.5 T; 8 / 634.9 T |
 | **4x** | 331 / 691 T | 5 / 364.6 T; 10 / 729.2 T | 5 / 396.8 T; 9 / 714.3 T |
 | **3x** | 491 / 1011 T | 7 / 510.4 T; 14 / 1020.8 T | 7 / 555.6 T; 13 / 1031.7 T |
@@ -540,8 +549,8 @@ loop and both ordinary and byte-boundary paths. A value no greater than
 
 | Profile | `ZERO_MAX` | Zero / one polls at 48 kHz | Zero / one polls at 44.1 kHz |
 | --- | ---: | ---: | ---: |
-| **10x** | 3 | 2–3 / 6–7 | 1–3 / 4–6 |
-| **7x** | 6 | 4–5 / 9–10 | 4–6 / 9–11 |
+| **10x** | 4 (48 kHz), 3 (44.1 kHz) | 2–3 / 6–7 | 1–3 / 4–6 |
+| **7x** | 7 | 6–7 / 9–10 | 5–7 / 9–11 |
 | **5x** | 9 | 6–7 / 13–14 | 6–8 / 14–15 |
 | **4x** | 12 | 7–9 / 16–18 | 7–9 / 16–17 |
 | **3x** | 18 | 11–12 / 24–25 | 11–13 / 24–25 |
@@ -583,7 +592,7 @@ still more sensitive than the leader.
 | Profile | Leader frames 48 / 44.1 | One-frame half-width step | Equal-leader duty step | Zero frames 48 / 44.1 | One-frame zero-width step |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | **10x** | 7 / 7 | 14.29% / 14.29% | ±7.14 / ±7.14 pp | 2 / 2 | 50.00% / 50.00% |
-| **7x** | 10 / 10 | 10.00% / 10.00% | ±5.00 / ±5.00 pp | 3 / 3 | 33.33% / 33.33% |
+| **7x** | 10 / 10 | 10.00% / 10.00% | ±5.00 / ±5.00 pp | 4 / 4 | 25.00% / 25.00% |
 | **5x** | 14 / 13 | 7.14% / 7.69% | ±3.57 / ±3.85 pp | 4 / 4 | 25.00% / 25.00% |
 | **4x** | 17 / 16 | 5.88% / 6.25% | ±2.94 / ±3.13 pp | 5 / 5 | 20.00% / 20.00% |
 | **3x** | 23 / 22 | 4.35% / 4.55% | ±2.17 / ±2.27 pp | 7 / 7 | 14.29% / 14.29% |
@@ -617,25 +626,26 @@ modeled by the fixed 40/43-T simulations above.
 
 ## Player selection behavior
 
-On first use, the snapshot signal starts at **5x**, standard polarity, and
-**48 kHz**. After a different speed, polarity, or sample rate is applied
-successfully, the app remembers all three values as one device-local settings
-triple and restores them in later player and application sessions. A missing,
-malformed, or obsolete triple falls back as a unit. For a ready snapshot, the
-existing speed badge shows the selected speed and opens a button-only list of
-`10x`, `7x`, `5x`, `4x`, `3x`, `2.5x`, `2x`, and `1x`, a segmented
-**48 kHz / 44.1 kHz** selector, and an **Invert polarity** checkbox. The `x`
-values are transfer speeds relative to standard tape loading. For ordinary tape
-media, the same badge continues to show a media-player `x` multiplier and opens
-the continuous playback-speed slider.
+On first use, the snapshot profile ID is `5x`, displayed as **5.7x** at 48 kHz. Global audio settings default to
+**48 kHz** with polarity inversion **off**. The sample-rate selector and
+**Invert polarity** checkbox live in Settings below the audio filters.
+Sample rate applies to every conversion; inversion currently applies only to
+snapshots. Previously saved snapshot signal preferences migrate to the global
+`audioSignalSettings` configuration without discarding the user's choices.
+
+The speed badge lists the eight snapshot profiles by their calculated balanced-data
+rate. At 48 kHz the labels are 11.3x, 6.9x, 5.7x, 4.6x, 3.3x, 2.8x, 2.3x and 1.1x.
+At 44.1 kHz they are 12.6x, 6.5x, 5.3x, 4.6x, 3.2x, 2.7x, 2.2x and 1.1x.
+For ordinary tape media, the badge continues
+to show a media-player multiplier and opens the continuous playback-speed slider.
 
 Changing snapshot speed, polarity, or sample rate stops and rewinds playback,
 prepares or reuses a settings-specific WAV/sidecar pair, binds it at position
-zero, and remains paused. The visible settings are committed only after binding
-succeeds; the committed speed ID, polarity, and sample rate are persisted together.
-A conversion, binding, or persistence failure restores the previous
-valid audio and settings at zero when possible and does not overwrite the
-previously stored triple.
+zero, and remains paused. Active snapshot settings commit only after binding
+succeeds. A failed switch restores the previous valid audio when possible.
+Global choices made in Settings are saved immediately for subsequent conversions;
+a speed change is saved after successful binding and preserves any newer global
+frequency/polarity choices made while conversion was in progress.
 
 When snapshot playback reaches the completed state, the media carousel is
 unlocked even though the player position remains at the end of the WAV. This
@@ -662,14 +672,13 @@ or restore semantics.
 
 | Fixture | Speed | Polarity | Total frames | Turbo frames | Turbo blocks | Threshold | Logical SHA-256 | WAV SHA-256 |
 | --- | ---: | --- | ---: | ---: | ---: | ---: | --- | --- |
-| 48K Z80 v1 | 10x | standard | 386830 | 119428 | 4 | 252 | `aa66c5f2…38fef` | `f4581693…bbabc` |
-| 48K Z80 v1 | 5x | standard | 450532 | 183210 | 4 | 246 | `aa66c5f2…38fef` | `75d5ac4d…0ce54` |
-| 128K SNA | 10x | standard | 559871 | 289949 | 9 | 252 | `92a68c9a…10894` | `564e49fd…361c7` |
-| 128K SNA | 5x | standard | 708206 | 438404 | 9 | 246 | `92a68c9a…10894` | `e3f81729…da10b` |
+| 48K Z80 v1 | 10x | standard | 386925 | 119523 | 4 | 251 | `aa66c5f2…38fef` | `7887e951…83fb9` |
+| 48K Z80 v1 | 5x | standard | 450627 | 183305 | 4 | 246 | `aa66c5f2…38fef` | `b882e4e2…27086` |
+| 128K SNA | 10x | standard | 559926 | 290044 | 9 | 251 | `92a68c9a…10894` | `07f36a45…183a4` |
+| 128K SNA | 5x | standard | 708301 | 438499 | 9 | 246 | `92a68c9a…10894` | `0d34d378…a7840` |
 
-The 128K rows above are deterministic software regressions only. They are not
-128K physical-hardware acceptance; physical work remains focused on obtaining
-a successful 48K load first.
+The 128K rows above are software regression results. The Spectrum Next
+playback checks used the 48K River Raid snapshot.
 
 For physical acceptance, record at least:
 

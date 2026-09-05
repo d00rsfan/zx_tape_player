@@ -7,7 +7,7 @@ import Foundation
 
 import audio_session
 import connectivity_plus
-import file_picker
+import file_picker_darwin
 import in_app_review
 import just_audio
 import package_info_plus

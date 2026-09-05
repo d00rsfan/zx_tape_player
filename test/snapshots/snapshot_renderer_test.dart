@@ -61,11 +61,11 @@ void main() {
       final fields = ByteData.sublistView(result.wavBytes);
 
       expect(result.sampleRate, rate);
-      expect(result.totalFrames, 7);
+      expect(result.totalFrames, 95);
       expect(fields.getUint32(24, Endian.little), 44100);
       expect(fields.getUint32(28, Endian.little), 44100);
       expect(result.blocks.single.sampleRate, rate);
-      expect(result.blocks.single.duration, const Duration(microseconds: 158));
+      expect(result.blocks.single.duration, const Duration(microseconds: 2154));
       expect(SnapshotWavRenderer.profileIdFor(rate), contains('44100hz'));
     });
 
@@ -92,9 +92,10 @@ void main() {
         ]);
 
         final result = renderer.renderTimeline(timeline);
-        expect(result.wavBytes.sublist(44), [0, 0, 255, 255, 255, 255, 0, 128]);
+        expect(result.wavBytes.sublist(44, 50), [0, 0, 255, 255, 255, 255]);
+        expect(result.wavBytes[50], 0);
         expect(result.blocks.map((block) => block.startFrame), [0, 2, 4]);
-        expect(result.blocks.map((block) => block.frameLength), [2, 2, 4]);
+        expect(result.blocks.map((block) => block.frameLength), [2, 2, 99]);
         expect(result.blocks.last.endFrame, result.totalFrames);
       },
     );
@@ -161,27 +162,48 @@ void main() {
       expect(bytes.sublist(44).toSet(), {0, 128, 255});
     });
 
-    test('writes a terminal edge, neutral tail, and RIFF padding', () {
-      final result = renderer.renderTimeline(
-        SnapshotEdgeTimeline([
+    test(
+      'holds the terminal level for 2 ms before neutral PCM and RIFF padding',
+      () {
+        final timeline = SnapshotEdgeTimeline([
           SnapshotTimelineBlock(
             name: 'one-frame edge',
             parts: [
               SnapshotTonePart(const [64], 1),
             ],
           ),
-        ]),
-      );
-      final fields = ByteData.sublistView(result.wavBytes);
-
-      expect(result.totalFrames, 3);
-      expect(result.blocks.single.frameLength, 3);
-      expect(result.wavBytes.sublist(44, 47), [0, 255, 128]);
-      expect(result.wavBytes.last, 0, reason: 'RIFF pad byte is not PCM');
-      expect(result.wavBytes, hasLength(48));
-      expect(fields.getUint32(40, Endian.little), 3);
-      expect(fields.getUint32(4, Endian.little), 40);
-    });
+        ]);
+        for (final (rate, holdFrames) in [
+          (SnapshotAudioSampleRate.hz48k, 96),
+          (SnapshotAudioSampleRate.hz44_1k, 89),
+        ]) {
+          for (final inverted in [false, true]) {
+            final result = renderer.renderTimeline(
+              timeline,
+              sampleRate: rate,
+              invertPolarity: inverted,
+            );
+            final fields = ByteData.sublistView(result.wavBytes);
+            final expectedPcm = [
+              inverted ? 255 : 0,
+              ...List.filled(holdFrames, inverted ? 0 : 255),
+              inverted ? 127 : 128,
+            ];
+            expect(result.totalFrames, expectedPcm.length);
+            expect(result.blocks.single.frameLength, expectedPcm.length);
+            expect(fields.getUint32(40, Endian.little), expectedPcm.length);
+            expect(result.wavBytes.sublist(44), [
+              ...expectedPcm,
+              if (expectedPcm.length.isOdd) 0,
+            ]);
+            expect(
+              fields.getUint32(4, Endian.little),
+              result.wavBytes.length - 8,
+            );
+          }
+        }
+      },
+    );
   });
 
   group('receiver bootstrap', () {
@@ -271,9 +293,8 @@ void main() {
     });
 
     test('uses one edge per bit and combines the 64T pre-byte delay', () {
-      final block = _turboBlock(
-        Uint8List.fromList([0x80]),
-      ).copyWith(pauseBeforeMilliseconds: 0);
+      final block = _turboBlock(Uint8List.fromList([0x80]))
+          .copyWith(pauseBeforeMilliseconds: 0);
       final timeline = timelineBuilder.build(assets.receiver48Tap, [
         block,
       ], turboProfile: SnapshotTurboProfiles.speed10x);
@@ -393,6 +414,26 @@ void main() {
   });
 
   group('complete conversion', () {
+    test('10x patches the receiver threshold for the rendered sample rate', () {
+      for (final (rate, threshold) in [
+        (SnapshotAudioSampleRate.hz48k, 251),
+        (SnapshotAudioSampleRate.hz44_1k, 252),
+      ]) {
+        final result = const SnapshotConverter().convert(
+          snapshotBytes: makeZ80V1(),
+          fileName: 'threshold.z80',
+          assets: assets,
+          turboProfile: SnapshotTurboProfiles.speed10x,
+          invertPolarity: false,
+          sampleRate: rate,
+        );
+        final plan = result.restorePlan;
+        final offset = plan.layout.rawTapOffsetForAddress(
+          plan.layout.bitOneThresholdAddress,
+        );
+        expect(plan.receiverTap[offset], threshold);
+      }
+    });
     test('5x and 10x preserve logical bytes and restore ordering', () {
       final fixture = makeSna128(currentBank: 3);
       final fast = const SnapshotConverter().convert(
@@ -435,7 +476,7 @@ void main() {
       expect(slow.wav.wavBytes, isNot(fast.wav.wavBytes));
       expect(slow.wav.totalFrames, greaterThan(fast.wav.totalFrames));
       expect(slow.restorePlan.turboProfile.bitOneThreshold, 246);
-      expect(fast.restorePlan.turboProfile.bitOneThreshold, 252);
+      expect(fast.restorePlan.turboProfile.bitOneThreshold, 251);
     });
 
     test('derives contiguous block frames and monotonic progress', () {

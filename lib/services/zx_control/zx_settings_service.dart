@@ -10,14 +10,16 @@ import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 class ZxSettingsService extends SettingsService {
   static const _audioFilterPrefsKey = 'audioFilter';
   static const _zxModelPrefsKey = 'zxModel';
-  static const _snapshotSignalSettingsPrefsKey = 'snapshotSignalSettings';
+  static const _audioSignalSettingsPrefsKey = 'audioSignalSettings';
+  static const _legacySignalSettingsPrefsKey = 'snapshotSignalSettings';
 
   AudioFilterType _audioFilter = SettingsService.defaultAudioFilter;
   ZxModel _zxModel = SettingsService.defaultZxModel;
-  SnapshotSignalSettings _snapshotSignalSettings =
-      SettingsService.defaultSnapshotSignalSettings;
+  AudioSignalSettings _audioSignalSettings =
+      SettingsService.defaultAudioSignalSettings;
   bool _loaded = false;
   final _filterChanges = StreamController<AudioFilterType>.broadcast();
+  final _signalChanges = StreamController<AudioSignalSettings>.broadcast();
 
   @override
   AudioFilterType get audioFilter => _audioFilter;
@@ -26,10 +28,13 @@ class ZxSettingsService extends SettingsService {
   ZxModel get zxModel => _zxModel;
 
   @override
-  SnapshotSignalSettings get snapshotSignalSettings => _snapshotSignalSettings;
+  AudioSignalSettings get audioSignalSettings => _audioSignalSettings;
 
   @override
   Stream<AudioFilterType> get filterChanges => _filterChanges.stream;
+
+  @override
+  Stream<AudioSignalSettings> get signalChanges => _signalChanges.stream;
 
   @override
   Future<void> load() async {
@@ -42,11 +47,19 @@ class ZxSettingsService extends SettingsService {
     _zxModel =
         _parseZxModel(prefs.getString(_zxModelPrefsKey)) ??
         SettingsService.defaultZxModel;
-    _snapshotSignalSettings =
-        _parseSnapshotSignalSettings(
-          prefs.get(_snapshotSignalSettingsPrefsKey),
+    _audioSignalSettings =
+        _parseAudioSignalSettings(
+          prefs.get(_audioSignalSettingsPrefsKey) ??
+              prefs.get(_legacySignalSettingsPrefsKey),
         ) ??
-        SettingsService.defaultSnapshotSignalSettings;
+        SettingsService.defaultAudioSignalSettings;
+    if (!prefs.containsKey(_audioSignalSettingsPrefsKey) &&
+        prefs.containsKey(_legacySignalSettingsPrefsKey)) {
+      await prefs.setString(
+        _audioSignalSettingsPrefsKey,
+        _encodeSignalSettings(_audioSignalSettings),
+      );
+    }
   }
 
   @override
@@ -67,25 +80,27 @@ class ZxSettingsService extends SettingsService {
   }
 
   @override
-  Future<void> setSnapshotSignalSettings(
-    SnapshotSignalSettings settings,
-  ) async {
-    final canonical = _canonicalSnapshotSignalSettings(settings);
-    if (_snapshotSignalSettings == canonical) return;
+  Future<void> setAudioSignalSettings(AudioSignalSettings settings) async {
+    final canonical = _canonicalAudioSignalSettings(settings);
+    if (_audioSignalSettings == canonical) return;
     final prefs = await SharedPreferences.getInstance();
     final saved = await prefs.setString(
-      _snapshotSignalSettingsPrefsKey,
-      jsonEncode(<String, Object>{
-        'profileId': canonical.profile.id,
-        'invertPolarity': canonical.invertPolarity,
-        'sampleRateHz': canonical.sampleRate.hz,
-      }),
+      _audioSignalSettingsPrefsKey,
+      _encodeSignalSettings(canonical),
     );
     if (!saved) {
-      throw StateError('Could not persist snapshot signal settings');
+      throw StateError('Could not persist audio signal settings');
     }
-    _snapshotSignalSettings = canonical;
+    _audioSignalSettings = canonical;
+    _signalChanges.add(canonical);
   }
+
+  String _encodeSignalSettings(AudioSignalSettings settings) =>
+      jsonEncode(<String, Object>{
+        'profileId': settings.profile.id,
+        'invertPolarity': settings.invertPolarity,
+        'sampleRateHz': settings.sampleRate.hz,
+      });
 
   @override
   Future<void> resetAudioFilterToDefault() =>
@@ -111,7 +126,7 @@ class ZxSettingsService extends SettingsService {
     return null;
   }
 
-  SnapshotSignalSettings? _parseSnapshotSignalSettings(Object? stored) {
+  AudioSignalSettings? _parseAudioSignalSettings(Object? stored) {
     if (stored is! String) return null;
     try {
       final decoded = jsonDecode(stored);
@@ -126,7 +141,7 @@ class ZxSettingsService extends SettingsService {
       if (sampleRate == null) return null;
       // Preserve the user's last signal choice across the catalog rename.
       final currentProfileId = profileId == '7.5x' ? '7x' : profileId;
-      return SnapshotSignalSettings(
+      return AudioSignalSettings(
         profile: SnapshotTurboProfiles.resolve(
           id: currentProfileId,
           catalogRevision: SnapshotTurboProfiles.catalogRevision,
@@ -139,8 +154,8 @@ class ZxSettingsService extends SettingsService {
     }
   }
 
-  SnapshotSignalSettings _canonicalSnapshotSignalSettings(
-    SnapshotSignalSettings settings,
+  AudioSignalSettings _canonicalAudioSignalSettings(
+    AudioSignalSettings settings,
   ) {
     try {
       final profile = SnapshotTurboProfiles.resolve(
@@ -152,7 +167,7 @@ class ZxSettingsService extends SettingsService {
               profile.nominalSpeedMultiplier) {
         throw const FormatException('Non-catalog timing');
       }
-      return SnapshotSignalSettings(
+      return AudioSignalSettings(
         profile: profile,
         invertPolarity: settings.invertPolarity,
         sampleRate: settings.sampleRate,

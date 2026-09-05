@@ -1,14 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:crypto/crypto.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:media_store_plus/media_store_plus.dart';
@@ -24,6 +22,7 @@ import 'package:zx_tape_player/services/silence_control_service.dart';
 import 'package:zx_tape_player/services/snapshot_asset_service.dart';
 import 'package:zx_tape_player/services/snapshot_cache_service.dart';
 import 'package:zx_tape_player/services/tape_conversion_service.dart';
+import 'package:zx_tape_player/services/tape_audio_settings.dart';
 import 'package:zx_tape_player/services/tape_image_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
 import 'package:zx_tape_player/services/wake_lock_service.dart';
@@ -153,10 +152,7 @@ class _TapePlayerState extends State<TapePlayer> {
       builder: (sheetContext) => SnapshotTurboProfileSheet(
         title: tr('snapshot_turbo_profile_title'),
         explanation: tr('snapshot_turbo_profile_explanation'),
-        invertPolarityLabel: tr('snapshot_invert_polarity'),
         activeProfile: _bloc.snapshotTurboProfile,
-        invertPolarity: _bloc.snapshotInvertPolarity,
-        sampleRateLabel: tr('snapshot_sample_rate'),
         sampleRate: _bloc.snapshotSampleRate,
         onSelected: (profile) {
           Navigator.pop(sheetContext);
@@ -165,26 +161,6 @@ class _TapePlayerState extends State<TapePlayer> {
               profile: profile,
               invertPolarity: _bloc.snapshotInvertPolarity,
               sampleRate: _bloc.snapshotSampleRate,
-            ),
-          );
-        },
-        onPolarityChanged: (invertPolarity) {
-          Navigator.pop(sheetContext);
-          unawaited(
-            _bloc.selectSnapshotSignalSettings(
-              profile: _bloc.snapshotTurboProfile,
-              invertPolarity: invertPolarity,
-              sampleRate: _bloc.snapshotSampleRate,
-            ),
-          );
-        },
-        onSampleRateChanged: (sampleRate) {
-          Navigator.pop(sheetContext);
-          unawaited(
-            _bloc.selectSnapshotSignalSettings(
-              profile: _bloc.snapshotTurboProfile,
-              invertPolarity: _bloc.snapshotInvertPolarity,
-              sampleRate: sampleRate,
             ),
           );
         },
@@ -295,7 +271,11 @@ class _TapePlayerState extends State<TapePlayer> {
                             setState(() => _downloading = false);
                             if (error != null) {
                               BarHelper.showSnackBar(
-                                message: tr('download_tape_error'),
+                                message: tr(
+                                  error is TapeNotFoundException
+                                      ? 'tape_not_found_on_server'
+                                      : 'download_tape_error',
+                                ),
                                 barType: SnackBarType.error,
                                 context: context,
                               );
@@ -614,10 +594,10 @@ class _TapePlayerState extends State<TapePlayer> {
       builder: (context, speedSnapshot) {
         final rateControl = _bloc.policy.isSnapshot
             ? TransportRateControl(
-                label: _bloc.snapshotTurboProfile.label,
+                label: _bloc.snapshotTurboLabel,
                 semanticLabel: tr(
                   'snapshot_turbo_profile_control',
-                  args: [_bloc.snapshotTurboProfile.label],
+                  args: [_bloc.snapshotTurboLabel],
                 ),
                 enabled: hasBlocks && !tapeLoading && !_bloc.preparing,
                 onPressed: () => _showSnapshotProfileBottomSheet(context),
@@ -685,6 +665,7 @@ class _PreparedPlayerAudio {
     this.snapshotIdentity,
     this.snapshotInvertPolarity,
     this.snapshotSampleRate,
+    this.tapeSettings,
   });
 
   final ResolvedTapeImage image;
@@ -694,6 +675,7 @@ class _PreparedPlayerAudio {
   final SnapshotCacheIdentity? snapshotIdentity;
   final bool? snapshotInvertPolarity;
   final SnapshotAudioSampleRate? snapshotSampleRate;
+  final TapeAudioSettings? tapeSettings;
 }
 
 class _CommittedSnapshotAudio {
@@ -738,7 +720,9 @@ class _TapePlayerBloc {
   final SnapshotCacheStore _snapshotCache = const SnapshotCacheStore();
   final SnapshotAssetLoader _snapshotAssetLoader = const SnapshotAssetLoader();
   StreamSubscription<AudioFilterType>? _filterSub;
-  bool _pendingFilterRefresh = false;
+  StreamSubscription<AudioSignalSettings>? _signalSub;
+  bool _pendingSignalRefresh = false;
+  bool _disposed = false;
   // Set when a filter change interrupts ongoing playback so that
   // _prepareTapeForPlay() can resume play() automatically after rebinding
   // the new WAV. Cleared on every consumption and on explicit stop/pause so
@@ -751,7 +735,7 @@ class _TapePlayerBloc {
   String? _currentWavPath;
   List<TapeConversionMessage> _currentWarnings = const [];
   SnapshotCacheIdentity? _currentSnapshotIdentity;
-  late final SnapshotTurboProfileSession _snapshotProfileSession;
+  late SnapshotTurboProfileSession _snapshotProfileSession;
   final TapePlaybackSpeedCoordinator _speedCoordinator =
       TapePlaybackSpeedCoordinator();
 
@@ -769,10 +753,17 @@ class _TapePlayerBloc {
   bool get preparing => _preparing || _snapshotProfileSession.preparing;
   SnapshotTurboProfile get snapshotTurboProfile =>
       _snapshotProfileSession.activeProfile;
+  String get snapshotTurboLabel =>
+      snapshotTurboProfile.labelAt(snapshotSampleRate);
   bool get snapshotInvertPolarity =>
       _snapshotProfileSession.activeInvertPolarity;
   SnapshotAudioSampleRate get snapshotSampleRate =>
       _snapshotProfileSession.activeSampleRate;
+
+  TapeAudioSettings get _tapeSettings => TapeAudioSettings(
+    filter: _settingsService.audioFilter,
+    sampleRate: _settingsService.audioSignalSettings.sampleRate,
+  );
 
   final StreamController<TapePlayerData> _tapePlayerController =
       StreamController<TapePlayerData>();
@@ -790,20 +781,7 @@ class _TapePlayerBloc {
 
   _TapePlayerBloc(this.software, {TapePlayerController? controller})
     : _mediaSelection = TapePlayerMediaSelection(software) {
-    final snapshotSignalSettings = _settingsService.snapshotSignalSettings;
-    _snapshotProfileSession = SnapshotTurboProfileSession(
-      initialProfile: snapshotSignalSettings.profile,
-      initialInvertPolarity: snapshotSignalSettings.invertPolarity,
-      initialSampleRate: snapshotSignalSettings.sampleRate,
-      persistCommittedSettings: (profile, invertPolarity, sampleRate) =>
-          _settingsService.setSnapshotSignalSettings(
-            SnapshotSignalSettings(
-              profile: profile,
-              invertPolarity: invertPolarity,
-              sampleRate: sampleRate,
-            ),
-          ),
-    );
+    _snapshotProfileSession = _newSnapshotSession();
     controller?._prepareTapeImageExport = _prepareTapeImageExport;
     controller?._prepareWavExport = _prepareWavExport;
     controller?._prepareOriginalArchiveExport = _prepareOriginalArchiveExport;
@@ -814,31 +792,62 @@ class _TapePlayerBloc {
 
     _player.setVolume(1.00);
     currentFileIndex = software.currentFileIndex;
-    _filterSub = _settingsService.filterChanges.listen((_) async {
-      if (!policy.refreshOnFilterChange) return;
-      // pause() (not stop()) keeps the audio session active and decoders
-      // alive. just_audio's stop() calls _setPlatformActive(false), releasing
-      // the platform; the next play() then races to re-activate the session
-      // alongside setFilePath's pending load — a known issue still tagged
-      // with a TODO in just_audio 0.10.5's play() implementation. The
-      // user-visible symptom is "progress bar advances but no audio", until
-      // a manual stop+play fully cycles the session. pause() avoids the race
-      // entirely: the same active session is reused for the rebound WAV.
-      final wasPlaying = _player.playing;
-      await _player.pause();
-      await _player.seek(Duration.zero);
-      if (wasPlaying) _pendingAutoResume = true;
-      if (_preparing) {
-        // A prepare is in flight with a stale filter snapshot. Flag the
-        // change so that prepare re-runs with the new filter before binding
-        // the player. Calling _prepareTapeForPlay() here would return false
-        // (because _preparing is true) and lose the update.
-        _pendingFilterRefresh = true;
-        return;
-      }
-      _blockInfos = null;
-      await _prepareTapeForPlay();
+    _filterSub = _settingsService.filterChanges.listen((_) {
+      if (policy.refreshOnFilterChange) unawaited(_refreshTapeAudio());
     });
+    var previousSettings = _settingsService.audioSignalSettings;
+    _signalSub = _settingsService.signalChanges.listen((settings) {
+      final rateChanged = previousSettings.sampleRate != settings.sampleRate;
+      previousSettings = settings;
+      _pendingSignalRefresh = true;
+      if (!policy.isSnapshot && rateChanged) {
+        unawaited(_refreshTapeAudio());
+      }
+      unawaited(_applyPendingSignalSettings());
+    });
+  }
+
+  SnapshotTurboProfileSession _newSnapshotSession() {
+    final settings = _settingsService.audioSignalSettings;
+    return SnapshotTurboProfileSession(
+      initialProfile: settings.profile,
+      initialInvertPolarity: settings.invertPolarity,
+      initialSampleRate: settings.sampleRate,
+      persistCommittedSettings: (profile, _, _) =>
+          _settingsService.setAudioSignalSettings(
+            // A completed speed change must not overwrite newer global
+            // frequency/polarity choices made while the WAV was rendering.
+            _settingsService.audioSignalSettings.copyWith(profile: profile),
+          ),
+    );
+  }
+
+  Future<void> _applyPendingSignalSettings() async {
+    if (_disposed || preparing || !_pendingSignalRefresh) return;
+    _pendingSignalRefresh = false;
+    if (!policy.isSnapshot) return;
+    final settings = _settingsService.audioSignalSettings;
+    await selectSnapshotSignalSettings(
+      profile: settings.profile,
+      invertPolarity: settings.invertPolarity,
+      sampleRate: settings.sampleRate,
+    );
+  }
+
+  Future<void> _refreshTapeAudio() async {
+    if (_disposed || policy.isSnapshot) return;
+    // Keep the audio session active while replacing the WAV, just as for a
+    // filter change. Releasing it here can race with the next player load.
+    final wasPlaying = _player.playing;
+    await _player.pause();
+    await _player.seek(Duration.zero);
+    if (_disposed) return;
+    if (wasPlaying) _pendingAutoResume = true;
+    // Every prepare/bind iteration compares its captured settings with the
+    // current settings, so changes during conversion cannot be lost.
+    if (preparing) return;
+    _blockInfos = null;
+    await _prepareTapeForPlay();
   }
 
   Future<Directory> _getCacheDirectory({required bool snapshot}) async {
@@ -849,7 +858,7 @@ class _TapePlayerBloc {
   }
 
   Future<String> _getTapeWavPath(
-    AudioFilterType filter, {
+    TapeAudioSettings settings, {
     String? sourcePath,
   }) async {
     final selectedFilePath = sourcePath ?? filePath;
@@ -861,14 +870,10 @@ class _TapePlayerBloc {
     // crashes long backward seeks with ENOENT. The application support
     // directory is internal app storage that the OS does not reclaim.
     final dir = await _getCacheDirectory(snapshot: false);
-    // Hash the source path so the cache filename uses only [0-9a-f]
-    // characters and never collides for different tapes. The filter name is
-    // appended so switching filters yields distinct cached files instead of
-    // replaying stale audio. The filter is passed in (rather than read from
-    // the service inside) so a single prepare iteration always uses the same
-    // filter for both the cache path and the conversion call.
-    final hash = sha1.convert(utf8.encode(selectedFilePath)).toString();
-    return Definitions.wafFilePath.format([dir.path, '${hash}_${filter.name}']);
+    return Definitions.wafFilePath.format([
+      dir.path,
+      settings.cacheKey(selectedFilePath),
+    ]);
   }
 
   Future<bool> _prepareTapeForPlay({bool force = true}) async {
@@ -886,6 +891,8 @@ class _TapePlayerBloc {
         selectedFilePath,
       ), model: _settingsService.zxModel);
       if (image.mediaKind == TapeMediaKind.snapshot) {
+        // The global preferences may have changed while another tape was open.
+        if (!policy.isSnapshot) _snapshotProfileSession = _newSnapshotSession();
         final prepared = await _prepareSnapshotAudio(
           image: image,
           filePath: selectedFilePath,
@@ -927,14 +934,12 @@ class _TapePlayerBloc {
             );
             break;
           }
-          final iterationFilter = _settingsService.audioFilter;
           await _speedCoordinator.applyFor(
             const TapePlaybackPolicy(TapeMediaKind.tape),
             _applySpeed,
           );
           await _player.setFilePath(prepared.wavPath);
-          if (_pendingFilterRefresh &&
-              _settingsService.audioFilter != iterationFilter) {
+          if (prepared.tapeSettings != _tapeSettings) {
             continue;
           }
           _resolvedImage = image;
@@ -952,14 +957,17 @@ class _TapePlayerBloc {
       finalEvent = TapePlayerData(
         TapePlayerState.error,
         selectedFilePath,
-        message: e.toString(),
+        message: e is TapeNotFoundException
+            ? tr('tape_not_found_on_server')
+            : e.toString(),
         mediaKind: _mediaKind,
       );
     } finally {
       _preparing = false;
     }
     if (finalEvent != null) _tapePlayerController.sink.add(finalEvent);
-    if (success && _pendingAutoResume) {
+    await _applyPendingSignalSettings();
+    if (success && _pendingAutoResume && !policy.isSnapshot) {
       _pendingAutoResume = false;
       await _takeControl();
       await _player.play();
@@ -1025,9 +1033,8 @@ class _TapePlayerBloc {
     required String filePath,
     required bool force,
   }) async {
-    _pendingFilterRefresh = false;
-    final filter = _settingsService.audioFilter;
-    final wavPath = await _getTapeWavPath(filter, sourcePath: filePath);
+    final settings = _tapeSettings;
+    final wavPath = await _getTapeWavPath(settings, sourcePath: filePath);
     final wavExists = await File(wavPath).exists();
     if (!wavExists && !force) return null;
     TapeConversionResponse? response;
@@ -1039,10 +1046,11 @@ class _TapePlayerBloc {
         image: image,
         outputPath: wavPath,
         filePath: filePath,
-        filter: filter,
+        filter: settings.filter,
+        sampleRateHz: settings.sampleRate.hz,
       );
     }
-    if (_pendingFilterRefresh && _settingsService.audioFilter != filter) {
+    if (_tapeSettings != settings) {
       return _prepareOrdinaryAudio(
         image: image,
         filePath: filePath,
@@ -1058,6 +1066,7 @@ class _TapePlayerBloc {
       image: image,
       wavPath: wavPath,
       response: response,
+      tapeSettings: settings,
     );
   }
 
@@ -1135,6 +1144,7 @@ class _TapePlayerBloc {
     required String outputPath,
     required String filePath,
     required AudioFilterType filter,
+    int sampleRateHz = 48000,
     SnapshotAssetBundle? snapshotAssets,
     SnapshotTurboProfile? snapshotTurboProfile,
     bool? snapshotInvertPolarity,
@@ -1161,6 +1171,7 @@ class _TapePlayerBloc {
           outputPath: outputPath,
           progressPort: progressPort.sendPort,
           audioFilterIndex: filter.index,
+          sampleRateHz: sampleRateHz,
           snapshotAssets: snapshotAssets,
           snapshotTurboProfileId: snapshotTurboProfile?.id,
           snapshotTurboCatalogRevision: snapshotTurboProfile == null
@@ -1200,7 +1211,6 @@ class _TapePlayerBloc {
     _currentWavPath = null;
     _currentWarnings = const [];
     _currentSnapshotIdentity = null;
-    _pendingFilterRefresh = false;
     _pendingAutoResume = false;
     unawaited(_prepareTapeForPlay(force: false));
     _tapePlayerController.sink.add(
@@ -1347,6 +1357,7 @@ class _TapePlayerBloc {
       _preparing = false;
     }
     _tapePlayerController.sink.add(finalEvent);
+    await _applyPendingSignalSettings();
     return success;
   }
 
@@ -1475,7 +1486,9 @@ class _TapePlayerBloc {
   }
 
   void dispose() {
+    _disposed = true;
     _filterSub?.cancel();
+    _signalSub?.cancel();
     _looseControl()
         .then((value) => _cleanWavCache())
         .then((value) => _player.dispose())
@@ -1529,9 +1542,8 @@ class _TapePlayerBloc {
         : (await getDownloadsDirectory() ??
               await getApplicationDocumentsDirectory());
     final downloadPath = '${dir.path}/$fileName';
-    await File(
-      downloadPath,
-    ).writeAsBytes(bytes, mode: FileMode.writeOnly, flush: true);
+    await File(downloadPath)
+        .writeAsBytes(bytes, mode: FileMode.writeOnly, flush: true);
     return true;
   }
 
@@ -1571,8 +1583,7 @@ class _TapePlayerBloc {
   }
 
   Future<String?> _prepareWavExport() async {
-    final wavPath =
-        _currentWavPath ?? await _getTapeWavPath(_settingsService.audioFilter);
+    final wavPath = _currentWavPath ?? await _getTapeWavPath(_tapeSettings);
     final wavFile = File(wavPath);
     if (!await wavFile.exists()) return null;
 

@@ -305,16 +305,15 @@ class SnapshotWavRenderer {
   static const int sampleRate = SnapshotTiming.sampleRate;
   static const int bitsPerSample = 8;
   static const int channels = 1;
-  static const String profileId =
-      '${sampleRate}hz-${bitsPerSample}bit-${channels}ch-'
-      'legacy-ceil-terminal-edge-riff-pad-v2';
+  static const int _terminalHoldMilliseconds = 2;
+  static const String _profileSuffix =
+      '${bitsPerSample}bit-${channels}ch-legacy-ceil-hold${_terminalHoldMilliseconds}ms-riff-pad-v3';
+  static const String profileId = '${sampleRate}hz-$_profileSuffix';
   static String profileIdFor(SnapshotAudioSampleRate sampleRate) =>
-      '${sampleRate.hz}hz-${bitsPerSample}bit-${channels}ch-'
-      'legacy-ceil-terminal-edge-riff-pad-v2';
+      '${sampleRate.hz}hz-$_profileSuffix';
   static const int lowLevel = 0;
   static const int highLevel = 255;
   static const int silenceLevel = 128;
-  static const int terminalTailFrames = 2;
 
   final SnapshotTimelineBuilder timelineBuilder;
 
@@ -356,7 +355,12 @@ class SnapshotWavRenderer {
         ),
       );
     }
+    final terminalHoldFrames = framesForTStates(
+      _terminalHoldMilliseconds * SnapshotTiming.tStatesPerMillisecond,
+      sampleRate: sampleRate,
+    );
     if (hasEvents) {
+      final terminalTailFrames = terminalHoldFrames + 1;
       totalFrames += terminalTailFrames;
       final last = metadata.removeLast();
       metadata.add(
@@ -398,10 +402,9 @@ class SnapshotWavRenderer {
       report(((blockIndex + 1) * 100) ~/ timeline.blocks.length);
     }
     if (hasEvents) {
-      // The last edge otherwise exists only as renderer state, not in PCM.
-      // Emit one frame at that post-edge level, followed by unsigned 8-bit
-      // silence. This mirrors the reference generator's terminal sample/tail.
-      wav[writeOffset++] = level;
+      // Give the EAR input time to register the final transition before silence.
+      wav.fillRange(writeOffset, writeOffset + terminalHoldFrames, level);
+      writeOffset += terminalHoldFrames;
       wav[writeOffset++] = invertPolarity
           ? highLevel - silenceLevel
           : silenceLevel;

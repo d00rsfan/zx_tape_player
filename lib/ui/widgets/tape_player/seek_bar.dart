@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
 import 'custom_track_shape.dart';

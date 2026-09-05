@@ -57,6 +57,7 @@ class SnapshotConverter {
       snapshot,
       assets,
       turboProfile: turboProfile,
+      sampleRate: sampleRate,
     );
     final turboBlocks = turboEncoder.encode(restorePlan);
     final wav = renderer.render(

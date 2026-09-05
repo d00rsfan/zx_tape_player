@@ -289,6 +289,9 @@ class ZxApiService implements BackendService {
       _client,
     ).get(Uri.parse(base + encodedPath));
     if (response.statusCode == 200) return response.bodyBytes;
+    if (response.statusCode == HttpStatus.notFound) {
+      throw const TapeNotFoundException();
+    }
     throw Exception('Failed to download tape: ${response.statusCode}');
   }
 

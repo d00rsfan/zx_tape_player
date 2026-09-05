@@ -12,7 +12,6 @@ import 'package:zx_tape_player/snapshots/snapshot_error.dart';
 import 'package:zx_tape_player/snapshots/snapshot_receiver_manifest.dart';
 import 'package:zx_tape_player/snapshots/snapshot_renderer.dart';
 import 'package:zx_tape_player/snapshots/snapshot_timing.dart';
-import 'package:zx_tape_player/utils/definitions.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
 // The converter package does not yet expose a public builder for raw
 // ZX80/ZX81 streams. These two implementation imports let us reuse its exact
@@ -31,6 +30,7 @@ class TapeConversionRequest {
     required this.outputPath,
     required this.progressPort,
     required this.audioFilterIndex,
+    this.sampleRateHz = 48000,
     this.snapshotAssets,
     this.snapshotTurboProfileId,
     this.snapshotTurboCatalogRevision,
@@ -42,6 +42,7 @@ class TapeConversionRequest {
   final String outputPath;
   final SendPort progressPort;
   final int audioFilterIndex;
+  final int sampleRateHz;
   final SnapshotAssetBundle? snapshotAssets;
   final String? snapshotTurboProfileId;
   final String? snapshotTurboCatalogRevision;
@@ -171,6 +172,7 @@ Future<TapeConversionResponse> convertTapeImage(
       rawTape,
       filter,
       request.progressPort,
+      request.sampleRateHz,
     );
     wavBytes = result.wavBytes;
     blocks = result.blocks;
@@ -179,7 +181,7 @@ Future<TapeConversionResponse> convertTapeImage(
     final tape = await ZxTape.create(image.bytes, fileName: image.fileName);
     final result = await tape.toWavBytesWithBlocks(
       audioFilterType: filter,
-      frequency: Definitions.wavFrequency,
+      frequency: request.sampleRateHz,
       progress: request.progressPort.send,
     );
     wavBytes = result.wavBytes;
@@ -305,6 +307,7 @@ TapeConversionResult _convertRawSinclairTape(
   _RawSinclairTape tape,
   AudioFilterType filter,
   SendPort progressPort,
+  int sampleRateHz,
 ) {
   final dataBlock = Zx81DataBlock(
     0,
@@ -319,7 +322,7 @@ TapeConversionResult _convertRawSinclairTape(
   );
   final builder = WavBuilder(
     <BlockBase>[dataBlock, pauseBlock],
-    Definitions.wavFrequency,
+    sampleRateHz,
     progressPort.send,
     audioFilterType: filter,
   );

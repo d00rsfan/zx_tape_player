@@ -41,7 +41,7 @@ class HexColor extends Color {
   }
 
   // ignore: deprecated_member_use
-  HexColor(final String hexColor) : super(_getColorFromHex(hexColor));
+  HexColor(String hexColor) : super(_getColorFromHex(hexColor));
 }
 
 extension EncodeStringExtension on String {

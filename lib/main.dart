@@ -2,7 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
@@ -12,6 +12,7 @@ import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/silence_control_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
 import 'package:zx_tape_player/services/wake_lock_service.dart';
+import 'package:zx_tape_player/services/whats_new_service.dart';
 import 'package:zx_tape_player/services/zx_api/zxapi_service.dart';
 import 'package:zx_tape_player/services/zx_control/zx_settings_service.dart';
 import 'package:zx_tape_player/services/zx_control/zx_silence_control_service.dart';
@@ -29,8 +30,24 @@ import 'ui/splash_screen.dart';
 
 final GetIt getIt = GetIt.instance;
 
+// The app uses dark backgrounds even when the device uses a light theme.
+// MaterialApp otherwise reapplies an opaque navigation bar and dark status
+// icons when it builds, overriding the native window setup after startup.
+const appSystemUiOverlayStyle = SystemUiOverlayStyle(
+  statusBarColor: Colors.transparent,
+  statusBarIconBrightness: Brightness.light,
+  statusBarBrightness: Brightness.dark,
+  systemStatusBarContrastEnforced: false,
+  systemNavigationBarColor: Colors.transparent,
+  systemNavigationBarDividerColor: Colors.transparent,
+  systemNavigationBarIconBrightness: Brightness.light,
+  systemNavigationBarContrastEnforced: false,
+);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Keep Flutter's stored system UI mode aligned with MainActivity's native
+  // window setup, including when Flutter restores overlays after a resume.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   if (!kIsWeb && (Platform.isLinux || Platform.isWindows)) {
@@ -63,6 +80,7 @@ void main() async {
   final settingsService = ZxSettingsService();
   await settingsService.load();
   getIt.registerSingleton<SettingsService>(settingsService);
+  getIt.registerLazySingleton<WhatsNewService>(() => WhatsNewService());
   getIt.registerLazySingleton<BackendService>(
     () => ZxApiService(settingsService),
   );
@@ -103,11 +121,22 @@ class ZxTapePlayer extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: context.localizationDelegates,
+      localizationsDelegates: [
+        ...context.localizationDelegates,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       title: Definitions.appTitle,
       theme: buildAppTheme(),
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: appSystemUiOverlayStyle,
+        // Third-party widgets still consume the Flutter SDK Material theme.
+        // ignore: deprecated_member_use
+        child: MaterialUiCompatibilityBridge(
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
       home: const SplashScreen(),
       routes: {
         HomeScreen.routeName: (context) => const HomeScreen(),
@@ -125,6 +154,9 @@ ThemeData buildAppTheme() => ThemeData(
   scaffoldBackgroundColor: HexColor('#546B7F'),
   visualDensity: VisualDensity.adaptivePlatformDensity,
   fontFamily: 'ZxSpectrum',
+  appBarTheme: const AppBarThemeData(
+    systemOverlayStyle: appSystemUiOverlayStyle,
+  ),
   radioTheme: const RadioThemeData(
     fillColor: WidgetStatePropertyAll(Colors.white),
   ),

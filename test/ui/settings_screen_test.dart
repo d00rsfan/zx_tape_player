@@ -1,14 +1,22 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zx_tape_player/main.dart';
+import 'package:zx_tape_player/models/pcm_sample_rate.dart';
 import 'package:zx_tape_player/models/zx_model.dart';
 import 'package:zx_tape_player/services/settings_service.dart';
 import 'package:zx_tape_player/services/volume_control_service.dart';
+import 'package:zx_tape_player/services/whats_new_service.dart';
 import 'package:zx_tape_player/ui/search_screen.dart';
 import 'package:zx_tape_player/ui/settings_screen.dart';
 import 'package:zx_tape_to_wav_x/zx_tape_to_wav_x.dart';
+
+late Map<String, dynamic> _translations;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,12 +24,28 @@ void main() {
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
     await EasyLocalization.ensureInitialized();
+    _translations = jsonDecode(
+      await File('assets/translations/en-US.json').readAsString(),
+    ) as Map<String, dynamic>;
   });
 
   late _FakeSettingsService settings;
 
   setUp(() async {
     await getIt.reset();
+    SharedPreferences.setMockInitialValues({
+      'headphoneWarningSeen': true,
+      'whatsNewLastShownVersion': '1.6.1',
+      'whatsNewNeverShowAgain': true,
+    });
+    PackageInfo.setMockInitialValues(
+      appName: 'ZX Tape Player',
+      packageName: 'io.github.d00rsfan.zx_tape_player',
+      version: '1.6.1',
+      buildNumber: '12',
+      buildSignature: '',
+    );
+    getIt.registerSingleton<WhatsNewService>(WhatsNewService());
     settings = _FakeSettingsService();
     getIt.registerSingleton<SettingsService>(settings);
     getIt.registerSingleton<VolumeControlService>(_FakeVolumeControlService());
@@ -63,7 +87,7 @@ void main() {
       closeTo(tester.getCenter(lastFilterRadio).dx, 0.01),
     );
 
-    await tester.drag(find.byType(ListView), const Offset(0, 500));
+    await tester.scrollUntilVisible(find.text('ZX Spectrum'), -250);
     await tester.pumpAndSettle();
     expect(find.text('ZX80'), findsOneWidget);
     await tester.tap(find.text('ZX Spectrum'));
@@ -78,6 +102,97 @@ void main() {
     expect(settings.zxModel, ZxModel.zx81);
     expect(searchArguments, '');
     expect(find.byKey(const ValueKey('fresh_search')), findsOneWidget);
+  });
+
+  testWidgets('global frequency and polarity persist, reopen, and reset', (
+    tester,
+  ) async {
+    await _pumpSettingsLauncher(tester, onSearch: (_) {});
+    expect(find.text('Audio filter (TAP/TZX only)'), findsOneWidget);
+    final signal = find.byKey(const ValueKey('settings_audio_signal'));
+    await tester.scrollUntilVisible(signal, 250);
+    await tester.ensureVisible(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    final rates = find.byKey(const ValueKey('settings_sample_rate'));
+    expect(tester.widget<SegmentedButton<PcmSampleRate>>(rates).selected, {
+      PcmSampleRate.hz48k,
+    });
+    expect(
+      tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+      isFalse,
+    );
+    expect(find.text('Invert polarity (only for snapshots)'), findsOneWidget);
+    final profile = settings.audioSignalSettings.profile;
+
+    await tester.tap(find.text('44.1 kHz'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Invert polarity (only for snapshots)'));
+    await tester.pumpAndSettle();
+    expect(settings.audioSignalSettings.sampleRate, PcmSampleRate.hz44_1k);
+    expect(settings.audioSignalSettings.invertPolarity, isTrue);
+    expect(settings.audioSignalSettings.profile, profile);
+
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('open_settings')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(signal, 250);
+    await tester.ensureVisible(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    expect(tester.widget<SegmentedButton<PcmSampleRate>>(rates).selected, {
+      PcmSampleRate.hz44_1k,
+    });
+    expect(
+      tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+      isTrue,
+    );
+
+    final reset = find.byKey(const ValueKey('settings_reset_default_button'));
+    await tester.ensureVisible(reset);
+    await tester.tap(reset);
+    await tester.pumpAndSettle();
+    final warning = find.byKey(const ValueKey('headphone_warning_dialog'));
+    final notes = find.byKey(const ValueKey('whats_new_dialog'));
+    expect(warning, findsOneWidget);
+    expect(notes, findsNothing);
+    await tester.tap(find.byKey(const ValueKey('headphone_warning_close')));
+    await tester.pumpAndSettle();
+    expect(warning, findsNothing);
+    expect(notes, findsOneWidget);
+    final optOut = find.byKey(const ValueKey('whats_new_never_show_again'));
+    expect(tester.widget<CheckboxListTile>(optOut).value, isFalse);
+    await tester.tap(find.byKey(const ValueKey('whats_new_close')));
+    await tester.pumpAndSettle();
+    final nextSession = WhatsNewService();
+    await nextSession.load();
+    expect(nextSession.shouldShowHeadphoneWarning, isFalse);
+    expect(nextSession.shouldShowAutomatically, isFalse);
+    expect(settings.audioSignalSettings.sampleRate, PcmSampleRate.hz48k);
+    expect(settings.audioSignalSettings.invertPolarity, isFalse);
+    expect(settings.audioSignalSettings.profile, profile);
+  });
+
+  testWidgets('signal controls fit a narrow screen with enlarged text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 480);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _pumpSettingsLauncher(tester, onSearch: (_) {});
+    final polarity = find.byKey(const ValueKey('settings_invert_polarity'));
+    await tester.scrollUntilVisible(polarity, 200);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(polarity).height,
+      greaterThanOrEqualTo(kMinInteractiveDimension),
+    );
+    await tester.tap(polarity);
+    await tester.pumpAndSettle();
+    expect(settings.audioSignalSettings.invertPolarity, isTrue);
   });
 }
 
@@ -95,12 +210,21 @@ Future<void> _pumpSettingsLauncher(
       supportedLocales: const [Locale('en', 'US')],
       path: 'assets/translations',
       fallbackLocale: const Locale('en', 'US'),
+      assetLoader: const _TestAssetLoader(),
       child: _LocalizedTestApp(onSearch: onSearch),
     ),
   );
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('open_settings')));
   await tester.pumpAndSettle();
+}
+
+class _TestAssetLoader extends AssetLoader {
+  const _TestAssetLoader();
+
+  @override
+  Future<Map<String, dynamic>> load(String path, Locale locale) =>
+      Future.value(_translations);
 }
 
 class _LocalizedTestApp extends StatelessWidget {
@@ -156,11 +280,15 @@ class _FakeSettingsService implements SettingsService {
   ZxModel zxModel = SettingsService.defaultZxModel;
 
   @override
-  SnapshotSignalSettings snapshotSignalSettings =
-      SettingsService.defaultSnapshotSignalSettings;
+  AudioSignalSettings audioSignalSettings =
+      SettingsService.defaultAudioSignalSettings;
 
   int modelWrites = 0;
   int filterWrites = 0;
+
+  @override
+  Stream<AudioSignalSettings> get signalChanges =>
+      const Stream<AudioSignalSettings>.empty();
 
   @override
   Stream<AudioFilterType> get filterChanges =>
@@ -192,10 +320,8 @@ class _FakeSettingsService implements SettingsService {
   }
 
   @override
-  Future<void> setSnapshotSignalSettings(
-    SnapshotSignalSettings settings,
-  ) async {
-    snapshotSignalSettings = settings;
+  Future<void> setAudioSignalSettings(AudioSignalSettings settings) async {
+    audioSignalSettings = settings;
   }
 }
 

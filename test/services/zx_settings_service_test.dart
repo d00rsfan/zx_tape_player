@@ -23,25 +23,28 @@ void main() {
     expect(settings.zxModel, ZxModel.zxSpectrum);
   });
 
-  test('defaults snapshot signal settings to 5x standard', () async {
-    final settings = ZxSettingsService();
+  test(
+    'defaults global audio to 48 kHz without inversion and snapshots to 5x',
+    () async {
+      final settings = ZxSettingsService();
 
-    await settings.load();
+      await settings.load();
 
-    expect(
-      settings.snapshotSignalSettings,
-      SettingsService.defaultSnapshotSignalSettings,
-    );
-    expect(
-      settings.snapshotSignalSettings.profile,
-      SnapshotTurboProfiles.speed5x,
-    );
-    expect(settings.snapshotSignalSettings.invertPolarity, isFalse);
-    expect(
-      settings.snapshotSignalSettings.sampleRate,
-      SnapshotAudioSampleRate.hz48k,
-    );
-  });
+      expect(
+        settings.audioSignalSettings,
+        SettingsService.defaultAudioSignalSettings,
+      );
+      expect(
+        settings.audioSignalSettings.profile,
+        SnapshotTurboProfiles.speed5x,
+      );
+      expect(settings.audioSignalSettings.invertPolarity, isFalse);
+      expect(
+        settings.audioSignalSettings.sampleRate,
+        SnapshotAudioSampleRate.hz48k,
+      );
+    },
+  );
 
   test('loads a persisted ZX81 model', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -94,21 +97,21 @@ void main() {
   });
 
   test(
-    'persists and restores snapshot speed, polarity, and sample rate together',
+    'persists and restores global polarity and sample rate with snapshot speed',
     () async {
       final firstSession = ZxSettingsService();
       await firstSession.load();
-      const selected = SnapshotSignalSettings(
+      const selected = AudioSignalSettings(
         profile: SnapshotTurboProfiles.speed2_5x,
         invertPolarity: true,
         sampleRate: SnapshotAudioSampleRate.hz44_1k,
       );
 
-      await firstSession.setSnapshotSignalSettings(selected);
+      await firstSession.setAudioSignalSettings(selected);
 
       final prefs = await SharedPreferences.getInstance();
       expect(
-        jsonDecode(prefs.getString('snapshotSignalSettings')!),
+        jsonDecode(prefs.getString('audioSignalSettings')!),
         <String, Object>{
           'profileId': '2.5x',
           'invertPolarity': true,
@@ -118,7 +121,63 @@ void main() {
 
       final nextSession = ZxSettingsService();
       await nextSession.load();
-      expect(nextSession.snapshotSignalSettings, selected);
+      expect(nextSession.audioSignalSettings, selected);
+    },
+  );
+
+  test('migrates legacy snapshot choices to global audio settings', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'snapshotSignalSettings':
+          '{"profileId":"2.5x","invertPolarity":true,"sampleRateHz":44100}',
+    });
+    final settings = ZxSettingsService();
+    await settings.load();
+    expect(
+      settings.audioSignalSettings.sampleRate,
+      SnapshotAudioSampleRate.hz44_1k,
+    );
+    expect(settings.audioSignalSettings.invertPolarity, isTrue);
+    expect(
+      settings.audioSignalSettings.profile,
+      SnapshotTurboProfiles.speed2_5x,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    expect(jsonDecode(prefs.getString('audioSignalSettings')!), {
+      'profileId': '2.5x',
+      'invertPolarity': true,
+      'sampleRateHz': 44100,
+    });
+
+    await settings.setAudioSignalSettings(
+      SettingsService.defaultAudioSignalSettings,
+    );
+    final reopened = ZxSettingsService();
+    await reopened.load();
+    expect(
+      reopened.audioSignalSettings,
+      SettingsService.defaultAudioSignalSettings,
+    );
+  });
+
+  test(
+    'emits global signal changes once after the new value is saved',
+    () async {
+      final settings = ZxSettingsService();
+      await settings.load();
+      final values = <AudioSignalSettings>[];
+      final subscription = settings.signalChanges.listen((value) {
+        expect(settings.audioSignalSettings, value);
+        values.add(value);
+      });
+      addTearDown(subscription.cancel);
+      final selected = settings.audioSignalSettings.copyWith(
+        sampleRate: SnapshotAudioSampleRate.hz44_1k,
+        invertPolarity: true,
+      );
+      await settings.setAudioSignalSettings(selected);
+      await settings.setAudioSignalSettings(selected);
+      await Future<void>.delayed(Duration.zero);
+      expect(values, [selected]);
     },
   );
 
@@ -136,15 +195,15 @@ void main() {
 
       for (final stored in invalidValues) {
         SharedPreferences.setMockInitialValues(<String, Object>{
-          'snapshotSignalSettings': stored,
+          'audioSignalSettings': stored,
         });
         final settings = ZxSettingsService();
 
         await settings.load();
 
         expect(
-          settings.snapshotSignalSettings,
-          SettingsService.defaultSnapshotSignalSettings,
+          settings.audioSignalSettings,
+          SettingsService.defaultAudioSignalSettings,
           reason: stored.toString(),
         );
       }
@@ -153,19 +212,16 @@ void main() {
 
   test('migrates the replaced 7.5x preset and preserves polarity', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
-      'snapshotSignalSettings': '{"profileId":"7.5x","invertPolarity":true}',
+      'audioSignalSettings': '{"profileId":"7.5x","invertPolarity":true}',
     });
     final settings = ZxSettingsService();
 
     await settings.load();
 
+    expect(settings.audioSignalSettings.profile, SnapshotTurboProfiles.speed7x);
+    expect(settings.audioSignalSettings.invertPolarity, isTrue);
     expect(
-      settings.snapshotSignalSettings.profile,
-      SnapshotTurboProfiles.speed7x,
-    );
-    expect(settings.snapshotSignalSettings.invertPolarity, isTrue);
-    expect(
-      settings.snapshotSignalSettings.sampleRate,
+      settings.audioSignalSettings.sampleRate,
       SnapshotAudioSampleRate.hz48k,
     );
   });
@@ -175,8 +231,8 @@ void main() {
     await settings.load();
 
     expect(
-      () => settings.setSnapshotSignalSettings(
-        SnapshotSignalSettings(
+      () => settings.setAudioSignalSettings(
+        AudioSignalSettings(
           profile: SnapshotTurboProfiles.speed5x.copyWith(zeroTStates: 292),
           invertPolarity: true,
         ),
@@ -184,8 +240,8 @@ void main() {
       throwsArgumentError,
     );
     expect(
-      settings.snapshotSignalSettings,
-      SettingsService.defaultSnapshotSignalSettings,
+      settings.audioSignalSettings,
+      SettingsService.defaultAudioSignalSettings,
     );
   });
 }

@@ -1,10 +1,9 @@
 <en-US>
-What's new in 1.6.0:
+What's new in 1.6.1
 
-• Restore 48K/128K .z80 and .sna snapshots to real ZX Spectrum hardware through audio.
-• Based on Daan Scherft/Oxidaan's MIT-licensed ZQLoader design and Z80 receiver.
-• Open snapshots locally, from ZIP files, or ZXInfo.
-• Select 10x–1x turbo speed, polarity, and 48/44.1 kHz; preferences are remembered.
-• Added snapshot tips, progress, warnings, and WAV export.
-• Fixed state restoration, waveform polarity, and controls after playback.
+• Z80 and SNA snapshots load more reliably at high speeds.
+• Snapshot speed labels now reflect the selected sample rate. Choose 48 kHz (default) or 44.1 kHz in Settings.
+• A one-time warning reminds you to disconnect headphones before playback. Resetting Settings shows the warning and What's new again.
+• Read the changelog offline from the Home or player menu.
+• Android navigation buttons stay visible after theme changes and when returning to the app.
 </en-US>

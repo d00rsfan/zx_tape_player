@@ -1,21 +1,9 @@
+import 'package:zx_tape_player/models/pcm_sample_rate.dart';
+
 import 'snapshot_error.dart';
 
-enum SnapshotAudioSampleRate {
-  hz48k(48000, '48 kHz'),
-  hz44_1k(44100, '44.1 kHz');
-
-  const SnapshotAudioSampleRate(this.hz, this.label);
-
-  final int hz;
-  final String label;
-
-  static SnapshotAudioSampleRate? tryFromHz(Object? value) {
-    for (final sampleRate in values) {
-      if (sampleRate.hz == value) return sampleRate;
-    }
-    return null;
-  }
-}
+// Snapshot timing uses the same output rates as ordinary tape conversion.
+typedef SnapshotAudioSampleRate = PcmSampleRate;
 
 /// Immutable, jointly receiver/WAV-compatible timing for snapshot turbo data.
 class SnapshotTurboProfile {
@@ -38,6 +26,7 @@ class SnapshotTurboProfile {
     required this.receiverLeaderMin,
     required this.receiverSyncMin,
     required this.zeroMax,
+    this.zeroMax44k1,
   });
 
   final String id;
@@ -58,16 +47,21 @@ class SnapshotTurboProfile {
   final int receiverLeaderMin;
   final int receiverSyncMin;
   final int zeroMax;
+  final int? zeroMax44k1;
 
-  String get label {
-    final wholeSpeed = nominalSpeedMultiplier.truncateToDouble();
-    final value = nominalSpeedMultiplier == wholeSpeed
-        ? wholeSpeed.toInt().toString()
-        : nominalSpeedMultiplier.toStringAsFixed(1);
-    return '${value}x';
-  }
+  String get label => labelAt(SnapshotTiming.defaultSampleRate);
 
-  int get bitOneThreshold => SnapshotTiming.bitLoopMax - zeroMax;
+  String labelAt(SnapshotAudioSampleRate rate) =>
+      '${effectiveSpeedMultiplierAt(rate).toStringAsFixed(1)}x';
+
+  int zeroMaxAt(SnapshotAudioSampleRate rate) =>
+      rate == SnapshotAudioSampleRate.hz44_1k
+      ? zeroMax44k1 ?? zeroMax
+      : zeroMax;
+  int bitOneThresholdAt(SnapshotAudioSampleRate rate) =>
+      SnapshotTiming.bitLoopMax - zeroMaxAt(rate);
+  int get bitOneThreshold =>
+      bitOneThresholdAt(SnapshotTiming.defaultSampleRate);
   int get receiverLeaderMinCompare => receiverLeaderMax + 2 - receiverLeaderMin;
   int get receiverSyncMinCompare => receiverLeaderMax + 2 - receiverSyncMin;
   int get leaderFrames =>
@@ -90,20 +84,26 @@ class SnapshotTurboProfile {
       SnapshotTiming.framesForTStates(zeroTStates, sampleRate: sampleRate.hz);
   int expectedOneFramesAt(SnapshotAudioSampleRate sampleRate) =>
       SnapshotTiming.framesForTStates(oneTStates, sampleRate: sampleRate.hz);
-  int balancedByteFramesAt(SnapshotAudioSampleRate sampleRate) =>
-      4 * (expectedZeroFramesAt(sampleRate) + expectedOneFramesAt(sampleRate)) +
-      SnapshotTiming.framesForTStates(
-        SnapshotTiming.turboPreByteDelayTStates,
-        sampleRate: sampleRate.hz,
-      );
+  double balancedByteFramesAt(SnapshotAudioSampleRate sampleRate) {
+    final ordinaryPair =
+        expectedZeroFramesAt(sampleRate) + expectedOneFramesAt(sampleRate);
+    int firstBitFrames(int tStates) => SnapshotTiming.framesForTStates(
+      tStates + SnapshotTiming.turboPreByteDelayTStates,
+      sampleRate: sampleRate.hz,
+    );
+    // Seven ordinary bits and one byte-boundary bit, each equally likely 0 or 1.
+    return (7 * ordinaryPair +
+            firstBitFrames(zeroTStates) +
+            firstBitFrames(oneTStates)) /
+        2;
+  }
+
   double get effectiveSpeedMultiplier =>
-      10 *
-      SnapshotTurboProfiles.speed10x.balancedByteFrames /
-      balancedByteFrames;
-  double effectiveSpeedMultiplierAt(SnapshotAudioSampleRate sampleRate) =>
-      10 *
-      SnapshotTurboProfiles.speed10x.balancedByteFramesAt(sampleRate) /
-      balancedByteFramesAt(sampleRate);
+      effectiveSpeedMultiplierAt(SnapshotTiming.defaultSampleRate);
+  double effectiveSpeedMultiplierAt(SnapshotAudioSampleRate rate) =>
+      SnapshotTiming.romBalancedByteTStates *
+      rate.hz /
+      (SnapshotTiming.spectrumClock * balancedByteFramesAt(rate));
 
   /// Stable cache material. A catalog revision still namespaces this value so
   /// correcting a profile later cannot reuse an old waveform accidentally.
@@ -115,7 +115,8 @@ class SnapshotTurboProfile {
       'la$receiverLeaderMax-$receiverLeaderMin-$receiverSyncMin-'
       'z$zeroTStates-o$oneTStates-'
       'f$expectedZeroFrames-$expectedOneFrames-'
-      'zm$zeroMax-th$bitOneThreshold';
+      'zm$zeroMax-th$bitOneThreshold'
+      '${zeroMax44k1 == null ? '' : '-zm44100-$zeroMax44k1'}';
 
   SnapshotTurboProfile copyWith({
     String? id,
@@ -136,6 +137,7 @@ class SnapshotTurboProfile {
     int? receiverLeaderMin,
     int? receiverSyncMin,
     int? zeroMax,
+    int? zeroMax44k1,
   }) => SnapshotTurboProfile(
     id: id ?? this.id,
     nominalSpeedMultiplier:
@@ -158,6 +160,7 @@ class SnapshotTurboProfile {
     receiverLeaderMin: receiverLeaderMin ?? this.receiverLeaderMin,
     receiverSyncMin: receiverSyncMin ?? this.receiverSyncMin,
     zeroMax: zeroMax ?? this.zeroMax,
+    zeroMax44k1: zeroMax44k1 ?? this.zeroMax44k1,
   );
 
   @override
@@ -180,6 +183,8 @@ class SnapshotTiming {
   static const int sampleRate = 48000;
   static const int tStatesPerMillisecond = 3500;
 
+  // Four ROM zeros and four ones, with two pulses per bit.
+  static const int romBalancedByteTStates = 4 * 2 * (855 + 1710);
   static const int romLeaderTStates = 2168;
   static const int romSync1TStates = 667;
   static const int romSync2TStates = 735;
@@ -246,7 +251,9 @@ class SnapshotTurboProfiles {
     receiverLeaderMax: 13,
     receiverLeaderMin: 8,
     receiverSyncMin: 4,
-    zeroMax: 3,
+    zeroMax: 4,
+    // At 44.1 kHz a three-frame one can arrive on poll four.
+    zeroMax44k1: 3,
   );
   static const SnapshotTurboProfile speed7x = SnapshotTurboProfile(
     id: '7x',
@@ -255,18 +262,20 @@ class SnapshotTurboProfiles {
     sync1TStates: 364,
     sync2TStates: 729,
     payloadMiniSyncTStates: 729,
-    zeroTStates: 211,
+    // Matches the hardware-tested four-frame zero (five at byte boundaries)
+    // at 48 kHz and keeps the byte-boundary zero inside the 44.1 kHz window.
+    zeroTStates: 250,
     oneTStates: 411,
     expectedLeaderFrames: 10,
     expectedSync1Frames: 5,
     expectedSync2Frames: 10,
     expectedPayloadMiniSyncFrames: 10,
-    expectedZeroFrames: 3,
+    expectedZeroFrames: 4,
     expectedOneFrames: 6,
     receiverLeaderMax: 19,
     receiverLeaderMin: 13,
     receiverSyncMin: 5,
-    zeroMax: 6,
+    zeroMax: 7,
   );
   static const SnapshotTurboProfile speed5x = SnapshotTurboProfile(
     id: '5x',
@@ -454,8 +463,11 @@ class SnapshotTurboProfiles {
           profile.sync1TStates <= 0 ||
           profile.sync2TStates <= 0 ||
           profile.payloadMiniSyncTStates <= 0 ||
-          profile.zeroMax <= 0 ||
-          profile.zeroMax >= SnapshotTiming.bitLoopMax) {
+          SnapshotAudioSampleRate.values.any(
+            (rate) =>
+                profile.zeroMaxAt(rate) <= 0 ||
+                profile.zeroMaxAt(rate) >= SnapshotTiming.bitLoopMax,
+          )) {
         throw ArgumentError.value(profile, 'profile');
       }
       if (SnapshotTiming.framesForTStates(profile.leaderTStates) !=
@@ -716,8 +728,8 @@ class SnapshotReceiverTimingSimulation {
         );
         if (zero == null ||
             one == null ||
-            zero > profile.zeroMax ||
-            one <= profile.zeroMax) {
+            zero > profile.zeroMaxAt(sampleRate) ||
+            one <= profile.zeroMaxAt(sampleRate)) {
           return false;
         }
       }

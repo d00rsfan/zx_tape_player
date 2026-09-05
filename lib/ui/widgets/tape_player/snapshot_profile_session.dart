@@ -36,16 +36,10 @@ class SnapshotTurboProfileSession {
     bool initialInvertPolarity = false,
     SnapshotAudioSampleRate initialSampleRate =
         SnapshotTiming.defaultSampleRate,
-    Future<void> Function(
-      SnapshotTurboProfile profile,
-      bool invertPolarity,
-      SnapshotAudioSampleRate sampleRate,
-    )?
-    persistCommittedSettings,
+    this._persistCommittedSettings,
   }) : _activeProfile = _canonical(initialProfile),
        _activeInvertPolarity = initialInvertPolarity,
-       _activeSampleRate = initialSampleRate,
-       _persistCommittedSettings = persistCommittedSettings;
+       _activeSampleRate = initialSampleRate;
 
   SnapshotTurboProfile _activeProfile;
   bool _activeInvertPolarity;

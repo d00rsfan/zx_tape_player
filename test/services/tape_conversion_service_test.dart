@@ -56,7 +56,50 @@ void main() {
     expect(progress, contains(100));
     expect(await output.length(), greaterThan(44));
     expect(await output.openRead(0, 4).single, equals('RIFF'.codeUnits));
+    expect(_wavUint32(await output.readAsBytes(), 24), 48000);
   });
+
+  test(
+    'all ordinary tape paths use the selected PCM rate and retain duration',
+    () async {
+      final fixtures = <(String, Uint8List)>[
+        ('rates.tap', _buildTap()),
+        ('rates.tzx', _buildGeneralizedTzx()),
+        ('rates.p', _buildPFile(160)),
+        ('rates.p81', Uint8List.fromList([0xb9, ..._buildPFile(160)])),
+        ('rates.o', _buildOFile(80)),
+      ];
+      for (final (name, data) in fixtures) {
+        final (result48, wav48) = await _convert(
+          data,
+          name,
+          sampleRateHz: 48000,
+        );
+        final (result44, wav44) = await _convert(
+          data,
+          name,
+          sampleRateHz: 44100,
+        );
+        expect(_wavUint32(wav48, 24), 48000, reason: name);
+        expect(_wavUint32(wav44, 24), 44100, reason: name);
+        expect(_wavUint32(wav48, 28), 48000, reason: name);
+        expect(_wavUint32(wav44, 28), 44100, reason: name);
+        expect(
+          _wavUint32(wav48, 40) / 48000,
+          closeTo(_wavUint32(wav44, 40) / 44100, 1 / 44100),
+          reason: name,
+        );
+        expect(result44.blocks.length, result48.blocks.length, reason: name);
+        for (var i = 0; i < result44.blocks.length; i++) {
+          expect(
+            result44.blocks[i].timeOffset.inMicroseconds,
+            closeTo(result48.blocks[i].timeOffset.inMicroseconds, 24),
+            reason: name,
+          );
+        }
+      }
+    },
+  );
 
   test('ZX81 .81 is byte-for-byte equivalent to .p audio', () async {
     final bytes = _buildPFile(160);
@@ -136,7 +179,9 @@ void main() {
     expect(response.blocks.first.sampleOffset, 0);
     expect(response.warnings, isEmpty);
     expect(wav.sublist(0, 4), orderedEquals('RIFF'.codeUnits));
-    expect(wav[44], greaterThanOrEqualTo(128));
+    // A default generalized symbol starts at the current (initially low)
+    // pulse level. wav_x 1.4.0 fixes the extra edge in earlier releases.
+    expect(wav[44], 0);
   });
 
   test('truncated ZX80 memory images are rejected', () async {
@@ -349,6 +394,7 @@ Future<(TapeConversionResponse, Uint8List)> _convert(
   String fileName, {
   SnapshotTurboProfile snapshotProfile = SnapshotTurboProfiles.defaultProfile,
   bool invertPolarity = false,
+  int sampleRateHz = 48000,
   SnapshotAudioSampleRate snapshotSampleRate = SnapshotTiming.defaultSampleRate,
   int? snapshotSampleRateHzOverride,
   String? snapshotProfileIdOverride,
@@ -375,6 +421,7 @@ Future<(TapeConversionResponse, Uint8List)> _convert(
       outputPath: output.path,
       progressPort: progressPort.sendPort,
       audioFilterIndex: AudioFilterType.none.index,
+      sampleRateHz: sampleRateHz,
       snapshotAssets: snapshotAssets,
       snapshotTurboProfileId:
           image.mediaKind == TapeMediaKind.snapshot && !omitSnapshotProfile

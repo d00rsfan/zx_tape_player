@@ -33,7 +33,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "io.github.d00rsfan.zx_tape_player"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -49,7 +49,7 @@ android {
     defaultConfig {
         applicationId = "io.github.d00rsfan.zx_tape_player"
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        targetSdk = 37
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }
@@ -76,14 +76,19 @@ android {
     }
 }
 
-// Pin the compile toolchain to JDK 21 so javac/kotlinc come from a 21
-// installation regardless of which JVM runs the Gradle daemon (e.g. a
-// user-global org.gradle.java.home pointing at an older JDK). Also implies
-// jvmTarget=21 for Kotlin, matching compileOptions above.
+// Match the Java bytecode target while compiling with the JDK running Gradle.
 kotlin {
-    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+    }
 }
 
 flutter {
     source '../..'
+}
+
+dependencies {
+    // MainActivity uses WindowCompat.enableEdgeToEdge directly. Keep this
+    // explicit instead of depending on a Flutter plugin to supply the API.
+    implementation 'androidx.core:core:1.19.1'
 }

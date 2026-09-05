@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zx_tape_player/main.dart';
 import 'package:zx_tape_player/models/args/player_args.dart';
 import 'package:zx_tape_player/services/settings_service.dart';
@@ -12,6 +12,7 @@ import 'package:zx_tape_player/ui/player_screen.dart';
 import 'package:zx_tape_player/ui/search_screen.dart';
 import 'package:zx_tape_player/ui/settings_screen.dart';
 import 'package:zx_tape_player/ui/tips_screen.dart';
+import 'package:zx_tape_player/ui/widgets/whats_new_dialog.dart';
 import 'package:zx_tape_player/utils/bar_helper.dart';
 import 'package:zx_tape_player/utils/extensions.dart';
 
@@ -23,14 +24,28 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-enum _HomeMenuAction { settings, tips }
+enum _HomeMenuAction { settings, tips, whatsNew }
 
 class _HomeScreenState extends State<HomeScreen> {
   final _controller = TextEditingController();
+  final _searchFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await showWhatsNewDialog(context, automatic: true);
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+        _searchFocus.requestFocus();
+      }
+    });
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -51,8 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
             onSelected: (action) {
               if (action == _HomeMenuAction.settings) {
                 Navigator.of(context).pushNamed(SettingsScreen.routeName);
-              } else {
+              } else if (action == _HomeMenuAction.tips) {
                 Navigator.of(context).pushNamed(TipsScreen.routeName);
+              } else {
+                showWhatsNewDialog(context);
               }
             },
             itemBuilder: (context) => [
@@ -96,6 +113,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              PopupMenuItem(
+                value: _HomeMenuAction.whatsNew,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.new_releases_outlined,
+                      size: 16.0,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 16.0),
+                    Text(
+                      tr('whats_new_title'),
+                      style: const TextStyle(
+                        letterSpacing: -0.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -118,12 +155,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24.0),
                 TextField(
                   controller: _controller,
+                  focusNode: _searchFocus,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18.0,
                     letterSpacing: -0.5,
                   ),
-                  autofocus: true,
                   onChanged: (text) {
                     if (text.isNotEmpty) {
                       Navigator.pushNamed(

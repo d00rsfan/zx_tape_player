@@ -263,6 +263,7 @@ class SnapshotReceiverPatcher {
     SnapshotReceiverLayout layout,
     int loaderStart, {
     required SnapshotTurboProfile turboProfile,
+    SnapshotAudioSampleRate sampleRate = SnapshotTiming.defaultSampleRate,
   }) {
     if (receiverTap.length != layout.length) {
       throw SnapshotException(
@@ -328,7 +329,10 @@ class SnapshotReceiverPatcher {
       layout.miniSyncMaxAddress,
       SnapshotTiming.receiverMiniSyncMax,
     );
-    byteAtAddress(layout.bitOneThresholdAddress, turboProfile.bitOneThreshold);
+    byteAtAddress(
+      layout.bitOneThresholdAddress,
+      turboProfile.bitOneThresholdAt(sampleRate),
+    );
     byteAtAddress(layout.ioInitAddress, SnapshotTiming.ioInitial);
     byteAtAddress(layout.ioXorAddress, SnapshotTiming.ioXor);
     _recalculateCodeBlockChecksum(result);
@@ -569,6 +573,7 @@ class SnapshotRestorePlanner {
     SpectrumSnapshot snapshot,
     SnapshotAssetBundle assets, {
     required SnapshotTurboProfile turboProfile,
+    SnapshotAudioSampleRate sampleRate = SnapshotTiming.defaultSampleRate,
   }) {
     assets.verify();
     final layout = SnapshotReceiverManifest.layoutFor(snapshot.machine);
@@ -610,6 +615,7 @@ class SnapshotRestorePlanner {
       layout,
       loaderStart,
       turboProfile: turboProfile,
+      sampleRate: sampleRate,
     );
 
     var fixedRanges = <SnapshotMemoryRange>[

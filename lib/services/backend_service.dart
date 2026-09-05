@@ -4,6 +4,10 @@ import 'package:zx_tape_player/models/hit_model.dart';
 import 'package:zx_tape_player/models/software_model.dart';
 import 'package:zx_tape_player/models/term_model.dart';
 
+class TapeNotFoundException implements Exception {
+  const TapeNotFoundException();
+}
+
 abstract class BackendService {
   Future<List<TermModel>> fetchTermsList(String query);
 

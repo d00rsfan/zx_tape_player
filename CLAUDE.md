@@ -15,9 +15,9 @@ flutter analyze                # static analysis
 
 ## Tech Stack
 
-- **Flutter 3.44.8 stable** / **Dart 3.12.2** (tested toolchain; `pubspec.yaml` allows Dart `>=3.11.0 <4.0.0`)
-- **Android**: compileSdk 36, targetSdk 36, minSdk 24, Java 21 (via jvmToolchain), Gradle 9.1.0, AGP 9.0.1, Kotlin 2.3.20
-- **iOS**: minimum deployment target 13.0
+- **Flutter 3.50.1 stable** / **Dart 3.14.0** (tested toolchain; `pubspec.yaml` allows Dart `>=3.13.0 <4.0.0`)
+- **Android**: compileSdk 37, targetSdk 37, minSdk 24, JDK 25, Java/Kotlin bytecode target 21, Gradle 9.5.0, AGP 9.3.2, Kotlin 2.4.20
+- **iOS**: minimum deployment target 15.0
 
 ## Architecture
 

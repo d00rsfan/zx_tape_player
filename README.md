@@ -38,7 +38,9 @@ Rest in peace, Andriy. Your code lives on.
 
 ## Availability
 
-The app is no longer available on app stores. I plan to publish it on Google Play once the project is in good shape. In the meantime, you can build it yourself from source or download a pre-built APK from [Releases](https://github.com/d00rsfan/zx_tape_player/releases).
+ZX Tape Player for Android is available on [Google Play](https://play.google.com/store/apps/details?id=io.github.d00rsfan.zx_tape_player). Prebuilt desktop versions for Linux, macOS, and Windows are available on the [Releases](https://github.com/d00rsfan/zx_tape_player/releases) page.
+
+<a href="https://play.google.com/store/apps/details?id=io.github.d00rsfan.zx_tape_player"><img src="assets/images/google-play-qr.png" alt="Scan to open ZX Tape Player on Google Play" width="160"></a>
 
 ## Building from Source
 

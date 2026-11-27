@@ -20,7 +20,9 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun configureEdgeToEdge() {
-        WindowCompat.enableEdgeToEdge(window)
+        // The themes supply transparent bars. The all-in-one AndroidX helper
+        // also calls Window.setStatusBarColor and Window.setNavigationBarColor.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         // Every screen uses a dark background, regardless of the device theme.
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = false

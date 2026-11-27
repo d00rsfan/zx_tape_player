@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.6.2 - Love Street
+
+### Maintenance
+- Updated the Android edge-to-edge setup to avoid two deprecated system bar calls flagged by Google Play.
+
 ## v1.6.1 - Hello, I Love You
 
 ### New Features

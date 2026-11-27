@@ -104,6 +104,11 @@ void main() {
       navigator.pushNamed(TipsScreen.routeName);
       await tester.pumpAndSettle();
       expect(find.byType(TipsScreen), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byType(IconButton).first).dy,
+        greaterThanOrEqualTo(32),
+      );
+      expect(tester.getBottomLeft(find.byType(ListView)).dy, 900 - 24);
       expectReadableBars();
 
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;

@@ -1,9 +1,5 @@
 <en-US>
-What's new in 1.6.1
+What's new in 1.6.2 - Love Street
 
-• Z80 and SNA snapshots load more reliably at high speeds.
-• Snapshot speed labels now reflect the selected sample rate. Choose 48 kHz (default) or 44.1 kHz in Settings.
-• A one-time warning reminds you to disconnect headphones before playback. Resetting Settings shows the warning and What's new again.
-• Read the changelog offline from the Home or player menu.
-• Android navigation buttons stay visible after theme changes and when returning to the app.
+• Updated the Android edge-to-edge setup to avoid two deprecated system bar calls flagged by Google Play.
 </en-US>

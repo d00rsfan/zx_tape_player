@@ -88,7 +88,7 @@ flutter {
 }
 
 dependencies {
-    // MainActivity uses WindowCompat.enableEdgeToEdge directly. Keep this
+    // MainActivity uses WindowCompat directly. Keep this
     // explicit instead of depending on a Flutter plugin to supply the API.
     implementation 'androidx.core:core:1.19.1'
 }
